@@ -37,9 +37,11 @@ Expose a small development-only inspection API for position, target, flight mode
 
 Generate deterministic star systems and planet descriptions from seeds. Render distant stars from those real descriptions. Separate physical addresses from camera-relative drawing coordinates. Add practical pulse and interstellar travel, target selection, and distance displays. Expand toward the reference's universe scale only after basic travel works.
 
-## 5. Make descent continuous
+## 5. Make descent continuous — graded local terrain implemented
 
 Use one terrain sampling function for planet shape, water, biome colors, and ground collision. Add cube-sphere terrain with adaptive refinement and worker generation. Keep coarse coverage visible until replacement terrain is ready. Tie atmosphere and clouds to altitude; reduce approach speed near the surface and along shallow trajectories.
+
+Current progress: worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A full view-dependent planetary quadtree, clouds, and geometric scenery remain.
 
 ## 6. Add landing and surface exploration — implemented for stationary worlds
 
