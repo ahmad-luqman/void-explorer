@@ -154,5 +154,23 @@ export function createShip() {
   );
   edges.scale.copy(hull.scale);
   ship.add(edges);
-  return { ship, engines };
+  const gear = new T.Group();
+  for (const [x, z] of [
+    [-0.85, 1],
+    [0.85, 1],
+    [0, -1.3],
+  ]) {
+    const strut = new T.Mesh(
+      new T.CylinderGeometry(0.045, 0.065, 0.5, 6),
+      edge,
+    );
+    strut.position.set(x, -0.45, z);
+    gear.add(strut);
+    const foot = new T.Mesh(new T.BoxGeometry(0.35, 0.1, 0.35), ivory);
+    foot.position.set(x, -0.7, z);
+    gear.add(foot);
+  }
+  gear.visible = false;
+  ship.add(gear);
+  return { ship, engines, gear };
 }

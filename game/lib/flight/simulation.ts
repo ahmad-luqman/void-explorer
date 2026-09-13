@@ -74,12 +74,12 @@ export class FlightSimulation {
     return false;
   }
   engage() {
-    if(this.surface.phase!=='flight')return;
+    if (this.surface.phase !== 'flight') return;
     this.autopilot = !this.autopilot;
     this.descending = false;
   }
   descend() {
-    if(this.surface.phase!=='flight')return;
+    if (this.surface.phase !== 'flight') return;
     if (this.target.star) return;
     this.autopilot = true;
     this.descending = true;
@@ -122,7 +122,11 @@ export class FlightSimulation {
     dt = Math.min(Math.max(dt, 0), 1 / 20);
     this.elapsed += dt;
     this.updateEnvironment();
-    if(this.surface.phase!=='flight'){this.surface.step(dt,input);this.updateEnvironment();return;}
+    if (this.surface.phase !== 'flight') {
+      this.surface.step(dt, input);
+      this.updateEnvironment();
+      return;
+    }
     const manual =
       Math.abs(input.pitch) + Math.abs(input.yaw) + Math.abs(input.roll) > 0.01;
     if (manual || input.brake || input.accelerate || input.decelerate) {
@@ -160,7 +164,7 @@ export class FlightSimulation {
     // Cap travel by clearance; no loading or teleportation at atmosphere boundaries.
     const maxSpeed = Math.min(
       this.pulse ? 24000 : input.boost ? 1400 : 280,
-      Math.max(.004, clearance * 0.7),
+      Math.max(0.004, clearance * 0.7),
     );
     let desired = this.throttle * maxSpeed;
     if (this.autopilot) {
@@ -256,8 +260,13 @@ export class FlightSimulation {
         const radial = this.position.clone().sub(b.position),
           d = radial.length();
         radial.normalize();
-        const contact=this.surface.patch?.body.id===b.id?this.surface.patch.sample(this.position):null;
-        const floor = contact ? contact.point.distanceTo(b.position)+GEAR_HEIGHT : surfaceRadius(radial, b) + (b.star ? 180 : 5);
+        const contact =
+          this.surface.patch?.body.id === b.id
+            ? this.surface.patch.sample(this.position)
+            : null;
+        const floor = contact
+          ? contact.point.distanceTo(b.position) + GEAR_HEIGHT
+          : surfaceRadius(radial, b) + (b.star ? 180 : 5);
         if (d < floor) {
           this.position.copy(b.position).addScaledVector(radial, floor);
           this.speed = 0;
@@ -291,12 +300,12 @@ export class FlightSimulation {
       descending: this.descending,
       pulse: this.pulse,
       visited: [...this.visited],
-      surfacePhase:this.surface.phase,
-      shipPosition:this.surface.shipPosition.toArray(),
-      shipDistance:this.surface.shipDistance,
-      walked:this.surface.walked,
-      contactReady:!!this.surface.patch,
-      surfaceMessage:this.surface.message,
+      surfacePhase: this.surface.phase,
+      shipPosition: this.surface.shipPosition.toArray(),
+      shipDistance: this.surface.shipDistance,
+      walked: this.surface.walked,
+      contactReady: !!this.surface.patch,
+      surfaceMessage: this.surface.message,
     };
   }
 }

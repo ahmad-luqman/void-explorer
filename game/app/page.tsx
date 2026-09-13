@@ -21,6 +21,13 @@ import { FlightSimulation, emptyControls } from '@/lib/flight/simulation';
 import { FlightRenderer } from '@/lib/flight/renderer';
 import { registerFlightTools } from '@/lib/flight/webmcp';
 import { distanceLabel, SYSTEM_COUNT } from '@/lib/flight/universe';
+import {
+  captureExpedition,
+  parseExpedition,
+  restoreExpedition,
+  EXPEDITION_KEY,
+  type ExpeditionSave,
+} from '@/lib/flight/persistence';
 
 const initial = {
   speed: 0,
@@ -37,6 +44,11 @@ const initial = {
   x: 50,
   y: 50,
   visible: false,
+  phase: 'flight',
+  surfaceMessage: '',
+  shipDistance: 0,
+  walked: 0,
+  contactReady: false,
 };
 type Telemetry = typeof initial;
 type Runtime = { sim: FlightSimulation; view: FlightRenderer };
@@ -62,6 +74,8 @@ export default function Home() {
     [settings, setSettings] = useState(false),
     [chart, setChart] = useState(false),
     [help, setHelp] = useState(false);
+  const [saved, setSaved] = useState<ExpeditionSave | null>(null),
+    [saveMessage, setSaveMessage] = useState('');
   const [quality, setQuality] = useState('high'),
     [finish, setFinish] = useState('authentic'),
     [sound, setSound] = useState(35),
@@ -98,6 +112,36 @@ export default function Home() {
     }
     void audio.current?.ctx.resume();
   }
+  function saveExpedition() {
+    const sim = runtime.current?.sim;
+    if (!sim) return false;
+    const data = captureExpedition(sim);
+    if (!data) {
+      setSaveMessage('Finish the current maneuver before saving.');
+      return false;
+    }
+    try {
+      localStorage.setItem(EXPEDITION_KEY, JSON.stringify(data));
+      setSaved(data);
+      setSaveMessage('Expedition saved on this device.');
+      return true;
+    } catch {
+      setSaveMessage('Unable to save: browser storage is unavailable.');
+      return false;
+    }
+  }
+  function resumeExpedition() {
+    if (!saved || !runtime.current) return;
+    if (!restoreExpedition(runtime.current.sim, saved)) {
+      setSaveMessage(
+        'This expedition could not be restored. Start a new expedition.',
+      );
+      return;
+    }
+    setStarted(true);
+    setPaused(false);
+    bootSound();
+  }
   function start() {
     if (!runtime.current) return;
     setStarted(true);
@@ -122,6 +166,7 @@ export default function Home() {
       unregisterTools = registerFlightTools(sim);
       setReady(true);
       try {
+        setSaved(parseExpedition(localStorage.getItem(EXPEDITION_KEY)));
         const prefs = JSON.parse(
           localStorage.getItem('void-preferences') || '{}',
         );
@@ -134,7 +179,9 @@ export default function Home() {
         /* Invalid preferences use defaults. */
       }
       let last = performance.now(),
-        hudTime = 0;
+        hudTime = 0,
+        lastSave = performance.now(),
+        lastPhase = sim.surface.phase;
       const animate = (now: number) => {
         if (stopped || !view) return;
         const dt = Math.min((now - last) / 1000, 0.05);
@@ -153,11 +200,27 @@ export default function Home() {
             Number(k.has('ArrowRight')) -
             mouse.current.x;
           c.roll = Number(k.has('KeyQ')) - Number(k.has('KeyE'));
+          c.strafe = Number(k.has('KeyD')) - Number(k.has('KeyA'));
           c.accelerate = k.has('KeyW');
           c.decelerate = k.has('KeyS');
           c.brake = k.has('KeyX') || k.has('Space');
           c.boost = k.has('ShiftLeft') || k.has('ShiftRight');
           sim.step(dt, c);
+          if (
+            (now - lastSave > 15000 || lastPhase !== sim.surface.phase) &&
+            ['flight', 'landed', 'walking'].includes(sim.surface.phase)
+          ) {
+            const record = captureExpedition(sim);
+            if (record)
+              try {
+                localStorage.setItem(EXPEDITION_KEY, JSON.stringify(record));
+                setSaved(record);
+                lastSave = now;
+              } catch {
+                /* Manual save reports storage failure. */
+              }
+          }
+          lastPhase = sim.surface.phase;
         }
         if (audio.current) {
           audio.current.engine.frequency.setTargetAtTime(
@@ -191,6 +254,11 @@ export default function Home() {
             auto: sim.autopilot,
             throttle: sim.throttle,
             pulse: sim.pulse,
+            phase: sim.surface.phase,
+            surfaceMessage: sim.surface.message,
+            shipDistance: sim.surface.shipDistance,
+            walked: sim.surface.walked,
+            contactReady: !!sim.surface.patch,
             ...marker,
           });
         }
@@ -214,6 +282,10 @@ export default function Home() {
             sim.reset();
             if (name === 'descent') {
               sim.position.set(0, 0, sim.target.radius + 190);
+              sim.face(sim.target.position);
+            }
+            if (name === 'landing') {
+              sim.position.set(0, 0, sim.target.radius + 35);
               sim.face(sim.target.position);
             }
             if (name === 'pulse') {
@@ -298,7 +370,21 @@ export default function Home() {
       }
       const sim = runtime.current?.sim;
       if (!sim) return;
-      if (e.code === 'KeyP') sim.pulse = !sim.pulse;
+      if (e.code === 'KeyP' && sim.surface.phase === 'flight')
+        sim.pulse = !sim.pulse;
+      if (e.code === 'KeyB') {
+        sim.surface.land();
+        return;
+      }
+      if (e.code === 'KeyF') {
+        if (sim.surface.phase === 'walking') sim.surface.board();
+        else sim.surface.exit();
+        return;
+      }
+      if (e.code === 'KeyR') {
+        sim.surface.takeoff();
+        return;
+      }
       if (e.code === 'KeyJ') sim.engage();
       if (e.code === 'KeyT') runtime.current?.view.pick(0, 0);
       if (e.code === 'KeyL') sim.descend();
@@ -332,12 +418,14 @@ export default function Home() {
     if (audio.current) {
       const active = started && !paused && !settings && !chart && !help;
       audio.current.gain.gain.setTargetAtTime(
-        active ? (sound / 100) * 0.055 : 0,
+        active && !['landed', 'walking', 'restoring'].includes(data.phase)
+          ? (sound / 100) * 0.055
+          : 0,
         audio.current.ctx.currentTime,
         0.15,
       );
     }
-  }, [sound, started, paused, settings, chart, help, data.speed]);
+  }, [sound, started, paused, settings, chart, help, data.speed, data.phase]);
   const sim = runtime.current?.sim;
   const allSystems =
     sim?.systems
@@ -421,6 +509,21 @@ export default function Home() {
               <span>{ready ? 'START EXPEDITION' : 'INITIALIZING FLIGHT'}</span>
               <ArrowRight size={19} />
             </Button>
+            {saved && (
+              <Button
+                variant="outline"
+                className="continue-button"
+                onClick={resumeExpedition}
+                disabled={!ready}
+              >
+                Continue expedition <ArrowRight size={15} />
+              </Button>
+            )}
+            {saveMessage && (
+              <p className="save-status" role="status">
+                {saveMessage}
+              </p>
+            )}
             <div className="embark-hint">
               <kbd>ENTER</kbd> TO EMBARK <span>/</span> HEADPHONES RECOMMENDED
             </div>
@@ -502,40 +605,107 @@ export default function Home() {
               <span>{data.visited} SYSTEMS DISCOVERED</span>
             </div>
           </header>
-          <aside className="navigation">
-            <div className="nav-heading">
-              <i className="live-dot" /> NAVIGATION LOCK <b>LIVE</b>
-            </div>
-            <h2>{data.target}</h2>
-            <span className="planet-kind">{data.kind.toUpperCase()}</span>
-            <p className="range">{distanceLabel(data.range)}</p>
-            <div className="arrival">
-              <span>{data.auto ? 'AUTOPILOT' : 'MANUAL FLIGHT'}</span>
-              <b>
-                {data.speed > 1
-                  ? `${Math.ceil(data.range / data.speed)} s`
-                  : 'STANDBY'}
-              </b>
-            </div>
-            <div className="nav-actions">
-              <button onClick={() => sim?.engage()}>
-                {data.auto ? 'Disengage' : 'Engage autopilot'} <kbd>J</kbd>
-              </button>
-              {data.kind !== 'star' && (
-                <button onClick={() => sim?.descend()}>
-                  Descend to surface <kbd>L</kbd>
+          {data.phase !== 'walking' && (
+            <aside className="navigation">
+              <div className="nav-heading">
+                <i className="live-dot" /> NAVIGATION LOCK <b>LIVE</b>
+              </div>
+              <h2>{data.target}</h2>
+              <span className="planet-kind">{data.kind.toUpperCase()}</span>
+              <p className="range">{distanceLabel(data.range)}</p>
+              <div className="arrival">
+                <span>{data.auto ? 'AUTOPILOT' : 'MANUAL FLIGHT'}</span>
+                <b>
+                  {data.speed > 1
+                    ? `${Math.ceil(data.range / data.speed)} s`
+                    : 'STANDBY'}
+                </b>
+              </div>
+              <div className="nav-actions">
+                {data.phase === 'flight' && (
+                  <>
+                    <button onClick={() => sim?.engage()}>
+                      {data.auto ? 'Disengage' : 'Engage autopilot'}{' '}
+                      <kbd>J</kbd>
+                    </button>
+                    {data.kind !== 'star' && (
+                      <button onClick={() => sim?.descend()}>
+                        Descend to surface <kbd>L</kbd>
+                      </button>
+                    )}
+                  </>
+                )}
+                {data.phase === 'flight' && data.kind !== 'star' && (
+                  <button onClick={() => sim?.surface.land()}>
+                    Land here <kbd>B</kbd>
+                  </button>
+                )}
+                {data.phase === 'landed' && (
+                  <>
+                    <button onClick={() => sim?.surface.exit()}>
+                      Leave ship <kbd>F</kbd>
+                    </button>
+                    <button onClick={() => sim?.surface.takeoff()}>
+                      Take off <kbd>R</kbd>
+                    </button>
+                  </>
+                )}
+                <button onClick={toggleChart}>
+                  Open star chart <kbd>TAB</kbd>
                 </button>
-              )}
-              <button onClick={toggleChart}>
-                Open star chart <kbd>TAB</kbd>
-              </button>
+              </div>
+            </aside>
+          )}
+          {data.phase === 'walking' && (
+            <aside className="navigation surface-navigation">
+              <div className="nav-heading">
+                <i className="live-dot" /> SURFACE EXCURSION <b>LIVE</b>
+              </div>
+              <h2>AURORA VX-9</h2>
+              <span className="planet-kind">SHIP BEACON</span>
+              <p className="range">{Math.round(data.shipDistance * 1000)} m</p>
+              <div className="arrival">
+                <span>DISTANCE WALKED</span>
+                <b>{Math.round(data.walked * 1000)} m</b>
+              </div>
+              <div className="nav-actions">
+                <button onClick={() => sim?.surface.board()}>
+                  Board ship <kbd>F</kbd>
+                </button>
+                <button
+                  onClick={() => {
+                    saveExpedition();
+                  }}
+                >
+                  Save expedition
+                </button>
+              </div>
+              <p className="surface-hint">
+                WASD to walk · arrows or drag to look
+              </p>
+            </aside>
+          )}
+          {data.surfaceMessage && (
+            <div className="surface-status" role="status">
+              <span>
+                {data.phase === 'flight'
+                  ? 'SURFACE OPERATIONS'
+                  : data.phase.toUpperCase()}
+              </span>
+              {data.surfaceMessage}
             </div>
-          </aside>
+          )}
+
+          {data.phase === 'walking' && saveMessage && (
+            <p className="walking-save save-status" role="status">
+              {saveMessage}
+            </p>
+          )}
           <div className="reticle">
             <span />
             <i />
           </div>
-          {data.visible && (
+          {data.visible && data.phase === 'flight' && (
             <div
               className="target-marker"
               style={{ left: `${data.x}%`, top: `${data.y}%` }}
@@ -558,7 +728,11 @@ export default function Home() {
               <div>
                 <span>VELOCITY</span>
                 <b>
-                  {data.speed.toFixed(1)} <small>km/s</small>
+                  {(data.phase === 'walking'
+                    ? data.speed * 1000
+                    : data.speed
+                  ).toFixed(1)}{' '}
+                  <small>{data.phase === 'walking' ? 'm/s' : 'km/s'}</small>
                 </b>
               </div>
               <div>
@@ -566,8 +740,16 @@ export default function Home() {
                 <b className="cyan">{data.mode}</b>
               </div>
               <div>
-                <span>SURFACE ALTITUDE</span>
-                <b>{distanceLabel(data.altitude)}</b>
+                <span>
+                  {data.phase === 'walking' ? 'EYE HEIGHT' : 'SURFACE ALTITUDE'}
+                </span>
+                <b>
+                  {data.phase === 'walking'
+                    ? '1.8 m'
+                    : data.altitude < 1
+                      ? `${(Math.max(0, data.altitude) * 1000).toFixed(1)} m`
+                      : distanceLabel(data.altitude)}
+                </b>
               </div>
               <div className="throttle">
                 <span>THROTTLE</span>
@@ -586,25 +768,44 @@ export default function Home() {
             </div>
           </footer>
           <div className="control-strip">
-            <span>
-              <kbd>W</kbd>
-              <kbd>S</kbd> THROTTLE
-            </span>
-            <span>
-              <kbd>↑</kbd>
-              <kbd>↓</kbd>
-              <kbd>←</kbd>
-              <kbd>→</kbd> STEER
-            </span>
-            <span>
-              <kbd>SHIFT</kbd> BOOST
-            </span>
-            <span>
-              <kbd>P</kbd> PULSE
-            </span>
-            <span>
-              <kbd>X</kbd> BRAKE
-            </span>
+            {data.phase === 'walking' ? (
+              <>
+                <span>
+                  <kbd>W</kbd>
+                  <kbd>A</kbd>
+                  <kbd>S</kbd>
+                  <kbd>D</kbd> WALK
+                </span>
+                <span>
+                  <kbd>SHIFT</kbd> RUN
+                </span>
+                <span>
+                  <kbd>F</kbd> BOARD
+                </span>
+              </>
+            ) : (
+              <>
+                <span>
+                  <kbd>W</kbd>
+                  <kbd>S</kbd> THROTTLE
+                </span>
+                <span>
+                  <kbd>↑</kbd>
+                  <kbd>↓</kbd>
+                  <kbd>←</kbd>
+                  <kbd>→</kbd> STEER
+                </span>
+                <span>
+                  <kbd>SHIFT</kbd> BOOST
+                </span>
+                <span>
+                  <kbd>P</kbd> PULSE
+                </span>
+                <span>
+                  <kbd>X</kbd> BRAKE
+                </span>
+              </>
+            )}
           </div>
           <div className="touch-controls">
             {[
@@ -716,6 +917,14 @@ export default function Home() {
           <span className="eyebrow">FLIGHT SUSPENDED</span>
           <DialogTitle>Between the stars.</DialogTitle>
           <DialogDescription>Your expedition is paused.</DialogDescription>
+          <Button variant="outline" onClick={saveExpedition}>
+            Save expedition
+          </Button>
+          {saveMessage && (
+            <p role="status" className="save-status">
+              {saveMessage}
+            </p>
+          )}
           <Button className="primary-button" onClick={() => setPaused(false)}>
             Resume flight <ArrowRight />
           </Button>
@@ -731,6 +940,7 @@ export default function Home() {
           <Button
             variant="outline"
             onClick={() => {
+              saveExpedition();
               sim?.reset();
               setPaused(false);
               setStarted(false);
@@ -759,6 +969,10 @@ export default function Home() {
               ['T', 'Target center of view'],
               ['J', 'Engage / disengage autopilot'],
               ['L', 'Descend to selected planet'],
+              ['B', 'Land on suitable terrain'],
+              ['F', 'Leave / board the ship'],
+              ['R', 'Take off when aboard'],
+              ['WASD', 'Walk while on foot'],
               ['Tab', 'Open star chart'],
               ['Esc', 'Pause flight'],
             ].map(([key, label]) => (

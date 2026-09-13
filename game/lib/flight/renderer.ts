@@ -8,12 +8,15 @@ import { FlightSimulation } from './simulation';
 import { createShip } from './ship';
 import { PATCH_COS, terrainColor } from './terrain';
 import TerrainWorker from './terrain.worker?worker';
+import ContactWorker from './contact.worker?worker';
+import { ContactSurface, SHIP_SCALE, type ContactData } from './contact';
 
 type PlanetView = {
   body: Body;
   group: T.Group;
   clipCenter: { value: T.Vector3 };
   clipCos: { value: number };
+  contactRadius: { value: number };
   patch?: T.Mesh;
   anchor?: T.Vector3;
 };
@@ -25,24 +28,29 @@ function applyTerrainMask(
   center: { value: T.Vector3 },
   cos: { value: number },
   patch = false,
+  contactCenter = { value: new T.Vector3() },
+  contactRadius = { value: 0 },
 ) {
   material.onBeforeCompile = (shader) => {
     shader.uniforms.clipCenter = center;
     shader.uniforms.clipCos = cos;
+    shader.uniforms.contactCenter = contactCenter;
+    shader.uniforms.contactRadius = contactRadius;
     shader.vertexShader =
-      'varying vec3 vSurfaceDirection;\n' + shader.vertexShader;
+      'varying vec3 vSurfaceDirection; varying vec3 vTerrainPosition;\n' +
+      shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace(
       '#include <begin_vertex>',
-      '#include <begin_vertex>\nvSurfaceDirection=normalize(position);',
+      '#include <begin_vertex>\nvSurfaceDirection=normalize(position);vTerrainPosition=position;',
     );
     shader.fragmentShader =
-      'varying vec3 vSurfaceDirection; uniform vec3 clipCenter; uniform float clipCos;\n' +
+      'varying vec3 vSurfaceDirection; varying vec3 vTerrainPosition; uniform vec3 contactCenter;uniform float contactRadius; uniform vec3 clipCenter; uniform float clipCos;\n' +
       shader.fragmentShader;
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <clipping_planes_fragment>',
       '#include <clipping_planes_fragment>\nif(dot(normalize(vSurfaceDirection),clipCenter) ' +
         (patch ? '<' : '>') +
-        ' clipCos) discard;',
+        ' clipCos) discard;\nif(contactRadius>0. && distance(vTerrainPosition,contactCenter)<contactRadius) discard;',
     );
   };
   material.customProgramCacheKey = () =>
@@ -62,7 +70,7 @@ function disposeObject(group: T.Object3D) {
 export class FlightRenderer {
   renderer: T.WebGLRenderer;
   scene = new T.Scene();
-  camera = new T.PerspectiveCamera(58, 1, 0.1, 2000000);
+  camera = new T.PerspectiveCamera(58, 1, 0.0001, 2000000);
   composer: EffectComposer;
   bloom: UnrealBloomPass;
   craft = createShip();
@@ -82,6 +90,11 @@ export class FlightRenderer {
   worker: Worker;
   patchPending = false;
   patchToken = 0;
+  contactWorker: Worker;
+  contactPending = false;
+  contactToken = 0;
+  contactMesh: T.Mesh | null = null;
+  contactCenter = { value: new T.Vector3() };
   keyLight = new T.DirectionalLight('#ffe1b4', 2.8);
   fillLight = new T.DirectionalLight('#478aff', 1.4);
   constructor(
@@ -92,6 +105,7 @@ export class FlightRenderer {
       canvas,
       antialias: true,
       powerPreference: 'high-performance',
+      logarithmicDepthBuffer: true,
     });
     this.renderer.info.autoReset = false;
     this.renderer.setClearColor('#010309');
@@ -206,13 +220,87 @@ export class FlightRenderer {
       });
       p.clipCenter.value.fromArray(event.data.center);
       p.clipCos.value = PATCH_COS;
-      applyTerrainMask(material, p.clipCenter, p.clipCos, true);
+      applyTerrainMask(
+        material,
+        p.clipCenter,
+        p.clipCos,
+        true,
+        this.contactCenter,
+        p.contactRadius,
+      );
       p.patch = new T.Mesh(g, material);
       p.anchor = p.clipCenter.value.clone();
       p.group.add(p.patch);
     };
     this.worker.onerror = () => {
       this.patchPending = false;
+    };
+    this.contactWorker = new ContactWorker();
+    this.contactWorker.onmessage = (
+      event: MessageEvent<{ data: ContactData; token: number }>,
+    ) => {
+      this.contactPending = false;
+      if (event.data.token !== this.contactToken || this.disposed) return;
+      const body = this.sim.systems
+        .flatMap((s) => s.planets)
+        .find((p) => p.id === event.data.data.bodyId);
+      if (!body) return;
+      const patch = new ContactSurface(event.data.data, body);
+      if (
+        this.sim.surface.phase === 'landing' ||
+        this.sim.surface.phase === 'landed'
+      )
+        return;
+      const geometry = new T.BufferGeometry();
+      geometry.setAttribute(
+        'position',
+        new T.BufferAttribute(patch.data.positions, 3),
+      );
+      geometry.setAttribute(
+        'color',
+        new T.BufferAttribute(patch.data.colors, 3),
+      );
+      geometry.setIndex(new T.BufferAttribute(patch.data.indices, 1));
+      geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+      const material = new T.MeshStandardMaterial({
+        vertexColors: true,
+        flatShading: true,
+        roughness: 0.94,
+        side: T.FrontSide,
+      });
+      // The replacement and flight mesh share a circular boundary; publish
+      // collision only after the matching render mesh exists.
+      material.onBeforeCompile = (shader) => {
+        shader.vertexShader =
+          'varying vec3 vContactLocal;\n' + shader.vertexShader;
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\nvContactLocal=position;',
+        );
+        shader.fragmentShader =
+          'varying vec3 vContactLocal;\n' + shader.fragmentShader;
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <clipping_planes_fragment>',
+          '#include <clipping_planes_fragment>\nif(length(vContactLocal)>1.05) discard;',
+        );
+      };
+      if (this.contactMesh) {
+        this.scene.remove(this.contactMesh);
+        disposeObject(this.contactMesh);
+      }
+      this.contactMesh = new T.Mesh(geometry, material);
+      this.contactMesh.frustumCulled = false;
+      this.scene.add(this.contactMesh);
+      this.contactCenter.value.copy(patch.origin).sub(body.position);
+      for (const view of this.planets)
+        view.contactRadius.value = view.body.id === body.id ? 1.05 : 0;
+      this.sim.surface.setPatch(patch);
+    };
+    this.contactWorker.onerror = () => {
+      this.contactPending = false;
+      this.sim.surface.message =
+        'Ground mapping failed. Flight remains available.';
     };
     this.scene.add(this.sun);
     this.loadSystem();
@@ -251,14 +339,22 @@ export class FlightRenderer {
     geo.computeVertexNormals();
     geo.computeBoundingSphere();
     const clipCenter = { value: new T.Vector3(0, 0, 1) },
-      clipCos = { value: 2 };
+      clipCos = { value: 2 },
+      contactRadius = { value: 0 };
     const material = new T.MeshStandardMaterial({
       vertexColors: true,
       flatShading: true,
       roughness: 0.83,
       metalness: body.kind === 'ocean' ? 0.17 : 0.04,
     });
-    applyTerrainMask(material, clipCenter, clipCos);
+    applyTerrainMask(
+      material,
+      clipCenter,
+      clipCos,
+      false,
+      this.contactCenter,
+      contactRadius,
+    );
     const ground = new T.Mesh(geo, material);
     group.add(ground);
     const atmo = new T.Mesh(
@@ -308,11 +404,19 @@ export class FlightRenderer {
       group.add(ring);
     }
     this.scene.add(group);
-    return { body, group, clipCenter, clipCos };
+    return { body, group, clipCenter, clipCos, contactRadius };
   }
   loadSystem() {
     if (this.system === this.sim.activeSystem.id) return;
     this.patchToken++;
+    this.contactToken++;
+    for (const view of this.planets) view.contactRadius.value = 0;
+    if (this.contactMesh) {
+      this.scene.remove(this.contactMesh);
+      disposeObject(this.contactMesh);
+      this.contactMesh = null;
+    }
+    if (this.sim.surface.phase === 'flight') this.sim.surface.patch = null;
     this.planets.forEach((p) => {
       this.scene.remove(p.group);
       disposeObject(p.group);
@@ -356,6 +460,27 @@ export class FlightRenderer {
       this.sun.add(halo);
     }
   }
+  enableLogDepth() {
+    this.scene.traverse((object) => {
+      const material = (object as T.Mesh).material;
+      if (!(material instanceof T.ShaderMaterial) || material.userData.logDepth)
+        return;
+      material.vertexShader =
+        '#include <common>\n#include <logdepthbuf_pars_vertex>\n' +
+        material.vertexShader.replace(
+          /}\s*$/,
+          '\n#include <logdepthbuf_vertex>\n}',
+        );
+      material.fragmentShader =
+        '#include <logdepthbuf_pars_fragment>\n' +
+        material.fragmentShader.replace(
+          /void main\s*\(\s*\)\s*\{/,
+          'void main(){\n#include <logdepthbuf_fragment>\n',
+        );
+      material.userData.logDepth = true;
+      material.needsUpdate = true;
+    });
+  }
   resize() {
     this.width = this.canvas.clientWidth;
     this.height = this.canvas.clientHeight;
@@ -374,6 +499,7 @@ export class FlightRenderer {
     if (this.disposed) return;
     this.renderer.info.reset();
     this.loadSystem();
+    this.enableLogDepth();
     this.frame++;
     this.planets.forEach((p) =>
       p.group.position.copy(p.body.position).sub(this.sim.position),
@@ -405,29 +531,109 @@ export class FlightRenderer {
       .copy(this.sim.activeSystem.position)
       .sub(this.sim.position);
     this.stars.position.copy(this.sim.position).negate();
+    const surface = this.sim.surface;
+    if (
+      this.sim.altitude < 60 &&
+      !this.sim.nearest.star &&
+      !this.contactPending &&
+      surface.phase !== 'landing' &&
+      surface.phase !== 'landed'
+    ) {
+      const patch = surface.patch;
+      if (
+        !patch ||
+        patch.body.id !== this.sim.nearest.id ||
+        this.sim.position
+          .clone()
+          .sub(patch.origin)
+          .addScaledVector(
+            patch.up,
+            -this.sim.position.clone().sub(patch.origin).dot(patch.up),
+          )
+          .length() > 0.65
+      ) {
+        this.contactPending = true;
+        this.contactWorker.postMessage({
+          body: {
+            ...this.sim.nearest,
+            position: this.sim.nearest.position.toArray(),
+          },
+          center: this.sim.position
+            .clone()
+            .sub(this.sim.nearest.position)
+            .normalize()
+            .toArray(),
+          token: this.contactToken,
+        });
+      }
+    }
+    if (this.contactMesh && surface.patch)
+      this.contactMesh.position
+        .copy(surface.patch.origin)
+        .sub(this.sim.position);
     this.camera.position.set(0, 0, 0);
     const desired = this.sim.orientation.clone();
     if (title)
       desired.multiply(
         new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), 0.36),
       );
-    this.camera.quaternion.slerp(desired, 1 - Math.exp(-dt * 5));
+    this.camera.quaternion.slerp(
+      desired,
+      1 - Math.exp(-dt * (surface.phase === 'walking' ? 18 : 5)),
+    );
     const fov = (title ? 58 : 60) + Math.min(17, this.sim.speed / 550);
     if (Math.abs(this.camera.fov - fov) > 0.01) {
       this.camera.fov += (fov - this.camera.fov) * 0.06;
       this.camera.updateProjectionMatrix();
     }
-    const p = new T.Vector3(
-      title ? 8.5 : 0,
-      title ? -4.3 : -2.35,
-      title ? -22 : -10,
-    );
-    p.applyQuaternion(this.camera.quaternion);
-    this.craft.ship.position.copy(p);
-    this.craft.ship.quaternion.copy(this.sim.orientation);
-    if (title) this.craft.ship.rotateY(-0.38);
-    this.craft.ship.scale.setScalar(title ? 1.6 : 0.7);
+    if (title) {
+      this.craft.ship.position
+        .set(8.5, -4.3, -22)
+        .applyQuaternion(this.camera.quaternion);
+      this.craft.ship.quaternion.copy(this.sim.orientation);
+      this.craft.ship.rotateY(-0.38);
+      this.craft.ship.scale.setScalar(1.6);
+    } else {
+      this.craft.ship.scale.setScalar(SHIP_SCALE);
+      this.craft.ship.quaternion.copy(
+        surface.phase === 'walking'
+          ? surface.shipOrientation
+          : this.sim.orientation,
+      );
+      this.craft.ship.position.copy(
+        surface.phase === 'walking'
+          ? surface.shipPosition.clone().sub(this.sim.position)
+          : new T.Vector3(),
+      );
+      if (surface.phase !== 'walking' && surface.phase !== 'restoring') {
+        this.camera.position
+          .set(0, 0.0135, 0.057)
+          .applyQuaternion(this.camera.quaternion);
+        // Keep the chase camera above the same contact surface during landing.
+        const observer = this.sim.position.clone().add(this.camera.position),
+          ground = surface.patch?.sample(observer);
+        if (ground) {
+          const clearance = observer
+            .clone()
+            .sub(ground.point)
+            .dot(surface.patch!.up);
+          if (clearance < 0.003)
+            this.camera.position.addScaledVector(
+              surface.patch!.up,
+              0.003 - clearance,
+            );
+        }
+      }
+    }
+    this.craft.gear.visible = [
+      'landing',
+      'landed',
+      'walking',
+      'takeoff',
+      'restoring',
+    ].includes(surface.phase);
     for (const e of this.craft.engines) {
+      e.visible = !['landed', 'walking', 'restoring'].includes(surface.phase);
       e.scale.y = 0.35 + Math.min(3, this.sim.speed / 150) + (title ? 0.4 : 0);
     }
     const density = !this.sim.nearest.star
@@ -503,6 +709,7 @@ export class FlightRenderer {
   dispose() {
     this.disposed = true;
     this.worker.terminate();
+    this.contactWorker.terminate();
     disposeObject(this.scene);
     this.composer.passes.forEach((pass) => pass.dispose());
     this.composer.dispose();
