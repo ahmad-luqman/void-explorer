@@ -14,7 +14,7 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by the server. The app needs WebGL 2. High graphics adds bloom and near-ground ship shadows; Low reduces resolution and skips those passes. Both retain sun-aware atmospheric colors, distance haze, and animated water shading. Preferences are stored on this device. No API keys are needed.
+Open the local URL printed by the server. The app needs WebGL 2. High graphics adds bloom and near-ground ship shadows; Low reduces resolution and skips those passes. Both retain sun-aware atmospheric colors, distance haze, drifting clouds, animated water shading, and local rock/mineral fields. Preferences are stored on this device. No API keys are needed.
 
 ## Fly
 
@@ -27,7 +27,7 @@ Open the local URL printed by the server. The app needs WebGL 2. High graphics a
 - Set destination updates your target without moving the ship; Set course & engage autopilot starts the approach. J toggles autopilot during flight.
 - Navigation shows alignment, approach, and moving-away feedback. Arrival estimates use current closing speed and disappear when you are not approaching.
 - L descends to the selected planet and finishes facing the horizon.
-- B lands on suitable ground below 30 km; F leaves or boards the ship; R takes off.
+- B lands on suitable ground below 30 km, finding a nearby clearing when rocks obstruct the footprint; F leaves or boards the ship; R takes off.
 - On foot, WASD walks, arrows or dragging looks around, and Shift runs.
 - Expeditions save automatically every 15 seconds and at stable phase changes. Save manually from pause or the surface panel; Continue restores progress on this device.
 - Esc pauses; G opens settings; H opens the flight manual.
@@ -49,7 +49,7 @@ Browser tests expect the development server at `http://localhost:3000`. Override
 
 ## Current limits
 
-This is the first playable slice, not the finished reference game. Interstellar distances are compressed; the ship and walking use meter-scale dimensions. Planets remain stationary. Close terrain uses a worker-generated graded mesh extending 48 km from the pilot, with a dense central walking grid and closed outer seams, rather than a complete planetary quadtree. Landing and walking use the exact triangles of that detailed terrain. Coast depth colors and procedural gravel/mineral materials provide surface detail. Terrain remains sparse, and rotating worlds remain a later milestone. Rendering currently uses WebGL 2; WebGPU is still planned. The ship now loads from an authored GLB with a procedural fallback; mechanical gear animation remains future polish. Sound is a synthesized engine tone, with no soundtrack.
+This is the first playable slice, not the finished reference game. Interstellar distances are compressed; the ship and walking use meter-scale dimensions. Planets remain stationary. Close terrain uses a worker-generated graded mesh extending 48 km from the pilot, with a dense central walking grid and closed outer seams, rather than a complete planetary quadtree. Landing and walking use the exact triangles of that detailed terrain. Coast depth colors and procedural gravel/mineral materials provide surface detail. Seeded boulders and mineral spires now provide local obstacles, with safe clearings and walking collision. Clouds use a thin drifting shell; volumetric weather, vegetation, authored landmarks, and rotating worlds remain later milestones. Rendering currently uses WebGL 2; WebGPU is still planned. The ship now loads from an authored GLB with a procedural fallback; mechanical gear animation remains future polish. Sound is a synthesized engine tone, with no soundtrack.
 
 ## Project references
 

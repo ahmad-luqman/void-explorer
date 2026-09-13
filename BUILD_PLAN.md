@@ -13,7 +13,7 @@ The [official showcase](https://developers.openai.com/showcase/void-explorer) su
 5. Refine the spacecraft concept — dedicated turnaround sheet created, with a documented geometry contract.
 6. Build and integrate AURORA — authored Blender model and compact GLB integrated; animation and further visual polish remain.
 7. Make exploration physical — landing, walking, reboarding, takeoff, and local expedition saves implemented.
-8. Keep the world coherent — terrain, water, and atmosphere throughout travel.
+8. Keep the world coherent — shared terrain, water shading, cloud layers, persistent rock fields, obstacle-aware landing, and saved exploration implemented; further terrain streaming and moving worlds remain.
 
 ## Incremental commits
 
@@ -41,7 +41,7 @@ Generate deterministic star systems and planet descriptions from seeds. Render d
 
 Use one terrain sampling function for planet shape, water, biome colors, and ground collision. Add cube-sphere terrain with adaptive refinement and worker generation. Keep coarse coverage visible until replacement terrain is ready. Tie atmosphere and clouds to altitude; reduce approach speed near the surface and along shallow trajectories.
 
-Current progress: worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A full view-dependent planetary quadtree, clouds, and geometric scenery remain.
+Current progress: worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A drifting cloud shell now follows the terrain, and seeded rock/mineral fields provide local geometry with walking collisions. A full view-dependent planetary quadtree, vegetation, and authored points of interest remain.
 
 ## 6. Add landing and surface exploration — implemented for stationary worlds
 
@@ -51,7 +51,7 @@ Require visible ground and collision data to agree before landing. Check slope a
 
 Track frame timing, draw calls, triangle counts, terrain queue size, discarded work, and transferred buffers. Budget geometry by screen size, share indexed vertices, stabilize refinement, and avoid main-thread generation stalls. Compare the same scenes before and after changes. Evaluate WebGPU and shader-based atmosphere, water, lighting, and retro presentation while preserving simulation behavior.
 
-Current progress: both binary stars contribute directional lighting. Sky color and haze follow local sun elevation, altitude, and planet palette; night skies retain visible stars. High graphics adds a bounded 1,024² ship shadow map near the ground. Shared water normals animate continuously across globe and local meshes without changing collision or coast geometry. Clouds, physical scattering, terrain self-shadowing, reflections, and hardware profiling remain.
+Current progress: both binary stars contribute directional lighting. Sky color and haze follow local sun elevation, altitude, and planet palette; night skies retain visible stars. High graphics adds a bounded 1,024² ship shadow map near the ground. Shared water normals animate continuously across globe and local meshes without changing collision or coast geometry. Seeded clouds and instanced rock fields are now integrated. Volumetric weather, physical scattering, terrain self-shadowing, reflections, and hardware profiling remain.
 
 ## 8. Develop and integrate the authored ship — initial model implemented
 
