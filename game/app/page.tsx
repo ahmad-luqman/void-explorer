@@ -276,6 +276,7 @@ export default function Home() {
               (p) => p.body.id === sim.nearest.id,
             )?.patch,
             terrainPending: view?.patchPending,
+            contactStats: view?.contactStats,
           }),
           select: (id) => sim.select(id),
           scene: (name) => {

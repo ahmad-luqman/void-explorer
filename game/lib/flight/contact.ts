@@ -6,6 +6,39 @@ export const SHIP_SCALE = 0.004;
 export const GEAR_HEIGHT = 0.003;
 export const EYE_HEIGHT = 0.0018;
 export const BOARD_DISTANCE = 0.055;
+export const CONTACT_RADIUS = 48;
+export const CONTACT_CORE = 1.2;
+
+// Shared vertices join the dense walking grid to progressively wider terrain cells.
+export function contactAxis() {
+  const positive = Array.from(
+    { length: 65 },
+    (_, i) => (i * CONTACT_CORE) / 64,
+  );
+  let step = CONTACT_CORE / 64;
+  while (positive[positive.length - 1] < 64) {
+    step = Math.min(2, step * 1.18);
+    positive.push(positive[positive.length - 1] + step);
+  }
+  return new Float64Array([
+    ...positive
+      .slice(1)
+      .reverse()
+      .map((x) => -x),
+    ...positive,
+  ]);
+}
+function gridCell(axis: Float64Array, value: number) {
+  let lo = 0,
+    hi = axis.length - 1;
+  if (value < axis[lo] || value >= axis[hi]) return -1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (axis[mid] <= value) lo = mid;
+    else hi = mid;
+  }
+  return lo;
+}
 export type ContactData = {
   bodyId: string;
   origin: number[];
@@ -14,6 +47,7 @@ export type ContactData = {
   up: number[];
   extent: number;
   resolution: number;
+  axis: Float64Array;
   positions: Float32Array;
   colors: Float32Array;
   indices: Uint32Array;
@@ -36,16 +70,17 @@ export function generateContact(body: Body, center: Vector3): ContactData {
   const origin = body.position
     .clone()
     .addScaledVector(up, surfaceRadius(up, body));
-  const extent = 1.2,
-    resolution = 128,
+  const axis = contactAxis(),
+    extent = axis[axis.length - 1],
+    resolution = axis.length - 1,
     positions = new Float32Array((resolution + 1) ** 2 * 3),
     colors = new Float32Array(positions.length),
     indices = new Uint32Array(resolution * resolution * 6);
   let offset = 0;
   for (let row = 0; row <= resolution; row++)
     for (let col = 0; col <= resolution; col++) {
-      const x = ((col / resolution) * 2 - 1) * extent,
-        y = ((row / resolution) * 2 - 1) * extent;
+      const x = axis[col],
+        y = axis[row];
       const base = origin
         .clone()
         .addScaledVector(east, x)
@@ -74,7 +109,11 @@ export function generateContact(body: Body, center: Vector3): ContactData {
       terrainColor(
         h / body.radius,
         body.kind,
-        0.88 + 0.12 * Math.abs(Math.sin(col * 3.31 + row * 8.17)),
+        0.94 +
+          0.06 *
+            Math.sin(
+              direction.x * body.radius * 2.1 + direction.z * body.radius * 1.7,
+            ),
       ).toArray(colors, offset);
       offset += 3;
     }
@@ -96,6 +135,7 @@ export function generateContact(body: Body, center: Vector3): ContactData {
     up: up.toArray(),
     extent,
     resolution,
+    axis,
     positions,
     colors,
     indices,
@@ -121,19 +161,20 @@ export class ContactSurface {
   }
   contains(world: Vector3, margin = 0.025) {
     const p = this.coordinates(world);
-    return (
-      Math.abs(p.x) < this.data.extent - margin &&
-      Math.abs(p.y) < this.data.extent - margin
-    );
+    return Math.hypot(p.x, p.y) < CONTACT_RADIUS - margin;
   }
   sample(world: Vector3): GroundSample | null {
     const { x, y } = this.coordinates(world),
-      { extent, resolution, positions, indices } = this.data;
-    const gx = ((x / extent) * 0.5 + 0.5) * resolution,
-      gy = ((y / extent) * 0.5 + 0.5) * resolution;
-    const col = Math.floor(gx),
-      row = Math.floor(gy);
-    if (col < 0 || row < 0 || col >= resolution || row >= resolution)
+      { axis, resolution, positions, indices } = this.data;
+    const col = gridCell(axis, x),
+      row = gridCell(axis, y);
+    if (
+      Math.hypot(x, y) > CONTACT_RADIUS ||
+      col < 0 ||
+      row < 0 ||
+      col >= resolution ||
+      row >= resolution
+    )
       return null;
 
     const start = world.clone().sub(this.origin).addScaledVector(this.up, 100);

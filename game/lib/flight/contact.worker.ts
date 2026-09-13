@@ -9,14 +9,16 @@ self.onmessage = (
   }>,
 ) => {
   const { body, center, token } = event.data;
+  const began = performance.now();
   const data = generateContact(
     { ...body, position: new Vector3().fromArray(body.position) },
     new Vector3().fromArray(center),
   );
   self.postMessage(
-    { data, token },
+    { data, token, generationMs: performance.now() - began },
     {
       transfer: [
+        data.axis.buffer,
         data.positions.buffer,
         data.colors.buffer,
         data.indices.buffer,

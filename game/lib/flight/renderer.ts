@@ -9,7 +9,13 @@ import { createShip } from './ship';
 import { PATCH_COS, terrainColor } from './terrain';
 import TerrainWorker from './terrain.worker?worker';
 import ContactWorker from './contact.worker?worker';
-import { ContactSurface, SHIP_SCALE, type ContactData } from './contact';
+import { createTerrainSkirt } from './terrain-seam';
+import {
+  ContactSurface,
+  SHIP_SCALE,
+  CONTACT_RADIUS,
+  type ContactData,
+} from './contact';
 
 type PlanetView = {
   body: Body;
@@ -50,7 +56,7 @@ function applyTerrainMask(
       '#include <clipping_planes_fragment>',
       '#include <clipping_planes_fragment>\nif(dot(normalize(vSurfaceDirection),clipCenter) ' +
         (patch ? '<' : '>') +
-        ' clipCos) discard;\nif(contactRadius>0. && distance(vTerrainPosition,contactCenter)<contactRadius) discard;',
+        ' clipCos) discard;\nvec3 delta=vTerrainPosition-contactCenter;vec3 up=normalize(contactCenter);if(contactRadius>0. && abs(dot(delta,up))<contactRadius*2. && length(delta-up*dot(delta,up))<contactRadius) discard;',
     );
   };
   material.customProgramCacheKey = () =>
@@ -92,6 +98,13 @@ export class FlightRenderer {
   patchToken = 0;
   contactWorker: Worker;
   contactPending = false;
+  contactStats = {
+    generated: 0,
+    discarded: 0,
+    generationMs: 0,
+    vertices: 0,
+    bytes: 0,
+  };
   contactToken = 0;
   contactMesh: T.Mesh | null = null;
   contactCenter = { value: new T.Vector3() };
@@ -237,15 +250,40 @@ export class FlightRenderer {
     };
     this.contactWorker = new ContactWorker();
     this.contactWorker.onmessage = (
-      event: MessageEvent<{ data: ContactData; token: number }>,
+      event: MessageEvent<{
+        data: ContactData;
+        token: number;
+        generationMs: number;
+      }>,
     ) => {
       this.contactPending = false;
-      if (event.data.token !== this.contactToken || this.disposed) return;
+      if (event.data.token !== this.contactToken || this.disposed) {
+        this.contactStats.discarded++;
+        return;
+      }
       const body = this.sim.systems
         .flatMap((s) => s.planets)
         .find((p) => p.id === event.data.data.bodyId);
       if (!body) return;
       const patch = new ContactSurface(event.data.data, body);
+      if (
+        body.id !== this.sim.nearest.id ||
+        !patch.contains(this.sim.position)
+      ) {
+        this.contactStats.discarded++;
+        return;
+      }
+      this.contactStats = {
+        ...this.contactStats,
+        generated: this.contactStats.generated + 1,
+        generationMs: event.data.generationMs,
+        vertices: patch.data.positions.length / 3,
+        bytes:
+          patch.data.positions.byteLength +
+          patch.data.colors.byteLength +
+          patch.data.indices.byteLength +
+          patch.data.axis.byteLength,
+      };
       if (
         this.sim.surface.phase === 'landing' ||
         this.sim.surface.phase === 'landed'
@@ -279,10 +317,12 @@ export class FlightRenderer {
           '#include <begin_vertex>\nvContactLocal=position;',
         );
         shader.fragmentShader =
-          'varying vec3 vContactLocal;\n' + shader.fragmentShader;
+          'varying vec3 vContactLocal;uniform vec3 contactUp;\n' +
+          shader.fragmentShader;
+        shader.uniforms.contactUp = { value: patch.up };
         shader.fragmentShader = shader.fragmentShader.replace(
           '#include <clipping_planes_fragment>',
-          '#include <clipping_planes_fragment>\nif(length(vContactLocal)>1.05) discard;',
+          `#include <clipping_planes_fragment>\nif(length(vContactLocal-contactUp*dot(vContactLocal,contactUp))>${CONTACT_RADIUS.toFixed(1)}) discard;`,
         );
       };
       if (this.contactMesh) {
@@ -290,11 +330,31 @@ export class FlightRenderer {
         disposeObject(this.contactMesh);
       }
       this.contactMesh = new T.Mesh(geometry, material);
+      const seam = createTerrainSkirt(patch),
+        seamGeometry = new T.BufferGeometry();
+      seamGeometry.setAttribute(
+        'position',
+        new T.BufferAttribute(seam.positions, 3),
+      );
+      seamGeometry.setAttribute('color', new T.BufferAttribute(seam.colors, 3));
+      seamGeometry.setIndex(new T.BufferAttribute(seam.indices, 1));
+      seamGeometry.computeVertexNormals();
+      this.contactMesh.add(
+        new T.Mesh(
+          seamGeometry,
+          new T.MeshStandardMaterial({
+            vertexColors: true,
+            roughness: 1,
+            side: T.DoubleSide,
+          }),
+        ),
+      );
       this.contactMesh.frustumCulled = false;
       this.scene.add(this.contactMesh);
       this.contactCenter.value.copy(patch.origin).sub(body.position);
       for (const view of this.planets)
-        view.contactRadius.value = view.body.id === body.id ? 1.05 : 0;
+        view.contactRadius.value =
+          view.body.id === body.id ? CONTACT_RADIUS : 0;
       this.sim.surface.setPatch(patch);
     };
     this.contactWorker.onerror = () => {
