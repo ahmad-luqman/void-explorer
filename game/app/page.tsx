@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Vector3 } from 'three';
+import { Matrix4, Vector3 } from 'three';
 import {
   ArrowRight,
   Crosshair,
@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { FlightSimulation, emptyControls } from '@/lib/flight/simulation';
 import { FlightRenderer } from '@/lib/flight/renderer';
 import { registerFlightTools } from '@/lib/flight/webmcp';
-import { distanceLabel, SYSTEM_COUNT } from '@/lib/flight/universe';
+import { distanceLabel, elevation, SYSTEM_COUNT } from '@/lib/flight/universe';
 import { StarChart } from '@/components/star-chart';
 import { navigationReadout, etaLabel } from '@/lib/flight/navigation';
 import {
@@ -281,6 +281,7 @@ export default function Home() {
             terrainPending: view?.patchPending,
             contactStats: view?.contactStats,
             shipModel: view?.craft.modelSource,
+            lighting: view?.lighting,
           }),
           select: (id) => sim.select(id),
           scene: (name) => {
@@ -296,6 +297,55 @@ export default function Home() {
             if (name === 'terrain-traverse') {
               sim.position.set(0, 0, sim.target.radius + 25);
               sim.face(sim.position.clone().add(new Vector3(20, 0, 1)));
+            }
+            if (name === 'night') {
+              const up = new Vector3(-1, 0, 0);
+              sim.position
+                .copy(sim.target.position)
+                .addScaledVector(
+                  up,
+                  sim.target.radius +
+                    Math.max(0, elevation(up, sim.target)) +
+                    25,
+                );
+              sim.orientation.setFromRotationMatrix(
+                new Matrix4().lookAt(
+                  sim.position,
+                  sim.position.clone().add(new Vector3(0.2, 0, 1)),
+                  up,
+                ),
+              );
+            }
+            if (name === 'water') {
+              // A repeatable ocean view selected from the same elevation function.
+              for (let i = 1; i < 200; i++) {
+                const up = new Vector3(
+                  Math.cos(i * 2.4),
+                  Math.sin(i * 2.4),
+                  (i / 200) * 2 - 1,
+                ).normalize();
+                if (elevation(up, sim.target) >= -1 || up.z < 0.2) continue;
+                sim.position
+                  .copy(sim.target.position)
+                  .addScaledVector(up, sim.target.radius + 6);
+                const sun = sim.activeSystem.companion ?? sim.activeSystem.star;
+                const forward = sun.position
+                  .clone()
+                  .sub(sim.position)
+                  .normalize();
+                forward
+                  .addScaledVector(up, -forward.dot(up))
+                  .normalize()
+                  .addScaledVector(up, -0.24);
+                sim.orientation.setFromRotationMatrix(
+                  new Matrix4().lookAt(
+                    sim.position,
+                    sim.position.clone().add(forward),
+                    up,
+                  ),
+                );
+                break;
+              }
             }
             if (name === 'pulse') {
               sim.position.set(0, 400, 12000);
@@ -854,7 +904,7 @@ export default function Home() {
           <fieldset>
             <legend>GRAPHICS QUALITY</legend>
             {[
-              ['high', 'High', 'Full resolution · atmospheric bloom'],
+              ['high', 'High', 'Full resolution · bloom · ship shadows'],
               ['low', 'Low', 'Reduced resolution · lighter effects'],
             ].map(([value, label, desc]) => (
               <label

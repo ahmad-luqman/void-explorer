@@ -23,6 +23,10 @@ function release(root: T.Object3D) {
 }
 export function createShip(): ShipRig {
   const fallback = createFallbackShip();
+  fallback.ship.traverse((o) => {
+    if ((o as T.Mesh).isMesh && !fallback.engines.includes(o as T.Mesh))
+      o.castShadow = true;
+  });
   let disposed = false;
   const rig: ShipRig = {
     ...fallback,
@@ -42,6 +46,10 @@ export function createShip(): ShipRig {
       const gear = gltf.scene.getObjectByName('LandingGear'),
         cores: T.Mesh[] = [];
       gltf.scene.traverse((o) => {
+        if ((o as T.Mesh).isMesh) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+        }
         if (o.name.startsWith('EngineCore_') && (o as T.Mesh).isMesh)
           cores.push(o as T.Mesh);
       });

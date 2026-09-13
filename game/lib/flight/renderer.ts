@@ -11,6 +11,8 @@ import TerrainWorker from './terrain.worker?worker';
 import ContactWorker from './contact.worker?worker';
 import { createTerrainSkirt } from './terrain-seam';
 import { addSurfaceMaterial } from './surface-material';
+import { addWaterMaterial } from './water-material';
+import { sampleEnvironment } from './environment';
 import {
   ContactSurface,
   SHIP_SCALE,
@@ -24,11 +26,15 @@ type PlanetView = {
   clipCenter: { value: T.Vector3 };
   clipCos: { value: number };
   contactRadius: { value: number };
+  atmosphere: T.ShaderMaterial;
   patch?: T.Mesh;
   anchor?: T.Vector3;
 };
+const daylightWhite = new T.Color('#fff3e8');
 const atmosphereVertex = `varying vec3 vNormal; varying vec3 vPosition; void main(){vNormal=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vPosition=p.xyz;gl_Position=projectionMatrix*p;}`;
 const atmosphereFragment = `varying vec3 vNormal;varying vec3 vPosition;uniform vec3 color; void main(){float rim=pow(1.-abs(dot(normalize(vNormal),normalize(-vPosition))),3.);gl_FragColor=vec4(color,rim*.52);}`;
+const planetAtmosphereVertex = `varying vec3 vRadial;varying vec3 vNormal;varying vec3 vPosition;void main(){vRadial=normalize(position);vNormal=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vPosition=p.xyz;gl_Position=projectionMatrix*p;}`;
+const planetAtmosphereFragment = `varying vec3 vRadial;varying vec3 vNormal;varying vec3 vPosition;uniform vec3 color;uniform vec3 keyDirection;uniform vec3 secondaryDirection;void main(){float sunlight=max(dot(normalize(vRadial),keyDirection),dot(normalize(vRadial),secondaryDirection));float day=smoothstep(-.18,.35,sunlight);float rim=pow(1.-abs(dot(normalize(vNormal),normalize(-vPosition))),3.);vec3 tint=mix(vec3(.22,.045,.3),color,day);gl_FragColor=vec4(tint,rim*(.08+day*.6));}`;
 const ringFragment = `varying vec2 vUv;void main(){float r=vUv.x;float bands=pow(.5+.5*sin(r*280.),5.)*.3+pow(.5+.5*sin(r*97.),12.)*.55+.06;float fade=smoothstep(0.,.08,r)*(1.-smoothstep(.9,1.,r));vec3 col=mix(vec3(.23,.015,.2),vec3(.95,.055,.54),bands);gl_FragColor=vec4(col*1.4,bands*fade*.8);}`;
 function applyTerrainMask(
   material: T.MeshStandardMaterial,
@@ -109,6 +115,11 @@ export class FlightRenderer {
   contactToken = 0;
   contactMesh: T.Mesh | null = null;
   contactCenter = { value: new T.Vector3() };
+  waterTime = { value: 0 };
+  ambient = new T.AmbientLight('#8b91b5', 0.38);
+  skyLight = new T.HemisphereLight('#7caabb', '#29213c', 0.7);
+  haze = new T.FogExp2('#649bac', 0);
+  lighting = { daylight: 1, density: 0, shadows: false };
   keyLight = new T.DirectionalLight('#ffe1b4', 2.8);
   fillLight = new T.DirectionalLight('#478aff', 1.4);
   constructor(
@@ -122,13 +133,28 @@ export class FlightRenderer {
       logarithmicDepthBuffer: true,
     });
     this.renderer.info.autoReset = false;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = T.PCFSoftShadowMap;
     this.renderer.setClearColor('#010309');
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
-    this.scene.add(new T.AmbientLight('#707baf', 1.05));
+    this.scene.add(this.ambient, this.skyLight);
     this.keyLight.position.set(10, 7, 5);
     this.fillLight.position.set(-8, 1, -7);
     this.scene.add(this.keyLight, this.fillLight);
+    this.scene.add(this.keyLight.target, this.fillLight.target);
+    this.keyLight.shadow.mapSize.set(1024, 1024);
+    Object.assign(this.keyLight.shadow.camera, {
+      left: -0.07,
+      right: 0.07,
+      top: 0.07,
+      bottom: -0.07,
+      near: 0.001,
+      far: 0.5,
+    });
+    this.keyLight.shadow.camera.updateProjectionMatrix();
+    this.keyLight.shadow.bias = -0.0002;
+    this.keyLight.shadow.normalBias = 0.00004;
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.bloom = new UnrealBloomPass(new T.Vector2(1, 1), 0.32, 0.45, 1.05);
@@ -167,12 +193,16 @@ export class FlightRenderer {
       uniforms: {
         air: { value: 0 },
         surfaceUp: { value: new T.Vector3(0, 1, 0) },
+        horizonColor: { value: new T.Color('#649bac') },
+        zenithColor: { value: new T.Color('#123257') },
+        sunDirection: { value: new T.Vector3() },
+        daylight: { value: 1 },
       },
       vertexShader:
         'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: `varying vec3 v;uniform float air;uniform vec3 surfaceUp;
+      fragmentShader: `varying vec3 v;uniform float air;uniform vec3 surfaceUp;uniform vec3 horizonColor;uniform vec3 zenithColor;uniform vec3 sunDirection;uniform float daylight;
       float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}float n(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
-      void main(){vec3 p=normalize(v);float cloud=n(p*8.)*.6+n(p*19.)*.27+n(p*48.)*.13;float band=exp(-pow((p.y+p.x*.46+sin(p.z*4.)*.16)*5.,2.));float mist=pow(cloud,3.)*band;vec3 col=mix(vec3(.09,.013,.16),vec3(.04,.22,.31),smoothstep(.4,.75,cloud));vec3 space=vec3(.001,.002,.008)+col*mist*1.5;float horizon=pow(1.-abs(dot(p,surfaceUp)),3.);vec3 sky=mix(vec3(.016,.065,.13),vec3(.13,.31,.4),horizon);gl_FragColor=vec4(mix(space,sky,air),1.);}`,
+      void main(){vec3 p=normalize(v);float cloud=n(p*8.)*.6+n(p*19.)*.27+n(p*48.)*.13;float band=exp(-pow((p.y+p.x*.46+sin(p.z*4.)*.16)*5.,2.));float mist=pow(cloud,3.)*band;vec3 col=mix(vec3(.09,.013,.16),vec3(.04,.22,.31),smoothstep(.4,.75,cloud));vec3 space=vec3(.001,.002,.008)+col*mist*1.5;float horizon=pow(1.-abs(dot(p,surfaceUp)),3.);float glow=pow(max(0.,dot(p,sunDirection)),12.)*daylight;vec3 sky=mix(zenithColor,horizonColor,horizon)+vec3(.18,.08,.045)*glow;gl_FragColor=vec4(mix(space,sky,air),1.);}`,
     });
     this.nebula = new T.Mesh(
       new T.SphereGeometry(1500000, 24, 16),
@@ -242,6 +272,7 @@ export class FlightRenderer {
         this.contactCenter,
         p.contactRadius,
       );
+      addWaterMaterial(material, p.body, p.body.position, this.waterTime);
       p.patch = new T.Mesh(g, material);
       p.anchor = p.clipCenter.value.clone();
       p.group.add(p.patch);
@@ -327,11 +358,13 @@ export class FlightRenderer {
         );
       };
       addSurfaceMaterial(material, body, patch.origin);
+      addWaterMaterial(material, body, patch.origin, this.waterTime);
       if (this.contactMesh) {
         this.scene.remove(this.contactMesh);
         disposeObject(this.contactMesh);
       }
       this.contactMesh = new T.Mesh(geometry, material);
+      this.contactMesh.receiveShadow = true;
       const seam = createTerrainSkirt(patch),
         seamGeometry = new T.BufferGeometry();
       seamGeometry.setAttribute(
@@ -417,6 +450,7 @@ export class FlightRenderer {
       this.contactCenter,
       contactRadius,
     );
+    addWaterMaterial(material, body, body.position, this.waterTime);
     const ground = new T.Mesh(geo, material);
     group.add(ground);
     const atmo = new T.Mesh(
@@ -426,9 +460,11 @@ export class FlightRenderer {
           color: {
             value: new T.Color(body.kind === 'desert' ? '#bc667b' : '#299fda'),
           },
+          keyDirection: { value: new T.Vector3() },
+          secondaryDirection: { value: new T.Vector3() },
         },
-        vertexShader: atmosphereVertex,
-        fragmentShader: atmosphereFragment,
+        vertexShader: planetAtmosphereVertex,
+        fragmentShader: planetAtmosphereFragment,
         transparent: true,
         side: T.DoubleSide,
         blending: T.AdditiveBlending,
@@ -466,7 +502,14 @@ export class FlightRenderer {
       group.add(ring);
     }
     this.scene.add(group);
-    return { body, group, clipCenter, clipCos, contactRadius };
+    return {
+      body,
+      group,
+      clipCenter,
+      clipCos,
+      contactRadius,
+      atmosphere: atmo.material,
+    };
   }
   loadSystem() {
     if (this.system === this.sim.activeSystem.id) return;
@@ -492,6 +535,7 @@ export class FlightRenderer {
       new T.IcosahedronGeometry(body.radius, 3),
       new T.MeshBasicMaterial({
         color: new T.Color(body.color).multiplyScalar(3),
+        fog: false,
       }),
     );
     this.sun.add(sun);
@@ -501,6 +545,7 @@ export class FlightRenderer {
         new T.IcosahedronGeometry(companion.radius, 3),
         new T.MeshBasicMaterial({
           color: new T.Color(companion.color).multiplyScalar(1.5),
+          fog: false,
         }),
       );
       mesh.position.copy(companion.position).sub(body.position);
@@ -535,10 +580,15 @@ export class FlightRenderer {
         );
       material.fragmentShader =
         '#include <logdepthbuf_pars_fragment>\n' +
-        material.fragmentShader.replace(
-          /void main\s*\(\s*\)\s*\{/,
-          'void main(){\n#include <logdepthbuf_fragment>\n',
-        );
+        material.fragmentShader
+          .replace(
+            /void main\s*\(\s*\)\s*\{/,
+            'void main(){\n#include <logdepthbuf_fragment>\n',
+          )
+          .replace(
+            /}\s*$/,
+            '\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}',
+          );
       material.userData.logDepth = true;
       material.needsUpdate = true;
     });
@@ -563,9 +613,20 @@ export class FlightRenderer {
     this.loadSystem();
     this.enableLogDepth();
     this.frame++;
-    this.planets.forEach((p) =>
-      p.group.position.copy(p.body.position).sub(this.sim.position),
-    );
+    this.planets.forEach((p) => {
+      p.group.position.copy(p.body.position).sub(this.sim.position);
+      p.atmosphere.uniforms.keyDirection.value
+        .copy(
+          this.sim.activeSystem.companion?.position ??
+            this.sim.activeSystem.star.position,
+        )
+        .sub(p.body.position)
+        .normalize();
+      p.atmosphere.uniforms.secondaryDirection.value
+        .copy(this.sim.activeSystem.star.position)
+        .sub(p.body.position)
+        .normalize();
+    });
     const near = this.planets.find((p) => p.body.id === this.sim.nearest.id);
     if (near && this.sim.altitude < 350 && !this.patchPending) {
       const center = this.sim.position
@@ -581,14 +642,6 @@ export class FlightRenderer {
         });
       }
     }
-    this.keyLight.position
-      .copy(
-        this.sim.activeSystem.companion?.position ||
-          this.sim.activeSystem.position,
-      )
-      .sub(this.sim.position)
-      .normalize()
-      .multiplyScalar(10);
     this.sun.position
       .copy(this.sim.activeSystem.position)
       .sub(this.sim.position);
@@ -706,19 +759,56 @@ export class FlightRenderer {
         ? 0.22
         : 2.2 + this.sim.throttle;
     }
-    const density = !this.sim.nearest.star
-      ? Math.max(0, 1 - this.sim.altitude / 160)
-      : 0;
-    (this.stars.material as T.PointsMaterial).opacity =
-      0.95 * (1 - density) ** 3;
+    const environment = sampleEnvironment(
+      this.sim.nearest,
+      this.sim.activeSystem,
+      this.sim.position,
+      this.sim.altitude,
+    );
+    const { density, daylight } = environment;
+    this.waterTime.value = this.sim.elapsed;
+    this.keyLight.target.position.copy(this.craft.ship.position);
+    this.keyLight.position
+      .copy(this.keyLight.target.position)
+      .addScaledVector(environment.keyDirection, 0.22);
+    this.keyLight.color
+      .set(
+        this.sim.activeSystem.companion?.color ??
+          this.sim.activeSystem.star.color!,
+      )
+      .lerp(daylightWhite, 0.65);
+    this.keyLight.intensity = environment.keyIntensity;
+    this.fillLight.target.position.copy(this.craft.ship.position);
+    this.fillLight.position
+      .copy(this.fillLight.target.position)
+      .addScaledVector(environment.secondaryDirection, 10);
+    this.fillLight.color
+      .set(this.sim.activeSystem.star.color!)
+      .lerp(daylightWhite, 0.65);
+    this.fillLight.intensity = environment.secondaryIntensity;
+    this.ambient.intensity = 0.38 - density * 0.12;
+    this.skyLight.position.copy(environment.up);
+    this.skyLight.color.copy(environment.horizon);
+    this.skyLight.intensity = density * (0.6 + daylight * 1.2);
+    const shadowActive =
+      !title &&
+      this.quality === 'high' &&
+      !!surface.patch &&
+      environment.keyHeight > 0.06 &&
+      (this.sim.altitude < 0.1 || surface.phase === 'walking');
+    this.keyLight.castShadow = shadowActive;
+    this.lighting = { daylight, density, shadows: shadowActive };
+    (this.stars.material as T.PointsMaterial).opacity = environment.starOpacity;
     const sky = this.nebula.material as T.ShaderMaterial;
     sky.uniforms.air.value = density;
-    sky.uniforms.surfaceUp.value
-      .copy(this.sim.position)
-      .sub(this.sim.nearest.position)
-      .normalize();
-    this.scene.fog =
-      density > 0.01 ? new T.FogExp2('#23526d', density * 0.0015) : null;
+    sky.uniforms.surfaceUp.value.copy(environment.up);
+    sky.uniforms.horizonColor.value.copy(environment.horizon);
+    sky.uniforms.zenithColor.value.copy(environment.zenith);
+    sky.uniforms.sunDirection.value.copy(environment.keyDirection);
+    sky.uniforms.daylight.value = daylight;
+    this.haze.color.copy(environment.horizon);
+    this.haze.density = environment.hazeDensity;
+    this.scene.fog = density > 0.001 ? this.haze : null;
     const material = this.dust.material as T.LineBasicMaterial;
     material.opacity = title ? 0 : Math.min(0.65, this.sim.speed / 1400);
     const stretch = Math.min(38, 1 + this.sim.speed / 160);
@@ -784,6 +874,7 @@ export class FlightRenderer {
     disposeObject(this.scene);
     this.composer.passes.forEach((pass) => pass.dispose());
     this.composer.dispose();
+    this.keyLight.shadow.dispose();
     this.renderer.dispose();
   }
 }
