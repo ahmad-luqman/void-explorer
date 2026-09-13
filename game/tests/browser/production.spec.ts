@@ -10,7 +10,11 @@ test('production export loads terrain workers and supports a complete approach',
   });
   const workers: string[] = [];
   page.on('worker', (worker) => workers.push(worker.url()));
+  const modelResponse = page.waitForResponse((response) =>
+    response.url().endsWith('/models/aurora-v1.glb'),
+  );
   await page.goto('/');
+  expect((await modelResponse).status()).toBe(200);
   await expect(
     page.getByRole('button', { name: 'START EXPEDITION' }),
   ).toBeEnabled({ timeout: 45000 });

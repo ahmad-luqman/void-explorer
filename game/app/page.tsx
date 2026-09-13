@@ -280,6 +280,7 @@ export default function Home() {
             )?.patch,
             terrainPending: view?.patchPending,
             contactStats: view?.contactStats,
+            shipModel: view?.craft.modelSource,
           }),
           select: (id) => sim.select(id),
           scene: (name) => {

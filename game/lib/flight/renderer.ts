@@ -698,6 +698,14 @@ export class FlightRenderer {
       e.visible = !['landed', 'walking', 'restoring'].includes(surface.phase);
       e.scale.y = 0.35 + Math.min(3, this.sim.speed / 150) + (title ? 0.4 : 0);
     }
+    for (const core of this.craft.cores) {
+      const material = core.material as T.MeshStandardMaterial;
+      material.emissiveIntensity = ['landed', 'walking', 'restoring'].includes(
+        surface.phase,
+      )
+        ? 0.22
+        : 2.2 + this.sim.throttle;
+    }
     const density = !this.sim.nearest.star
       ? Math.max(0, 1 - this.sim.altitude / 160)
       : 0;
@@ -770,6 +778,7 @@ export class FlightRenderer {
   }
   dispose() {
     this.disposed = true;
+    this.craft.dispose();
     this.worker.terminate();
     this.contactWorker.terminate();
     disposeObject(this.scene);
