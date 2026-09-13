@@ -21,6 +21,6 @@
 
 The first sheet is a direction study, not a precise geometry contract. Its clouds and water are more detailed than the intended initial runtime renderer. Simplify them while retaining depth, contrast, and color.
 
-The wing silhouette needs dedicated top, side, front, and rear studies before modeling: four distinct wings, symmetrical layout, pink tips, teal canopy, ivory armor, and twin cyan engines. The flight sheet alone is insufficient to reconstruct that geometry consistently.
+The dedicated [AURORA turnaround](ships/README.md) now develops the wing silhouette in top, side, front, and rear views: four distinct wings, symmetrical layout, pink tips, teal canopy, ivory armor, and twin cyan engines. The [editable Blender model](../models/aurora/README.md) resolves projection ambiguities and defines the runtime geometry contract.
 
-Additional concept stages: coastal landing, ship turnaround, and a sparse navigation overlay. Produce these as the design develops rather than treating the initial image as user-approved final art.
+The ship turnaround study is complete. Dedicated coastal landing and navigation studies remain available as the design develops; the initial image remains a direction study rather than user-approved final art.

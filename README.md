@@ -2,7 +2,7 @@
 
 A playable browser spaceflight prototype following the [Void Explorer showcase](https://developers.openai.com/showcase/void-explorer) and [Building games with Astra](https://developers.openai.com/blog/how-to-build-games-with-astra).
 
-The first playable milestone includes 1,024 deterministic star systems, 3,072 procedural planets, an initial binary system, a four-wing exploration ship, manual flight, boost and pulse travel, direct targeting, searchable galaxy and local-system maps, autopilot, and continuous descent, safe landing, walking, reboarding, takeoff, and saved expeditions. All visible stars have reachable positions.
+The first playable milestone includes 1,024 deterministic star systems, 3,072 procedural planets, an initial binary system, an authored four-wing Blender spacecraft, manual flight, boost and pulse travel, direct targeting, searchable galaxy and local-system maps, autopilot, and continuous descent, safe landing, walking, reboarding, takeoff, and saved expeditions. All visible stars have reachable positions.
 
 ## Run locally
 
@@ -49,11 +49,12 @@ Browser tests expect the development server at `http://localhost:3000`. Override
 
 ## Current limits
 
-This is the first playable slice, not the finished reference game. Interstellar distances are compressed; the ship and walking use meter-scale dimensions. Planets remain stationary. Close terrain uses a worker-generated graded mesh extending 48 km from the pilot, with a dense central walking grid and closed outer seams, rather than a complete planetary quadtree. Landing and walking use the exact triangles of that detailed terrain. Coast depth colors and procedural gravel/mineral materials provide surface detail. Terrain remains sparse, and rotating worlds remain a later milestone. Rendering currently uses WebGL 2; WebGPU and the authored Blender ship are still planned. Sound is a synthesized engine tone, with no soundtrack.
+This is the first playable slice, not the finished reference game. Interstellar distances are compressed; the ship and walking use meter-scale dimensions. Planets remain stationary. Close terrain uses a worker-generated graded mesh extending 48 km from the pilot, with a dense central walking grid and closed outer seams, rather than a complete planetary quadtree. Landing and walking use the exact triangles of that detailed terrain. Coast depth colors and procedural gravel/mineral materials provide surface detail. Terrain remains sparse, and rotating worlds remain a later milestone. Rendering currently uses WebGL 2; WebGPU is still planned. The ship now loads from an authored GLB with a procedural fallback; mechanical gear animation remains future polish. Sound is a synthesized engine tone, with no soundtrack.
 
 ## Project references
 
 - [Initial concept sheet](art/concepts/void-explorer-flight-study-v1.png) and [exact generation prompt](art/concepts/flight-study-v1.prompt.md)
+- [Spacecraft reference sheet](art/ships/aurora-turnaround-v1.png), [generation prompt](art/ships/aurora-turnaround-v1.prompt.md), and [Blender source/model notes](models/aurora/README.md)
 - [Art direction](art/ART_DIRECTION.md)
 - [Build plan and milestone progress](BUILD_PLAN.md)
 - [Implementation and validation notes](game/IMPLEMENTATION.md)

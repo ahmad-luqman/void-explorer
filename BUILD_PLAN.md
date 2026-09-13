@@ -10,8 +10,8 @@ The [official showcase](https://developers.openai.com/showcase/void-explorer) su
 2. Build the first vertical slice — implemented: manual flight, reachable destinations, and descent to surface hover.
 3. Make flight and navigation feel right — direct targeting, searchable visual galaxy/system charts, pulse travel, obstacle-aware autopilot, and closing-speed arrival feedback implemented; further handling and route-planning polish remain.
 4. Upgrade rendering — lighting, planetary materials, WebGPU and WebGL support.
-5. Refine the spacecraft concept — consistent four-wing reference views.
-6. Build and integrate AURORA — Blender model and runtime asset.
+5. Refine the spacecraft concept — dedicated turnaround sheet created, with a documented geometry contract.
+6. Build and integrate AURORA — authored Blender model and compact GLB integrated; animation and further visual polish remain.
 7. Make exploration physical — landing, walking, reboarding, takeoff, and local expedition saves implemented.
 8. Keep the world coherent — terrain, water, and atmosphere throughout travel.
 
@@ -21,7 +21,7 @@ Commit each coherent, reviewable milestone as work progresses. Separate art, imp
 
 ## 1. Establish the experience and art direction — in progress
 
-The first concept sheet covers orbital flight, atmospheric descent, and high-speed travel. Preserve the prompt and review the balance between faceted geometry and detail. Next, develop coastal landing and useful ship views.
+The first concept sheet covers orbital flight, atmospheric descent, and high-speed travel. Preserve the prompt and review the balance between faceted geometry and detail. Dedicated AURORA turnaround references and an authored Blender model are now present. Coastal landing concepts and further visual refinement remain.
 
 The eventual experience: choose a visible star, accelerate toward it, approach a planet, descend continuously to its terrain, land, explore, board, and take off.
 
@@ -51,7 +51,7 @@ Require visible ground and collision data to agree before landing. Check slope a
 
 Track frame timing, draw calls, triangle counts, terrain queue size, discarded work, and transferred buffers. Budget geometry by screen size, share indexed vertices, stabilize refinement, and avoid main-thread generation stalls. Compare the same scenes before and after changes. Evaluate WebGPU and shader-based atmosphere, water, lighting, and retro presentation while preserving simulation behavior.
 
-## 8. Develop and integrate the authored ship
+## 8. Develop and integrate the authored ship — initial model implemented
 
 Generate consistent turnaround references before modeling. Build and inspect the ship in Blender, preserve an editable source, and export a runtime model with a restrained material and draw-call budget. Match the four separate wings, canopy, engines, and lights established in the visual studies. Check the silhouette and cost in real flight scenes.
 
@@ -63,4 +63,4 @@ The article's separate ocean and 2D game experiments are reference material, not
 
 ## Stage boundary
 
-The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, and saved progress. This is not the finished reference game. Authored Blender assets, WebGPU, full adaptive terrain streaming, richer surface scenery, rotating worlds, and integer-cell interstellar addressing remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
+The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, and saved progress. This is not the finished reference game. WebGPU, full adaptive terrain streaming, richer surface scenery, rotating worlds, integer-cell interstellar addressing, and further spacecraft animation/polish remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
