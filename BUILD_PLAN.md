@@ -12,7 +12,7 @@ The [official showcase](https://developers.openai.com/showcase/void-explorer) su
 4. Upgrade rendering — lighting, planetary materials, WebGPU and WebGL support.
 5. Refine the spacecraft concept — consistent four-wing reference views.
 6. Build and integrate AURORA — Blender model and runtime asset.
-7. Make exploration physical — landing, walking, and reboarding.
+7. Make exploration physical — landing, walking, reboarding, takeoff, and local expedition saves implemented.
 8. Keep the world coherent — terrain, water, and atmosphere throughout travel.
 
 ## Incremental commits
@@ -41,7 +41,7 @@ Generate deterministic star systems and planet descriptions from seeds. Render d
 
 Use one terrain sampling function for planet shape, water, biome colors, and ground collision. Add cube-sphere terrain with adaptive refinement and worker generation. Keep coarse coverage visible until replacement terrain is ready. Tie atmosphere and clouds to altitude; reduce approach speed near the surface and along shallow trajectories.
 
-## 6. Add landing and surface exploration
+## 6. Add landing and surface exploration — implemented for stationary worlds
 
 Require visible ground and collision data to agree before landing. Check slope and ship clearance. Add walking, boarding, takeoff, and persistent expedition state. Keep landed craft attached to rotating terrain. Verify complete journeys and reload behavior rather than relying solely on prepared screenshots.
 
@@ -61,4 +61,4 @@ The article's separate ocean and 2D game experiments are reference material, not
 
 ## Stage boundary
 
-The user authorized game implementation after the concept milestone. A tested first playable slice is now present in `game/`, including a worker-generated local terrain patch and continuous descent to hover. This is not the finished reference game. Landing, walking, authored Blender assets, WebGPU, full terrain streaming, physical scale, and expedition persistence remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
+The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, and saved progress. This is not the finished reference game. Authored Blender assets, WebGPU, full adaptive terrain streaming, richer surface scenery, rotating worlds, and integer-cell interstellar addressing remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.

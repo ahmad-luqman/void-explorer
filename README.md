@@ -2,7 +2,7 @@
 
 A playable browser spaceflight prototype following the [Void Explorer showcase](https://developers.openai.com/showcase/void-explorer) and [Building games with Astra](https://developers.openai.com/blog/how-to-build-games-with-astra).
 
-The first playable milestone includes 1,024 deterministic star systems, 3,072 procedural planets, an initial binary system, a four-wing exploration ship, manual flight, boost and pulse travel, direct targeting, a searchable destination list, autopilot, and continuous descent to a surface hover. All visible stars have reachable positions.
+The first playable milestone includes 1,024 deterministic star systems, 3,072 procedural planets, an initial binary system, a four-wing exploration ship, manual flight, boost and pulse travel, direct targeting, a searchable destination list, autopilot, and continuous descent, safe landing, walking, reboarding, takeoff, and saved expeditions. All visible stars have reachable positions.
 
 ## Run locally
 
@@ -25,6 +25,9 @@ Open the local URL printed by the server. The app needs WebGL 2. High graphics a
 - Click a star, or press T to target the center of the view.
 - Tab opens the destination list; J toggles autopilot to the selected destination.
 - L descends to the selected planet and finishes facing the horizon.
+- B lands on suitable ground below 30 km; F leaves or boards the ship; R takes off.
+- On foot, WASD walks, arrows or dragging looks around, and Shift runs.
+- Expeditions save automatically every 15 seconds and at stable phase changes. Save manually from pause or the surface panel; Continue restores progress on this device.
 - Esc pauses; G opens settings; H opens the flight manual.
 
 Touch steering, throttle, braking, and navigation controls are available on small screens.
@@ -40,11 +43,11 @@ npm run test:browser
 npm run build
 ```
 
-Browser tests expect the development server at `http://localhost:3000`. Override with `PLAYWRIGHT_BASE_URL`. If necessary, install the test browser with `npx playwright install chromium`. The production build exports static assets under `game/dist/client/` and includes the terrain worker.
+Browser tests expect the development server at `http://localhost:3000`. Override with `PLAYWRIGHT_BASE_URL`. If necessary, install the test browser with `npx playwright install chromium`. The production build exports static assets under `game/dist/client/` and includes both terrain workers.
 
 ## Current limits
 
-This is the first playable slice, not the finished reference game. World scale is compressed and ship size is illustrative. Planets remain stationary. Close terrain uses one asynchronously generated local patch over the persistent globe, rather than a complete planetary quadtree. Descent ends in a safe hover: landing, walking, boarding, saved expeditions, and rotating worlds remain later milestones. Rendering currently uses WebGL 2; WebGPU and the authored Blender ship are still planned. Sound is a synthesized engine tone, with no soundtrack.
+This is the first playable slice, not the finished reference game. Interstellar distances are compressed; the ship and walking use meter-scale dimensions. Planets remain stationary. Close terrain uses one asynchronously generated local patch over the persistent globe, rather than a complete planetary quadtree. Landing and walking use the exact triangles of a second, detailed contact patch. Terrain remains sparse, and rotating worlds remain a later milestone. Rendering currently uses WebGL 2; WebGPU and the authored Blender ship are still planned. Sound is a synthesized engine tone, with no soundtrack.
 
 ## Project references
 
