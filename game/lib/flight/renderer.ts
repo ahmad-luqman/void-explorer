@@ -10,6 +10,7 @@ import { PATCH_COS, terrainColor } from './terrain';
 import TerrainWorker from './terrain.worker?worker';
 import ContactWorker from './contact.worker?worker';
 import { createTerrainSkirt } from './terrain-seam';
+import { addSurfaceMaterial } from './surface-material';
 import {
   ContactSurface,
   SHIP_SCALE,
@@ -325,6 +326,7 @@ export class FlightRenderer {
           `#include <clipping_planes_fragment>\nif(length(vContactLocal-contactUp*dot(vContactLocal,contactUp))>${CONTACT_RADIUS.toFixed(1)}) discard;`,
         );
       };
+      addSurfaceMaterial(material, body, patch.origin);
       if (this.contactMesh) {
         this.scene.remove(this.contactMesh);
         disposeObject(this.contactMesh);

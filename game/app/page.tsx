@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Vector3 } from 'three';
 import {
   ArrowRight,
   Crosshair,
@@ -288,6 +289,10 @@ export default function Home() {
             if (name === 'landing') {
               sim.position.set(0, 0, sim.target.radius + 35);
               sim.face(sim.target.position);
+            }
+            if (name === 'terrain-traverse') {
+              sim.position.set(0, 0, sim.target.radius + 25);
+              sim.face(sim.position.clone().add(new Vector3(20, 0, 1)));
             }
             if (name === 'pulse') {
               sim.position.set(0, 400, 12000);

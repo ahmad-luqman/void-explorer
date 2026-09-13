@@ -11,6 +11,15 @@ export function terrainColor(
     desert: ['#41213b', '#87405c', '#b56c73', '#d69b87', '#f9d7b4'],
     ice: ['#174358', '#377e8f', '#84b7c9', '#b0ccdf', '#e5e5f9'],
   };
+  if (kind === 'ocean' && height < 0.0002) {
+    const deep = new Color('#092e50'),
+      shallow = new Color('#248e9c');
+    return (
+      height <= 0
+        ? deep.lerp(shallow, Math.exp(height / 0.006))
+        : shallow.lerp(new Color('#72afa6'), Math.min(1, height / 0.0002))
+    ).multiplyScalar(variation);
+  }
   const index =
     kind === 'ocean'
       ? height <= 0.00015
