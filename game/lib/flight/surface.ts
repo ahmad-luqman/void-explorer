@@ -8,6 +8,7 @@ import {
   type GroundSample,
 } from './contact';
 import type { FlightSimulation, Controls } from './simulation';
+import { generateScenery, sceneryBlocks, type SurfaceProp } from './scenery';
 export type SurfacePhase =
   | 'flight'
   | 'landing'
@@ -21,6 +22,8 @@ export type SurfaceRecord = {
   shipPosition: number[];
   shipOrientation: number[];
   walked: number;
+  sceneryVersion?: 1;
+  sceneryClearings?: { point: number[]; radius: number }[];
 };
 const FORWARD = new Vector3(0, 0, -1),
   RIGHT = new Vector3(1, 0, 0);
@@ -33,6 +36,9 @@ export class SurfaceExpedition {
   shipOrientation = new Quaternion();
   walked = 0;
   landings = 0;
+  scenery: SurfaceProp[] = [];
+  private sceneryAnchor = new Vector3(Infinity, Infinity, Infinity);
+  private sceneryExclusions: { point: Vector3; radius: number }[] = [];
   private destination = new Vector3();
   private landingOrientation = new Quaternion();
   private lift = 0;
@@ -45,6 +51,7 @@ export class SurfaceExpedition {
     if ((this.phase === 'landing' || this.phase === 'landed') && this.patch)
       return;
     this.patch = patch;
+    this.refreshScenery(true);
     if (this.phase === 'restoring' && this.restoreRecord) {
       const ground = patch.sample(this.sim.position);
       if (!ground) return;
@@ -64,7 +71,22 @@ export class SurfaceExpedition {
       this.message = 'Expedition restored.';
     }
   }
-  private stance(): {
+  refreshScenery(force = false) {
+    const patch = this.patch;
+    if (!patch || patch.body.id !== this.sim.nearest.id) return;
+    if (!force && this.phase === 'flight' && this.sim.altitude > 3) return;
+    const delta = this.sim.position.clone().sub(this.sceneryAnchor);
+    delta.addScaledVector(patch.up, -delta.dot(patch.up));
+    if (!force && delta.length() < 0.15) return;
+    this.scenery = generateScenery(patch, this.sim.position).filter(
+      (prop) =>
+        !this.sceneryExclusions.some(
+          (e) => prop.point.distanceTo(e.point) < e.radius + prop.radius,
+        ),
+    );
+    this.sceneryAnchor.copy(this.sim.position);
+  }
+  private stance(at = this.sim.position): {
     ground: GroundSample;
     orientation: Quaternion;
     position: Vector3;
@@ -73,12 +95,12 @@ export class SurfaceExpedition {
     if (
       !patch ||
       patch.body.id !== this.sim.nearest.id ||
-      !patch.contains(this.sim.position)
+      !patch.contains(at)
     ) {
       this.message = 'Mapping the landing surface…';
       return null;
     }
-    const ground = patch.sample(this.sim.position);
+    const ground = patch.sample(at);
     if (!ground) {
       this.message = 'Move over mapped terrain.';
       return null;
@@ -89,6 +111,10 @@ export class SurfaceExpedition {
     }
     if (ground.slope > 12) {
       this.message = 'Slope too steep. Find a flatter landing site.';
+      return null;
+    }
+    if (sceneryBlocks(this.scenery, ground.point, patch.up, 0.035)) {
+      this.message = 'Rocks near the landing footprint. Find an open clearing.';
       return null;
     }
     const forward = FORWARD.clone().applyQuaternion(this.sim.orientation);
@@ -137,7 +163,27 @@ export class SurfaceExpedition {
       this.message = 'Brake below 20 km/s before landing.';
       return false;
     }
-    const site = this.stance();
+    this.refreshScenery(true);
+    let site = this.stance();
+    let adjusted = false;
+    if (!site && this.message.startsWith('Rocks near') && this.patch) {
+      // Choose a nearby dry, level opening before starting the final approach.
+      for (const radius of [0.06, 0.1, 0.16]) {
+        for (let i = 0; i < 12 && !site; i++) {
+          const angle = (i * Math.PI) / 6;
+          site = this.stance(
+            this.sim.position
+              .clone()
+              .addScaledVector(this.patch.east, Math.cos(angle) * radius)
+              .addScaledVector(this.patch.north, Math.sin(angle) * radius),
+          );
+        }
+        if (site) {
+          adjusted = true;
+          break;
+        }
+      }
+    }
     if (!site) return false;
     this.bodyId = this.sim.nearest.id;
     this.destination.copy(site.position);
@@ -147,7 +193,9 @@ export class SurfaceExpedition {
     this.sim.descending = false;
     this.sim.pulse = false;
     this.sim.throttle = 0;
-    this.message = 'Landing gear deployed. Beginning final approach.';
+    this.message = adjusted
+      ? 'Clear ground located nearby. Adjusting final approach.'
+      : 'Landing gear deployed. Beginning final approach.';
     return true;
   }
   exit() {
@@ -160,7 +208,13 @@ export class SurfaceExpedition {
           side * 0.027,
         );
       const ground = this.patch.sample(candidate);
-      if (!ground || ground.water || ground.slope > 32) continue;
+      if (
+        !ground ||
+        ground.water ||
+        ground.slope > 32 ||
+        sceneryBlocks(this.scenery, ground.point, this.patch.up, 0.0007)
+      )
+        continue;
       this.sim.position
         .copy(ground.point)
         .addScaledVector(this.patch.up, EYE_HEIGHT);
@@ -208,6 +262,9 @@ export class SurfaceExpedition {
     this.message = '';
     this.restoreRecord = null;
     this.walked = 0;
+    this.scenery = [];
+    this.sceneryExclusions = [];
+    this.sceneryAnchor.set(Infinity, Infinity, Infinity);
   }
   record(): SurfaceRecord {
     return {
@@ -221,6 +278,11 @@ export class SurfaceExpedition {
       shipPosition: this.shipPosition.toArray(),
       shipOrientation: this.shipOrientation.toArray(),
       walked: this.walked,
+      sceneryVersion: 1,
+      sceneryClearings: this.sceneryExclusions.map((e) => ({
+        point: e.point.toArray(),
+        radius: e.radius,
+      })),
     };
   }
   restore(record: SurfaceRecord, waitForGround = false) {
@@ -229,6 +291,18 @@ export class SurfaceExpedition {
     this.shipOrientation.fromArray(record.shipOrientation);
     this.walked = record.walked;
     this.bodyId = record.bodyId;
+    if (record.sceneryVersion === 1) {
+      this.sceneryExclusions = (record.sceneryClearings ?? []).map((e) => ({
+        point: new Vector3().fromArray(e.point),
+        radius: e.radius,
+      }));
+    } else if (record.phase !== 'flight') {
+      // Preserve access for expeditions saved before scenery was introduced.
+      this.sceneryExclusions = [
+        { point: this.shipPosition.clone(), radius: 0.04 },
+        { point: this.sim.position.clone(), radius: 0.004 },
+      ];
+    }
     if (record.phase !== 'flight' || waitForGround) {
       this.phase = 'restoring';
       this.restoreRecord = record;
@@ -334,6 +408,11 @@ export class SurfaceExpedition {
       this.message = ground.water
         ? 'Water ahead. Stay on solid ground.'
         : 'Slope ahead is too steep to walk.';
+      return;
+    }
+    if (sceneryBlocks(this.scenery, ground.point, up, 0.0007)) {
+      s.speed = 0;
+      this.message = 'Rock formation ahead. Walk around it.';
       return;
     }
     const before = s.position.clone();

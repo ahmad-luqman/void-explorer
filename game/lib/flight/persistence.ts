@@ -66,6 +66,22 @@ export function parseExpedition(raw: string | null): ExpeditionSave | null {
       f.walked < 0
     )
       return null;
+    if (f.sceneryVersion !== undefined && f.sceneryVersion !== 1) return null;
+    if (
+      f.sceneryClearings !== undefined &&
+      (!Array.isArray(f.sceneryClearings) ||
+        f.sceneryClearings.length > 2 ||
+        !f.sceneryClearings.every(
+          (e: { point?: unknown; radius?: unknown }) =>
+            e &&
+            vector(e.point, 3) &&
+            typeof e.radius === 'number' &&
+            Number.isFinite(e.radius) &&
+            e.radius >= 0 &&
+            e.radius <= 0.05,
+        ))
+    )
+      return null;
     return s as ExpeditionSave;
   } catch {
     return null;

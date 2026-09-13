@@ -13,6 +13,9 @@ import { createTerrainSkirt } from './terrain-seam';
 import { addSurfaceMaterial } from './surface-material';
 import { addWaterMaterial } from './water-material';
 import { sampleEnvironment } from './environment';
+import { createCloudLayer } from './clouds';
+import { createSceneryView } from './scenery-view';
+import type { SurfaceProp } from './scenery';
 import {
   ContactSurface,
   SHIP_SCALE,
@@ -27,6 +30,7 @@ type PlanetView = {
   clipCos: { value: number };
   contactRadius: { value: number };
   atmosphere: T.ShaderMaterial;
+  clouds: T.Mesh<T.BufferGeometry, T.ShaderMaterial>;
   patch?: T.Mesh;
   anchor?: T.Vector3;
 };
@@ -72,6 +76,8 @@ function applyTerrainMask(
 function disposeObject(group: T.Object3D) {
   group.traverse((o) => {
     const m = o as T.Mesh;
+    if ((m as T.InstancedMesh).isInstancedMesh)
+      (m as T.InstancedMesh).dispose();
     if (m.geometry) m.geometry.dispose();
     if (m.material) {
       const materials = Array.isArray(m.material) ? m.material : [m.material];
@@ -120,6 +126,8 @@ export class FlightRenderer {
   skyLight = new T.HemisphereLight('#7caabb', '#29213c', 0.7);
   haze = new T.FogExp2('#649bac', 0);
   lighting = { daylight: 1, density: 0, shadows: false };
+  sceneryView: T.Group | null = null;
+  sceneryProps: SurfaceProp[] | null = null;
   keyLight = new T.DirectionalLight('#ffe1b4', 2.8);
   fillLight = new T.DirectionalLight('#478aff', 1.4);
   constructor(
@@ -472,6 +480,13 @@ export class FlightRenderer {
       }),
     );
     group.add(atmo);
+    const clouds = createCloudLayer(
+      body,
+      this.waterTime,
+      atmo.material.uniforms.keyDirection,
+      atmo.material.uniforms.secondaryDirection,
+    );
+    group.add(clouds);
     if (body.ring) {
       const ringGeo = new T.RingGeometry(
         body.radius * 1.28,
@@ -509,6 +524,7 @@ export class FlightRenderer {
       clipCos,
       contactRadius,
       atmosphere: atmo.material,
+      clouds,
     };
   }
   loadSystem() {
@@ -521,8 +537,12 @@ export class FlightRenderer {
       disposeObject(this.contactMesh);
       this.contactMesh = null;
     }
-    if (this.sim.surface.phase === 'flight') this.sim.surface.patch = null;
+    if (this.sim.surface.phase === 'flight') {
+      this.sim.surface.patch = null;
+      this.sim.surface.scenery = [];
+    }
     this.planets.forEach((p) => {
+      p.clouds.material.uniforms.detail.value = this.quality === 'high' ? 1 : 0;
       this.scene.remove(p.group);
       disposeObject(p.group);
     });
@@ -647,6 +667,27 @@ export class FlightRenderer {
       .sub(this.sim.position);
     this.stars.position.copy(this.sim.position).negate();
     const surface = this.sim.surface;
+    if (this.sceneryProps !== surface.scenery) {
+      if (this.sceneryView) {
+        this.scene.remove(this.sceneryView);
+        disposeObject(this.sceneryView);
+      }
+      this.sceneryProps = surface.scenery;
+      this.sceneryView = surface.patch
+        ? createSceneryView(
+            surface.scenery,
+            surface.patch.origin,
+            surface.patch.body.kind,
+          )
+        : null;
+      if (this.sceneryView) this.scene.add(this.sceneryView);
+    }
+    if (this.sceneryView && surface.patch) {
+      this.sceneryView.position
+        .copy(surface.patch.origin)
+        .sub(this.sim.position);
+      this.sceneryView.visible = surface.patch.body.id === this.sim.nearest.id;
+    }
     if (
       this.sim.altitude < 60 &&
       !this.sim.nearest.star &&

@@ -282,6 +282,8 @@ export default function Home() {
             contactStats: view?.contactStats,
             shipModel: view?.craft.modelSource,
             lighting: view?.lighting,
+            sceneryCount: sim.surface.scenery.length,
+            cloudLayers: view?.planets.length,
           }),
           select: (id) => sim.select(id),
           scene: (name) => {

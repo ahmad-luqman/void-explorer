@@ -122,6 +122,7 @@ export class FlightSimulation {
     dt = Math.min(Math.max(dt, 0), 1 / 20);
     this.elapsed += dt;
     this.updateEnvironment();
+    this.surface.refreshScenery();
     if (this.surface.phase !== 'flight') {
       this.surface.step(dt, input);
       this.updateEnvironment();
