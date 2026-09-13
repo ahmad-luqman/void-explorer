@@ -7,8 +7,8 @@ Follow the progression described in [Building games with Astra](https://develope
 The [official showcase](https://developers.openai.com/showcase/void-explorer) supplies the main milestone order. The technical sections below expand these milestones; their numbering is not a separate mandatory execution order.
 
 1. Generate the game concepts — initial three-scene sheet created; further visual review remains.
-2. Build the first vertical slice — flight, reachable destinations, and descent.
-3. Make flight and navigation feel right — direct targeting and star charts.
+2. Build the first vertical slice — implemented: manual flight, reachable destinations, and descent to surface hover.
+3. Make flight and navigation feel right — initial direct targeting, searchable destination list, pulse travel, and obstacle-aware autopilot implemented; visual star chart and further tuning remain.
 4. Upgrade rendering — lighting, planetary materials, WebGPU and WebGL support.
 5. Refine the spacecraft concept — consistent four-wing reference views.
 6. Build and integrate AURORA — Blender model and runtime asset.
@@ -25,7 +25,7 @@ The first concept sheet covers orbital flight, atmospheric descent, and high-spe
 
 The eventual experience: choose a visible star, accelerate toward it, approach a planet, descend continuously to its terrain, land, explore, board, and take off.
 
-## 2. Build the first playable flight scene — later
+## 2. Build the first playable flight scene — implemented
 
 Start with TypeScript, Vite, and Three.js, one authored or procedural placeholder ship, and one procedural planet. Establish acceleration, braking, steering, chase camera, pause, settings, and readable navigation. Verify rendering support on the target browser before choosing the initial backend; retain the simulation independently of rendering.
 
@@ -61,4 +61,4 @@ The article's separate ocean and 2D game experiments are reference material, not
 
 ## Stage boundary
 
-Only concept art and planning are present now, following the request to build the game later. The listed technical choices are proposed directions to validate during implementation; none of the gameplay systems is implemented yet.
+The user authorized game implementation after the concept milestone. A tested first playable slice is now present in `game/`, including a worker-generated local terrain patch and continuous descent to hover. This is not the finished reference game. Landing, walking, authored Blender assets, WebGPU, full terrain streaming, physical scale, and expedition persistence remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.

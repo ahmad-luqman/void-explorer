@@ -17,10 +17,12 @@ test('production export loads terrain workers and supports a complete approach',
   await page.getByRole('button', { name: 'START EXPEDITION' }).click();
   await expect(page.locator('.flight-top')).toBeVisible();
   await page.getByRole('button', { name: /Descend to surface/ }).click();
+  await expect(page.locator('.arrival')).toContainText('AUTOPILOT');
   await expect(page.locator('.arrival')).toContainText('MANUAL FLIGHT', {
     timeout: 45000,
   });
   await expect(page.locator('.telemetry')).toContainText('ATMOSPHERE');
+  await page.waitForTimeout(1500);
   await page.screenshot({ path: 'test-results/production-surface.png' });
   await page.getByRole('button', { name: /Open star chart/ }).click();
   await page.getByRole('button', { name: /Nivalis/ }).click();
