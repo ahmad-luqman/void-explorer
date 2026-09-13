@@ -2,7 +2,7 @@
 
 A playable browser spaceflight prototype following the [Void Explorer showcase](https://developers.openai.com/showcase/void-explorer) and [Building games with Astra](https://developers.openai.com/blog/how-to-build-games-with-astra).
 
-The first playable milestone includes 1,024 deterministic star systems, 3,072 procedural planets, an initial binary system, a four-wing exploration ship, manual flight, boost and pulse travel, direct targeting, a searchable destination list, autopilot, and continuous descent, safe landing, walking, reboarding, takeoff, and saved expeditions. All visible stars have reachable positions.
+The first playable milestone includes 1,024 deterministic star systems, 3,072 procedural planets, an initial binary system, a four-wing exploration ship, manual flight, boost and pulse travel, direct targeting, searchable galaxy and local-system maps, autopilot, and continuous descent, safe landing, walking, reboarding, takeoff, and saved expeditions. All visible stars have reachable positions.
 
 ## Run locally
 
@@ -23,7 +23,9 @@ Open the local URL printed by the server. The app needs WebGL 2. High graphics a
 - Arrow keys steer; Q / E roll. Drag the sky to steer with the mouse.
 - Hold Shift for boost. P toggles pulse drive for longer distances.
 - Click a star, or press T to target the center of the view.
-- Tab opens the destination list; J toggles autopilot to the selected destination.
+- Tab opens the star chart. Switch between System and Galaxy, inspect markers, drag to pan, and scroll or use +/− to zoom. Search finds remote systems and their planets.
+- Set destination updates your target without moving the ship; Set course & engage autopilot starts the approach. J toggles autopilot during flight.
+- Navigation shows alignment, approach, and moving-away feedback. Arrival estimates use current closing speed and disappear when you are not approaching.
 - L descends to the selected planet and finishes facing the horizon.
 - B lands on suitable ground below 30 km; F leaves or boards the ship; R takes off.
 - On foot, WASD walks, arrows or dragging looks around, and Shift runs.

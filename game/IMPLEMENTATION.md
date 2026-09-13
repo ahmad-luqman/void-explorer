@@ -1,4 +1,4 @@
-# Terrain continuity milestone
+# Visual navigation milestone
 
 ## Architecture
 
@@ -12,15 +12,17 @@
 - `lib/flight/surface.ts`: landing, parked craft, walking, boarding, and vertical takeoff states. Landing rejects water, slopes above 12 degrees, and uneven gear contact. Walking rejects water and slopes above 35 degrees.
 - `lib/flight/persistence.ts`: validated versioned local saves, automatic stable-phase saves, explicit save, and ground-ready resume. Flight resumes stopped.
 - `lib/flight/ship.ts`: procedural placeholder with four separate wings, an ivory hull, a teal canopy, twin cyan engines, and three deployed landing feet. The physical ship uses a consistent meter scale; the title screen retains an illustrative pose.
+- `components/star-chart.tsx`: interactive SVG maps of real X/Z world coordinates, system inspection, planet/star previews, zoom/pan, nearest-first search, discovered markers, and direct-bearing lines. A keyboard-accessible list complements the map.
+- `lib/flight/navigation.ts`: terrain-aware range, closing speed, approach-distance ETA, and navigation guidance without changing simulation motion.
 - `app/page.tsx`: start screen, flight instruments, controls, pause, settings, navigation dialog, and optional engine audio.
 
 The app uses the Sites scaffold's Vinext/Vite and React setup, with a static export. The flight simulation and rendering code have no dependency on React.
 
 ## Validation
 
-Twenty-three unit/contract tests cover deterministic destinations and terrain, acceleration/braking, steering, a continuous orbital descent, high-speed collision protection, an interstellar journey, navigation cancellation, matching local terrain/collision samples, optional WebMCP navigation contracts, rendered-triangle contact, water and landing guards, the full surface journey, save validation/restoration, graded-grid coverage, bounded geometry, seam closure, and stable ground height after recentering.
+Twenty-six unit/contract tests cover deterministic destinations and terrain, acceleration/braking, steering, a continuous orbital descent, high-speed collision protection, an interstellar journey, navigation cancellation, matching local terrain/collision samples, optional WebMCP navigation contracts, rendered-triangle contact, water and landing guards, the full surface journey, save validation/restoration, graded-grid coverage, bounded geometry, seam closure, stable ground height after recentering, and navigation feedback for approaching, stopped, misaligned, and departing flight.
 
-Browser checks exercise startup, graphics preferences across reload, manual movement, braking, destination selection, autopilot, pause/resume, worker-backed descent, small-screen controls, empty navigation search, landing/walking/save/reload/reboarding/takeoff, and low-altitude terrain streaming through real flight controls. A separate smoke test supports checking the production static export and its worker assets.
+Browser checks exercise startup, graphics preferences across reload, manual movement, braking, destination selection, autopilot, pause/resume, worker-backed descent, small-screen controls, empty navigation search, landing/walking/save/reload/reboarding/takeoff, low-altitude terrain streaming through real flight controls, galaxy/system inspection, remote-planet course engagement, and keyboard navigation on small screens. A separate smoke test supports checking the production static export and its worker assets.
 
 Tests run in Chromium using SwiftShader. They establish behavior in the test environment, not a hardware-GPU performance guarantee. The automatic user-facing browser handoff was unavailable in this session.
 
@@ -32,6 +34,10 @@ Optional WebMCP tools expose reading flight state and selecting a destination. T
 
 The low-altitude Chromium/SwiftShader traversal produced three terrain patches with no discarded jobs in the recorded run. The last worker job took about 51 ms, returned 56,169 vertices, and transferred 2,686,656 bytes. The browser regression bounds the mesh below 90,000 vertices and 5 MB of transferred data. These are one-run development measurements, not hardware frame-rate claims.
 
+## Chart and guidance limits
+
+The chart is a top-down X/Z projection; vertical offsets are shown separately. Marker sizes are symbolic. Dashed lines show direct bearings, while flight autopilot can steer around intervening worlds. No orbital trajectories or multi-stop routes are predicted. ETA is a snapshot at the current closing speed to the approach distance, not a promise accounting for future acceleration, turns, or braking. Opening the chart pauses simulation; inspecting markers does not change the selected flight target until a course action is chosen.
+
 ## Deliberate limits
 
 The coordinate model uses ordinary JavaScript doubles and camera-relative GPU positions at compressed distances measured in game kilometers. It is not yet the article's integer-cell addressing for light-year travel and meter-scale walking. Every generated star is a target, and other systems' detailed planets are loaded when that system becomes the nearest one.
@@ -40,7 +46,7 @@ Orbital flight uses analytic terrain clearance until a detailed contact patch is
 
 The logarithmic depth buffer and camera-relative meshes support a 1.8 m eye height and a 3 m landing stance while keeping distant terrain visible. The mesh uses spatially graded detail, not a full view-dependent cube-sphere quadtree. Surface geometry follows the same broad planetary height function; rocks, vegetation, authored landing sites, and detailed surface biomes remain future work.
 
-Further milestones include adaptive cube-sphere terrain, richer surface detail and clouds, visual star charts, moving celestial bodies, WebGPU, Blender modeling, moving terrain attachment, and hardware profiling.
+Further milestones include adaptive cube-sphere terrain, richer surface detail and clouds, deeper route planning, moving celestial bodies, WebGPU, Blender modeling, moving terrain attachment, and hardware profiling.
 
 The final static export passed its production smoke test, including both worker assets, a continuous approach from orbit, landing, walking, saving, reload on foot, reboarding, takeoff, and subsequent target selection. There were no page errors or browser console errors during that test.
 

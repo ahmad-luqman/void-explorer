@@ -8,7 +8,7 @@ The [official showcase](https://developers.openai.com/showcase/void-explorer) su
 
 1. Generate the game concepts — initial three-scene sheet created; further visual review remains.
 2. Build the first vertical slice — implemented: manual flight, reachable destinations, and descent to surface hover.
-3. Make flight and navigation feel right — initial direct targeting, searchable destination list, pulse travel, and obstacle-aware autopilot implemented; visual star chart and further tuning remain.
+3. Make flight and navigation feel right — direct targeting, searchable visual galaxy/system charts, pulse travel, obstacle-aware autopilot, and closing-speed arrival feedback implemented; further handling and route-planning polish remain.
 4. Upgrade rendering — lighting, planetary materials, WebGPU and WebGL support.
 5. Refine the spacecraft concept — consistent four-wing reference views.
 6. Build and integrate AURORA — Blender model and runtime asset.
@@ -33,9 +33,9 @@ Start with TypeScript, Vite, and Three.js, one authored or procedural placeholde
 
 Expose a small development-only inspection API for position, target, flight mode, altitude, terrain readiness, and rendering counters. Create repeatable orbit, fast-travel, descent, and landing scenes. Use unit tests for generation and coordinate invariants, and browser tests for actual journeys using controls.
 
-## 4. Represent the universe across scales
+## 4. Represent the universe across scales — deterministic destinations and visual charts implemented
 
-Generate deterministic star systems and planet descriptions from seeds. Render distant stars from those real descriptions. Separate physical addresses from camera-relative drawing coordinates. Add practical pulse and interstellar travel, target selection, and distance displays. Expand toward the reference's universe scale only after basic travel works.
+Generate deterministic star systems and planet descriptions from seeds. Render distant stars from those real descriptions. Separate physical addresses from camera-relative drawing coordinates. Add practical pulse and interstellar travel, target selection, and distance displays. The chart now projects the real X/Z coordinates of systems and bodies, supports pan/zoom and searchable previews, and shows the ship and direct destination bearing. Expand toward the reference's universe scale only after basic travel works.
 
 ## 5. Make descent continuous — graded local terrain implemented
 
