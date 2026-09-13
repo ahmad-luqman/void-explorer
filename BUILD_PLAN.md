@@ -1,0 +1,64 @@
+# Build sequence
+
+Follow the progression described in [Building games with Astra](https://developers.openai.com/blog/how-to-build-games-with-astra), using the supplied screenshots and this repository's concept art as visual references. This is a plan for a fresh implementation, not a claim of access to the original source.
+
+## Showcase milestones
+
+The [official showcase](https://developers.openai.com/showcase/void-explorer) supplies the main milestone order. The technical sections below expand these milestones; their numbering is not a separate mandatory execution order.
+
+1. Generate the game concepts — initial three-scene sheet created; further visual review remains.
+2. Build the first vertical slice — flight, reachable destinations, and descent.
+3. Make flight and navigation feel right — direct targeting and star charts.
+4. Upgrade rendering — lighting, planetary materials, WebGPU and WebGL support.
+5. Refine the spacecraft concept — consistent four-wing reference views.
+6. Build and integrate AURORA — Blender model and runtime asset.
+7. Make exploration physical — landing, walking, and reboarding.
+8. Keep the world coherent — terrain, water, and atmosphere throughout travel.
+
+## Incremental commits
+
+Commit each coherent, reviewable milestone as work progresses. Separate art, implementation, and substantive fixes when they are independently useful. Run appropriate checks before implementation commits, record material limitations, and avoid accumulating the entire game in one final commit. Commit only project work; do not include unrelated changes or push unless requested.
+
+## 1. Establish the experience and art direction — in progress
+
+The first concept sheet covers orbital flight, atmospheric descent, and high-speed travel. Preserve the prompt and review the balance between faceted geometry and detail. Next, develop coastal landing and useful ship views.
+
+The eventual experience: choose a visible star, accelerate toward it, approach a planet, descend continuously to its terrain, land, explore, board, and take off.
+
+## 2. Build the first playable flight scene — later
+
+Start with TypeScript, Vite, and Three.js, one authored or procedural placeholder ship, and one procedural planet. Establish acceleration, braking, steering, chase camera, pause, settings, and readable navigation. Verify rendering support on the target browser before choosing the initial backend; retain the simulation independently of rendering.
+
+## 3. Add inspection and repeatable playtests
+
+Expose a small development-only inspection API for position, target, flight mode, altitude, terrain readiness, and rendering counters. Create repeatable orbit, fast-travel, descent, and landing scenes. Use unit tests for generation and coordinate invariants, and browser tests for actual journeys using controls.
+
+## 4. Represent the universe across scales
+
+Generate deterministic star systems and planet descriptions from seeds. Render distant stars from those real descriptions. Separate physical addresses from camera-relative drawing coordinates. Add practical pulse and interstellar travel, target selection, and distance displays. Expand toward the reference's universe scale only after basic travel works.
+
+## 5. Make descent continuous
+
+Use one terrain sampling function for planet shape, water, biome colors, and ground collision. Add cube-sphere terrain with adaptive refinement and worker generation. Keep coarse coverage visible until replacement terrain is ready. Tie atmosphere and clouds to altitude; reduce approach speed near the surface and along shallow trajectories.
+
+## 6. Add landing and surface exploration
+
+Require visible ground and collision data to agree before landing. Check slope and ship clearance. Add walking, boarding, takeoff, and persistent expedition state. Keep landed craft attached to rotating terrain. Verify complete journeys and reload behavior rather than relying solely on prepared screenshots.
+
+## 7. Measure performance and improve rendering
+
+Track frame timing, draw calls, triangle counts, terrain queue size, discarded work, and transferred buffers. Budget geometry by screen size, share indexed vertices, stabilize refinement, and avoid main-thread generation stalls. Compare the same scenes before and after changes. Evaluate WebGPU and shader-based atmosphere, water, lighting, and retro presentation while preserving simulation behavior.
+
+## 8. Develop and integrate the authored ship
+
+Generate consistent turnaround references before modeling. Build and inspect the ship in Blender, preserve an editable source, and export a runtime model with a restrained material and draw-call budget. Match the four separate wings, canopy, engines, and lights established in the visual studies. Check the silhouette and cost in real flight scenes.
+
+## 9. Polish and validate the full expedition
+
+Refine terrain continuity, atmospheres, ring lighting, speed effects, sound, graphics settings, and saved progress. Test targeting a distant star, traveling to its system, descending, landing, walking, saving/reloading, boarding, and leaving again. Capture comparable images and performance measurements on the actual target hardware.
+
+The article's separate ocean and 2D game experiments are reference material, not additional games in this project. Techniques such as coherent procedural water can be applied where useful.
+
+## Stage boundary
+
+Only concept art and planning are present now, following the request to build the game later. The listed technical choices are proposed directions to validate during implementation; none of the gameplay systems is implemented yet.
