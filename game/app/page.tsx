@@ -5,11 +5,9 @@ import { Vector3 } from 'three';
 import {
   ArrowRight,
   Crosshair,
-  Orbit,
   SlidersHorizontal,
   Volume2,
   Compass,
-  ChevronRight,
 } from 'lucide-react';
 import {
   Dialog,
@@ -22,6 +20,8 @@ import { FlightSimulation, emptyControls } from '@/lib/flight/simulation';
 import { FlightRenderer } from '@/lib/flight/renderer';
 import { registerFlightTools } from '@/lib/flight/webmcp';
 import { distanceLabel, SYSTEM_COUNT } from '@/lib/flight/universe';
+import { StarChart } from '@/components/star-chart';
+import { navigationReadout, etaLabel } from '@/lib/flight/navigation';
 import {
   captureExpedition,
   parseExpedition,
@@ -50,6 +50,9 @@ const initial = {
   shipDistance: 0,
   walked: 0,
   contactReady: false,
+  guidance: 'Ready to navigate',
+  eta: null as number | null,
+  closingSpeed: 0,
 };
 type Telemetry = typeof initial;
 type Runtime = { sim: FlightSimulation; view: FlightRenderer };
@@ -80,8 +83,7 @@ export default function Home() {
   const [quality, setQuality] = useState('high'),
     [finish, setFinish] = useState('authentic'),
     [sound, setSound] = useState(35),
-    [data, setData] = useState<Telemetry>(initial),
-    [query, setQuery] = useState('');
+    [data, setData] = useState<Telemetry>(initial);
   const flags = useRef({
     started: false,
     paused: false,
@@ -151,7 +153,6 @@ export default function Home() {
   }
   const toggleChart = () => {
     setChart((v) => !v);
-    setQuery('');
     keys.current.clear();
   };
   useEffect(() => {
@@ -240,17 +241,18 @@ export default function Home() {
         if (now - hudTime > 100) {
           hudTime = now;
           const marker = view.targetScreen();
+          const nav = navigationReadout(sim);
           setData({
+            guidance: nav.guidance,
+            eta: nav.eta,
+            closingSpeed: nav.closingSpeed,
             speed: sim.speed,
             altitude: sim.altitude,
             mode: sim.status,
             system: sim.activeSystem.name,
             target: sim.target.name,
             kind: sim.target.star ? 'star' : sim.target.kind,
-            range: Math.max(
-              0,
-              sim.position.distanceTo(sim.target.position) - sim.target.radius,
-            ),
+            range: nav.range,
             visited: sim.visited.size,
             auto: sim.autopilot,
             throttle: sim.throttle,
@@ -339,7 +341,7 @@ export default function Home() {
       mouse.current = { x: 0, y: 0, down: false };
     }
     const down = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return;
+      if (blocked || e.target instanceof HTMLInputElement) return;
       if (
         [
           'Tab',
@@ -433,17 +435,9 @@ export default function Home() {
     }
   }, [sound, started, paused, settings, chart, help, data.speed, data.phase]);
   const sim = runtime.current?.sim;
-  const allSystems =
-    sim?.systems
-      .filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
-      .sort(
-        (a, b) =>
-          a.position.distanceToSquared(sim.position) -
-          b.position.distanceToSquared(sim.position),
-      )
-      .slice(0, 30) || [];
-  const choose = (id: string) => {
-    sim?.select(id);
+  const choose = (id: string, engage = false) => {
+    if (!sim?.select(id)) return;
+    if (engage) sim.engage();
     setChart(false);
   };
   return (
@@ -621,12 +615,11 @@ export default function Home() {
               <p className="range">{distanceLabel(data.range)}</p>
               <div className="arrival">
                 <span>{data.auto ? 'AUTOPILOT' : 'MANUAL FLIGHT'}</span>
-                <b>
-                  {data.speed > 1
-                    ? `${Math.ceil(data.range / data.speed)} s`
-                    : 'STANDBY'}
+                <b title="Estimate at current closing speed">
+                  {etaLabel(data.eta)}
                 </b>
               </div>
+              <p className="navigation-guidance">{data.guidance}</p>
               <div className="nav-actions">
                 {data.phase === 'flight' && (
                   <>
@@ -1001,47 +994,10 @@ export default function Home() {
           <span className="eyebrow">DEEP RANGE CARTOGRAPHY</span>
           <DialogTitle>Every light. A destination.</DialogTitle>
           <DialogDescription>
-            Select a world or star, then engage autopilot to approach it.
+            Inspect a star or planet, plot your destination, and choose when to
+            fly.
           </DialogDescription>
-          <div className="local-worlds">
-            {sim?.activeSystem.planets.map((p) => (
-              <button key={p.id} onClick={() => choose(p.id)}>
-                <Orbit size={21} />
-                <span>
-                  {p.name}
-                  <small>
-                    {p.kind.toUpperCase()} ·{' '}
-                    {distanceLabel(sim.position.distanceTo(p.position))}
-                  </small>
-                </span>
-                <ChevronRight size={18} />
-              </button>
-            ))}
-          </div>
-          <label className="search-label">
-            FIND A STAR SYSTEM
-            <input
-              placeholder="Search by name…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
-          <div className="system-list">
-            {allSystems.length ? (
-              allSystems.map((s) => (
-                <button key={s.id} onClick={() => choose(s.star.id)}>
-                  <i style={{ background: s.color }} />
-                  <span>{s.name}</span>
-                  <small>
-                    {distanceLabel(sim!.position.distanceTo(s.position))}
-                  </small>
-                  <ChevronRight size={14} />
-                </button>
-              ))
-            ) : (
-              <p>No systems match that name.</p>
-            )}
-          </div>
+          {sim && chart && <StarChart sim={sim} onChoose={choose} />}
         </DialogContent>
       </Dialog>
     </main>

@@ -50,7 +50,13 @@ test('start screen, settings, manual flight, navigation, and pause', async ({
   await page.screenshot({ path: 'test-results/orbit.png' });
   await page.getByRole('button', { name: /Open star chart/ }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await page.getByRole('button', { name: /Ember Reach/ }).click();
+  await page
+    .locator('.chart-bodies')
+    .getByRole('button', { name: /Ember Reach/ })
+    .click();
+  await page
+    .getByRole('button', { name: 'Set destination →', exact: true })
+    .click();
   await expect(page.locator('.navigation h2')).toHaveText('Ember Reach');
   await page.getByRole('button', { name: /Engage autopilot/ }).click();
   await expect

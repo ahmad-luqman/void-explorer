@@ -50,7 +50,13 @@ test('production export loads terrain workers and supports a complete approach',
     timeout: 10000,
   });
   await page.getByRole('button', { name: /Open star chart/ }).click();
-  await page.getByRole('button', { name: /Nivalis/ }).click();
+  await page
+    .locator('.chart-bodies')
+    .getByRole('button', { name: /Nivalis/ })
+    .click();
+  await page
+    .getByRole('button', { name: 'Set destination →', exact: true })
+    .click();
   await expect(page.locator('.navigation h2')).toHaveText('Nivalis');
   expect(workers.some((url) => url.includes('terrain.worker'))).toBe(true);
   expect(workers.some((url) => url.includes('contact.worker'))).toBe(true);
