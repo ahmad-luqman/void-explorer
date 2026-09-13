@@ -9,7 +9,7 @@ The [official showcase](https://developers.openai.com/showcase/void-explorer) su
 1. Generate the game concepts — initial three-scene sheet created; further visual review remains.
 2. Build the first vertical slice — implemented: manual flight, reachable destinations, and descent to surface hover.
 3. Make flight and navigation feel right — direct targeting, searchable visual galaxy/system charts, pulse travel, obstacle-aware autopilot, and closing-speed arrival feedback implemented; further handling and route-planning polish remain.
-4. Upgrade rendering — lighting, planetary materials, WebGPU and WebGL support.
+4. Upgrade rendering — sun-aware sky and atmospheric rims, local haze, animated water normals, and near-ground ship shadows implemented in WebGL; WebGPU and further rendering polish remain.
 5. Refine the spacecraft concept — dedicated turnaround sheet created, with a documented geometry contract.
 6. Build and integrate AURORA — authored Blender model and compact GLB integrated; animation and further visual polish remain.
 7. Make exploration physical — landing, walking, reboarding, takeoff, and local expedition saves implemented.
@@ -50,6 +50,8 @@ Require visible ground and collision data to agree before landing. Check slope a
 ## 7. Measure performance and improve rendering
 
 Track frame timing, draw calls, triangle counts, terrain queue size, discarded work, and transferred buffers. Budget geometry by screen size, share indexed vertices, stabilize refinement, and avoid main-thread generation stalls. Compare the same scenes before and after changes. Evaluate WebGPU and shader-based atmosphere, water, lighting, and retro presentation while preserving simulation behavior.
+
+Current progress: both binary stars contribute directional lighting. Sky color and haze follow local sun elevation, altitude, and planet palette; night skies retain visible stars. High graphics adds a bounded 1,024² ship shadow map near the ground. Shared water normals animate continuously across globe and local meshes without changing collision or coast geometry. Clouds, physical scattering, terrain self-shadowing, reflections, and hardware profiling remain.
 
 ## 8. Develop and integrate the authored ship — initial model implemented
 

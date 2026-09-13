@@ -14,7 +14,7 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by the server. The app needs WebGL 2. High graphics adds bloom; Low reduces resolution and skips bloom. Preferences are stored on this device. No API keys are needed.
+Open the local URL printed by the server. The app needs WebGL 2. High graphics adds bloom and near-ground ship shadows; Low reduces resolution and skips those passes. Both retain sun-aware atmospheric colors, distance haze, and animated water shading. Preferences are stored on this device. No API keys are needed.
 
 ## Fly
 

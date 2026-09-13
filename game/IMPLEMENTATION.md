@@ -1,10 +1,12 @@
-# Authored spacecraft milestone
+# Lighting, atmosphere, and water milestone
 
 ## Architecture
 
 - `lib/flight/universe.ts`: deterministic system descriptors, seeded terrain, surface sampling, and distance formatting.
 - `lib/flight/simulation.ts`: renderer-independent position, orientation, throttle, proximity speed limits, obstacle-aware autopilot, and collision substeps.
 - `lib/flight/renderer.ts`: camera-relative Three.js rendering, persistent planetary meshes, atmospheric rim and sky, rings, binary suns, star points, ship, dust streaks, and bloom.
+- `lib/flight/environment.ts`: shared altitude envelope, sun directions, daylight/twilight, planet-specific sky colors, haze, and star visibility.
+- `lib/flight/water-material.ts`: planet-relative animated water normals and roughness, composed with globe/patch masks and ground material shaders. No geometry displacement or extra water mesh.
 - `lib/flight/terrain.ts` and `terrain.worker.ts`: local terrain generation using the same elevation function as the globe and collision queries. Transferable buffers move the generated patch to the renderer. Complementary masks switch coverage only when the patch is ready.
 - `lib/flight/contact.ts` and `contact.worker.ts`: graded indexed terrain generated in a worker: an 18.75 m grid through the central 2.4 km, expanding to cells up to 2 km across toward the horizon. A 48 km visible radius replaces the old 1.05 km contact disk. Foot and landing-gear queries raycast the exact Float32 triangles rendered on screen, including neighboring grid cells at rounded edges.
 - `lib/flight/terrain-seam.ts`: a buried outer skirt joins detailed terrain to the coarse surface; front-side cylindrical masks keep the opposite hemisphere intact.
@@ -21,15 +23,15 @@ The app uses the Sites scaffold's Vinext/Vite and React setup, with a static exp
 
 ## Validation
 
-Twenty-nine unit/contract tests cover deterministic destinations and terrain, acceleration/braking, steering, a continuous orbital descent, high-speed collision protection, an interstellar journey, navigation cancellation, matching local terrain/collision samples, optional WebMCP navigation contracts, rendered-triangle contact, water and landing guards, the full surface journey, save validation/restoration, graded-grid coverage, bounded geometry, seam closure, stable ground height after recentering, navigation feedback for approaching, stopped, misaligned, and departing flight, plus actual GLB size/orientation, landing contact height, emission nodes, and asset budgets.
+Thirty-two unit/contract tests cover deterministic destinations and terrain, acceleration/braking, steering, a continuous orbital descent, high-speed collision protection, an interstellar journey, navigation cancellation, matching local terrain/collision samples, optional WebMCP navigation contracts, rendered-triangle contact, water and landing guards, the full surface journey, save validation/restoration, graded-grid coverage, bounded geometry, seam closure, stable ground height after recentering, navigation feedback for approaching, stopped, misaligned, and departing flight, plus actual GLB size/orientation, landing contact height, emission nodes, asset budgets, binary daylight, night-side illumination, and atmospheric continuity at the space boundary.
 
-Ten browser tests exercise startup, graphics preferences across reload, manual movement, braking, destination selection, autopilot, pause/resume, worker-backed descent, small-screen controls, empty navigation search, landing/walking/save/reload/reboarding/takeoff, low-altitude terrain streaming through real flight controls, galaxy/system inspection, remote-planet course engagement, keyboard navigation on small screens, authored-asset loading and landing, and a flyable fallback when the GLB request fails. A separate run of the production journey checks the static export, its worker assets, and a successful GLB response.
+Eleven browser tests exercise startup, graphics preferences across reload, manual movement, braking, destination selection, autopilot, pause/resume, worker-backed descent, small-screen controls, empty navigation search, landing/walking/save/reload/reboarding/takeoff, low-altitude terrain streaming through real flight controls, galaxy/system inspection, remote-planet course engagement, keyboard navigation on small screens, authored-asset loading and landing, a flyable fallback when the GLB request fails, and sunlight/shadow rendering, graphics-quality switching, a night-side view, and ocean overflight without shader errors. A separate run of the production journey checks the static export, its worker assets, and a successful GLB response.
 
 Tests run in Chromium using SwiftShader. They establish behavior in the test environment, not a hardware-GPU performance guarantee. The automatic user-facing browser handoff was unavailable in this session.
 
-Type checking and the production build pass. Focused lint checks pass for the ship loader, procedural fallback, asset contract, and ship/production browser tests. Repository-wide lint is not clean: existing UI accessibility/React rules, terrain code, and worker-import resolution still report errors. This milestone does not claim a clean repository-wide lint run.
+Type checking and the production build pass. Focused lint checks pass for the new environment and water modules, ship loader, illumination unit tests, and rendering browser test. Earlier ship/fallback checks remain documented in their milestone commits. Repository-wide lint is not clean: existing UI accessibility/React rules, terrain code, and worker-import resolution still report errors. This milestone does not claim a clean repository-wide lint run.
 
-The development-only `window.__VOID_EXPLORER__` interface exposes state and rendering counters plus repeatable `descent`, `landing`, `terrain-traverse`, and `pulse` scenes. Named scenes set up tests; the journey checks then use real controls. This interface is stripped from production.
+The development-only `window.__VOID_EXPLORER__` interface exposes state and rendering counters plus repeatable `descent`, `landing`, `terrain-traverse`, `pulse`, `night`, and `water` scenes. Named scenes set up tests; the journey checks then use real controls. This interface is stripped from production.
 
 Optional WebMCP tools expose reading flight state and selecting a destination. Their registration, input handling, effects, and cleanup are contract-tested with a mock registry; no native WebMCP-capable browser was available for end-to-end verification.
 
@@ -40,6 +42,16 @@ The low-altitude Chromium/SwiftShader traversal produced three terrain patches w
 ## Spacecraft contract
 
 The GLB is authored in meters and converted to the legacy ship units at load time. Its 28.8 m span and landing-foot contact positions preserve existing saves and surface collision. Gear currently switches visibility rather than playing a mechanical retraction animation. Exhaust trails remain runtime geometry; engine emission dims while parked. The full editable Blender scene is not shipped to the browser.
+
+## Lighting and water contract
+
+Primary and companion light directions come from system body positions. Their direct contribution fades below the pilot's local horizon during atmospheric flight; low ambient light preserves silhouettes at night. Ocean, desert, and ice worlds have distinct zenith, horizon, and twilight palettes. Sky, fog, and star visibility share a smooth 0–160 km altitude envelope. Planetary rim brightness follows both sun directions. These are stylized approximations; there is no physical scattering solver, eclipse simulation, or global terrain shadowing.
+
+High graphics uses a single 1,024² PCF ship shadow map over a 140 m region centered on the craft. It activates near the ground or while walking when the key sun is above the horizon. Only ship meshes cast shadows, and the ship and detailed terrain receive them. Low graphics omits this pass and bloom. Custom sky/rim/ring shaders use the same tone-mapping and output-color conversion as built-in materials, so switching to direct rendering preserves the palette. The shadow target follows the same camera-relative origin as the ship; its render target is released on disposal.
+
+Ocean shaders share planet-relative wave phases and time across globe, flight patch, and contact mesh. Water gets a smooth radial normal, subtle animated normal variation within 12 km, and reduced roughness for solar glints. The geometry, coast boundary, water landing guards, and saved contact positions are unchanged. Waves are shading only; reflections of terrain/ships, foam, and displaced wave geometry remain future work. Ordinary manual flight retains its existing 5 km surface clearance floor; landing provides the controlled approach below it.
+
+Visual captures under `art/milestones/lighting-*.png` show sunlit ground with High/Low graphics, night flight, and ocean overflight. These captures are from Chromium/SwiftShader, not a hardware performance benchmark.
 
 ## Chart and guidance limits
 
