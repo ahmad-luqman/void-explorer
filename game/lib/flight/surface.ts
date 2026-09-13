@@ -1,0 +1,97 @@
+import {Matrix4,Quaternion,Vector3} from 'three';
+import {BOARD_DISTANCE,ContactSurface,EYE_HEIGHT,GEAR_HEIGHT,SHIP_SCALE,type GroundSample} from './contact';
+import type {FlightSimulation,Controls} from './simulation';
+export type SurfacePhase='flight'|'landing'|'landed'|'walking'|'takeoff'|'restoring';
+export type SurfaceRecord={phase:'flight'|'landed'|'walking';bodyId:string|null;shipPosition:number[];shipOrientation:number[];walked:number};
+const FORWARD=new Vector3(0,0,-1),RIGHT=new Vector3(1,0,0);
+export class SurfaceExpedition {
+ phase:SurfacePhase='flight';patch:ContactSurface|null=null;message='';bodyId:string|null=null;
+ shipPosition=new Vector3();shipOrientation=new Quaternion();walked=0;landings=0;
+ private destination=new Vector3();private landingOrientation=new Quaternion();private lift=0;private restoreRecord:SurfaceRecord|null=null;
+ constructor(private sim:FlightSimulation){}
+ get shipDistance(){return this.sim.position.distanceTo(this.shipPosition);}
+ setPatch(patch:ContactSurface){
+  if((this.phase==='landing'||this.phase==='landed')&&this.patch)return;
+  this.patch=patch;
+  if(this.phase==='restoring'&&this.restoreRecord){
+   const ground=patch.sample(this.sim.position);if(!ground)return;
+   const record=this.restoreRecord;this.phase=record.phase;this.restoreRecord=null;
+   if(this.phase==='walking')this.sim.position.copy(ground.point).addScaledVector(patch.up,EYE_HEIGHT);
+   this.sim.status=this.phase==='walking'?'ON FOOT':'LANDED';this.message='Expedition restored.';
+  }
+ }
+ private stance():{ground:GroundSample;orientation:Quaternion;position:Vector3}|null {
+  const patch=this.patch;if(!patch||patch.body.id!==this.sim.nearest.id||!patch.contains(this.sim.position)){this.message='Mapping the landing surface…';return null;}
+  const ground=patch.sample(this.sim.position);if(!ground){this.message='Move over mapped terrain.';return null;}
+  if(ground.water){this.message='Water below. Find solid ground before landing.';return null;}
+  if(ground.slope>12){this.message='Slope too steep. Find a flatter landing site.';return null;}
+  const forward=FORWARD.clone().applyQuaternion(this.sim.orientation);forward.addScaledVector(ground.normal,-forward.dot(ground.normal));if(forward.lengthSq()<.01)forward.copy(patch.north);forward.normalize();
+  const orientation=new Quaternion().setFromRotationMatrix(new Matrix4().lookAt(ground.point,ground.point.clone().add(forward),ground.normal));
+  const position=ground.point.clone().addScaledVector(ground.normal,GEAR_HEIGHT);
+  for(const [x,z] of [[-.85,1],[.85,1],[0,-1.3]]){
+   const foot=new Vector3(x*SHIP_SCALE,-GEAR_HEIGHT,z*SHIP_SCALE).applyQuaternion(orientation).add(position),sample=patch.sample(foot);
+   if(!sample||sample.water||sample.slope>12||Math.abs(sample.point.clone().sub(foot).dot(ground.normal))>.0006){this.message='Landing gear needs an even, dry surface.';return null;}
+  }
+  return {ground,orientation,position};
+ }
+ land(){
+  if(this.phase!=='flight')return false;
+  this.sim.updateEnvironment();
+  if(this.sim.nearest.star||this.sim.altitude>30){this.message='Descend below 30 km to begin landing.';return false;}
+  if(this.sim.speed>20){this.message='Brake below 20 km/s before landing.';return false;}
+  const site=this.stance();if(!site)return false;
+  this.bodyId=this.sim.nearest.id;this.destination.copy(site.position);this.landingOrientation.copy(site.orientation);this.phase='landing';this.sim.autopilot=false;this.sim.descending=false;this.sim.pulse=false;this.sim.throttle=0;this.message='Landing gear deployed. Beginning final approach.';return true;
+ }
+ exit(){
+  if(this.phase!=='landed'||!this.patch)return false;
+  for(const side of [1,-1]){
+   const candidate=this.shipPosition.clone().addScaledVector(RIGHT.clone().applyQuaternion(this.shipOrientation),side*.027);
+   const ground=this.patch.sample(candidate);if(!ground||ground.water||ground.slope>32)continue;
+   this.sim.position.copy(ground.point).addScaledVector(this.patch.up,EYE_HEIGHT);
+   this.sim.orientation.setFromRotationMatrix(new Matrix4().lookAt(this.sim.position,this.shipPosition,this.patch.up));
+   this.phase='walking';this.sim.status='ON FOOT';this.message='Surface excursion started. AURORA remains at the landing site.';return true;
+  }
+  this.message='No safe exit beside the ship.';return false;
+ }
+ board(){
+  if(this.phase!=='walking')return false;
+  if(this.shipDistance>BOARD_DISTANCE){this.message='Move within 55 m of AURORA to board.';return false;}
+  this.sim.position.copy(this.shipPosition);this.sim.orientation.copy(this.shipOrientation);this.sim.speed=0;this.phase='landed';this.sim.status='LANDED';this.message='Welcome aboard. Ready for takeoff.';return true;
+ }
+ takeoff(){if(this.phase!=='landed')return false;this.phase='takeoff';this.lift=0;this.message='Vertical ascent. Flight controls return at 120 m.';return true;}
+ reset(){this.phase='flight';this.patch=null;this.bodyId=null;this.message='';this.restoreRecord=null;this.walked=0;}
+ record():SurfaceRecord{return {phase:this.phase==='walking'?'walking':this.phase==='landed'?'landed':'flight',bodyId:this.bodyId,shipPosition:this.shipPosition.toArray(),shipOrientation:this.shipOrientation.toArray(),walked:this.walked};}
+ restore(record:SurfaceRecord){this.reset();this.shipPosition.fromArray(record.shipPosition);this.shipOrientation.fromArray(record.shipOrientation);this.walked=record.walked;this.bodyId=record.bodyId;if(record.phase!=='flight'){this.phase='restoring';this.restoreRecord=record;this.message='Restoring ground contact…';}}
+ step(dt:number,input:Controls){
+  const s=this.sim;if(this.phase==='restoring'){s.speed=0;s.status='RESTORING';return;}
+  if(this.phase==='landed'){s.speed=0;s.status='LANDED';return;}
+  if(this.phase==='landing'){
+   const delta=this.destination.clone().sub(s.position),distance=delta.length();const move=Math.min(distance,Math.min(40,Math.max(.0005,distance*2))*dt);
+   if(distance>0)s.position.addScaledVector(delta,move/distance);s.speed=move/dt;s.orientation.slerp(this.landingOrientation,1-Math.exp(-dt*5));s.status='LANDING';
+   if(distance<.00002){s.position.copy(this.destination);s.orientation.copy(this.landingOrientation);s.speed=0;this.shipPosition.copy(s.position);this.shipOrientation.copy(s.orientation);this.phase='landed';this.landings++;s.status='LANDED';this.message='Touchdown confirmed. Surface access available.';}
+   return;
+  }
+  if(this.phase==='takeoff'){
+   const up=this.patch?.up||new Vector3(0,1,0),rise=Math.min(.12-this.lift,.055*dt);s.position.addScaledVector(up,rise);this.lift+=rise;s.speed=rise/dt;s.status='TAKEOFF';
+   if(this.lift>=.11999){this.phase='flight';s.speed=0;const forward=FORWARD.clone().applyQuaternion(s.orientation).addScaledVector(up,.15).normalize();s.orientation.setFromRotationMatrix(new Matrix4().lookAt(s.position,s.position.clone().add(forward),up));this.message='Ascent complete. Flight controls released.';}
+   return;
+  }
+  if(this.phase!=='walking'||!this.patch)return;
+  const patch=this.patch,up=patch.up;
+  s.orientation.premultiply(new Quaternion().setFromAxisAngle(up,input.yaw*dt*1.4));
+  const pitchRotation=new Quaternion().setFromAxisAngle(RIGHT,input.pitch*dt);const next=s.orientation.clone().multiply(pitchRotation);
+  if(Math.abs(FORWARD.clone().applyQuaternion(next).dot(up))<.94)s.orientation.copy(next);
+  const forward=FORWARD.clone().applyQuaternion(s.orientation);forward.addScaledVector(up,-forward.dot(up)).normalize();
+  const right=new Vector3().crossVectors(forward,up).normalize();
+  const direction=forward.multiplyScalar(Number(input.accelerate)-Number(input.decelerate)).addScaledVector(right,input.strafe||0);
+  if(direction.lengthSq()>1)direction.normalize();
+  const distance=(input.boost?.007:.004)*dt;const candidate=s.position.clone().addScaledVector(direction,distance);
+  const local=candidate.clone().sub(this.shipPosition).applyQuaternion(this.shipOrientation.clone().invert());
+  if(Math.abs(local.x)<.015&&Math.abs(local.z)<.011){s.speed=0;this.message='AURORA is here. Press F to board.';return;}
+  const ground=patch.sample(candidate);
+  if(!ground){s.speed=0;this.message='Mapping the next ground patch…';return;}
+  if(ground.water||ground.slope>35){s.speed=0;this.message=ground.water?'Water ahead. Stay on solid ground.':'Slope ahead is too steep to walk.';return;}
+  const before=s.position.clone();s.position.copy(ground.point).addScaledVector(up,EYE_HEIGHT);const walked=before.distanceTo(s.position);this.walked+=walked;s.speed=walked/dt;s.status='ON FOOT';
+  if(direction.lengthSq()>.01)this.message='Surface excursion · '+Math.round(this.walked*1000)+' m walked';
+ }
+}
