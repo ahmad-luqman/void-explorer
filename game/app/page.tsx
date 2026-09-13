@@ -1,111 +1,829 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Crosshair, Orbit, SlidersHorizontal, Volume2, Compass, X, ChevronRight } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  ArrowRight,
+  Crosshair,
+  Orbit,
+  SlidersHorizontal,
+  Volume2,
+  Compass,
+  ChevronRight,
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { FlightSimulation, emptyControls } from '@/lib/flight/simulation';
 import { FlightRenderer } from '@/lib/flight/renderer';
+import { registerFlightTools } from '@/lib/flight/webmcp';
 import { distanceLabel, SYSTEM_COUNT } from '@/lib/flight/universe';
 
-const initial={speed:0,altitude:1700,mode:'CRUISE',system:'Astris Prime',target:'Aurelia Veil',kind:'ocean',range:1700,visited:1,auto:false,throttle:0,pulse:false,x:50,y:50,visible:false};
-type Telemetry=typeof initial;
-type Runtime={sim:FlightSimulation;view:FlightRenderer};
-declare global {interface Window {__VOID_EXPLORER__?:{state:()=>unknown;select:(id:string)=>boolean;scene:(name:string)=>void;};}}
+const initial = {
+  speed: 0,
+  altitude: 1700,
+  mode: 'CRUISE',
+  system: 'Astris Prime',
+  target: 'Aurelia Veil',
+  kind: 'ocean',
+  range: 1700,
+  visited: 1,
+  auto: false,
+  throttle: 0,
+  pulse: false,
+  x: 50,
+  y: 50,
+  visible: false,
+};
+type Telemetry = typeof initial;
+type Runtime = { sim: FlightSimulation; view: FlightRenderer };
+declare global {
+  interface Window {
+    __VOID_EXPLORER__?: {
+      state: () => unknown;
+      select: (id: string) => boolean;
+      scene: (name: string) => void;
+    };
+  }
+}
 
-export default function Home(){
-  const canvas=useRef<HTMLCanvasElement>(null),runtime=useRef<Runtime|null>(null),keys=useRef(new Set<string>()),mouse=useRef({x:0,y:0,down:false});
-  const [ready,setReady]=useState(false),[error,setError]=useState(''),[started,setStarted]=useState(false),[paused,setPaused]=useState(false),[settings,setSettings]=useState(false),[chart,setChart]=useState(false),[help,setHelp]=useState(false);
-  const [quality,setQuality]=useState('high'),[finish,setFinish]=useState('authentic'),[sound,setSound]=useState(35),[data,setData]=useState<Telemetry>(initial),[query,setQuery]=useState('');
-  const flags=useRef({started:false,paused:false,settings:false,chart:false,help:false});flags.current={started,paused,settings,chart,help};
-  const audio=useRef<{ctx:AudioContext;gain:GainNode;engine:OscillatorNode}|null>(null);
-  function bootSound(){
-    if(!audio.current){try{const ctx=new AudioContext(),gain=ctx.createGain(),engine=ctx.createOscillator();engine.type='sine';engine.frequency.value=48;gain.gain.value=0;engine.connect(gain).connect(ctx.destination);engine.start();audio.current={ctx,gain,engine};}catch{/* Audio is optional. */}}
+export default function Home() {
+  const canvas = useRef<HTMLCanvasElement>(null),
+    runtime = useRef<Runtime | null>(null),
+    keys = useRef(new Set<string>()),
+    mouse = useRef({ x: 0, y: 0, down: false });
+  const [ready, setReady] = useState(false),
+    [error, setError] = useState(''),
+    [started, setStarted] = useState(false),
+    [paused, setPaused] = useState(false),
+    [settings, setSettings] = useState(false),
+    [chart, setChart] = useState(false),
+    [help, setHelp] = useState(false);
+  const [quality, setQuality] = useState('high'),
+    [finish, setFinish] = useState('authentic'),
+    [sound, setSound] = useState(35),
+    [data, setData] = useState<Telemetry>(initial),
+    [query, setQuery] = useState('');
+  const flags = useRef({
+    started: false,
+    paused: false,
+    settings: false,
+    chart: false,
+    help: false,
+  });
+  flags.current = { started, paused, settings, chart, help };
+  const audio = useRef<{
+    ctx: AudioContext;
+    gain: GainNode;
+    engine: OscillatorNode;
+  } | null>(null);
+  function bootSound() {
+    if (!audio.current) {
+      try {
+        const ctx = new AudioContext(),
+          gain = ctx.createGain(),
+          engine = ctx.createOscillator();
+        engine.type = 'sine';
+        engine.frequency.value = 48;
+        gain.gain.value = 0;
+        engine.connect(gain).connect(ctx.destination);
+        engine.start();
+        audio.current = { ctx, gain, engine };
+      } catch {
+        /* Audio is optional. */
+      }
+    }
     void audio.current?.ctx.resume();
   }
-  function start(){if(!runtime.current)return;setStarted(true);setPaused(false);bootSound();}
-  const toggleChart=()=>{setChart(v=>!v);setQuery('');keys.current.clear();};
-  useEffect(()=>{
-    if(!canvas.current)return;let frame=0,stopped=false;let view:FlightRenderer|undefined;
-    try{
-      const sim=new FlightSimulation();view=new FlightRenderer(canvas.current,sim);runtime.current={sim,view};setReady(true);
-      try { const prefs=JSON.parse(localStorage.getItem('void-preferences')||'{}');if(['high','low'].includes(prefs.quality))setQuality(prefs.quality);if(['authentic','clean'].includes(prefs.finish))setFinish(prefs.finish);if(Number.isFinite(prefs.sound))setSound(Math.max(0,Math.min(100,prefs.sound))); }catch{/* Invalid preferences use defaults. */}
-      let last=performance.now(),hudTime=0;
-      const animate=(now:number)=>{
-        if(stopped||!view)return;const dt=Math.min((now-last)/1000,.05);last=now;
-        const f=flags.current,active=f.started&&!f.paused&&!f.settings&&!f.chart&&!f.help;
-        if(active){const c=emptyControls(),k=keys.current;c.pitch=Number(k.has('ArrowDown'))-Number(k.has('ArrowUp'))-mouse.current.y;c.yaw=Number(k.has('ArrowLeft'))-Number(k.has('ArrowRight'))-mouse.current.x;c.roll=Number(k.has('KeyQ'))-Number(k.has('KeyE'));c.accelerate=k.has('KeyW');c.decelerate=k.has('KeyS');c.brake=k.has('KeyX')||k.has('Space');c.boost=k.has('ShiftLeft')||k.has('ShiftRight');sim.step(dt,c);}
-        if(audio.current){audio.current.engine.frequency.setTargetAtTime(38+Math.min(110,sim.speed/8),audio.current.ctx.currentTime,.2);if(!active)audio.current.gain.gain.setTargetAtTime(0,audio.current.ctx.currentTime,.1);}
-        view.draw(!f.started,dt);
-        if(now-hudTime>100){hudTime=now;const marker=view.targetScreen();setData({speed:sim.speed,altitude:sim.altitude,mode:sim.status,system:sim.activeSystem.name,target:sim.target.name,kind:sim.target.star?'star':sim.target.kind,range:Math.max(0,sim.position.distanceTo(sim.target.position)-sim.target.radius),visited:sim.visited.size,auto:sim.autopilot,throttle:sim.throttle,pulse:sim.pulse,...marker});}
-        frame=requestAnimationFrame(animate);
-      };frame=requestAnimationFrame(animate);
+  function start() {
+    if (!runtime.current) return;
+    setStarted(true);
+    setPaused(false);
+    bootSound();
+  }
+  const toggleChart = () => {
+    setChart((v) => !v);
+    setQuery('');
+    keys.current.clear();
+  };
+  useEffect(() => {
+    if (!canvas.current) return;
+    let frame = 0,
+      stopped = false;
+    let view: FlightRenderer | undefined;
+    let unregisterTools = () => {};
+    try {
+      const sim = new FlightSimulation();
+      view = new FlightRenderer(canvas.current, sim);
+      runtime.current = { sim, view };
+      unregisterTools = registerFlightTools(sim);
+      setReady(true);
+      try {
+        const prefs = JSON.parse(
+          localStorage.getItem('void-preferences') || '{}',
+        );
+        if (['high', 'low'].includes(prefs.quality)) setQuality(prefs.quality);
+        if (['authentic', 'clean'].includes(prefs.finish))
+          setFinish(prefs.finish);
+        if (Number.isFinite(prefs.sound))
+          setSound(Math.max(0, Math.min(100, prefs.sound)));
+      } catch {
+        /* Invalid preferences use defaults. */
+      }
+      let last = performance.now(),
+        hudTime = 0;
+      const animate = (now: number) => {
+        if (stopped || !view) return;
+        const dt = Math.min((now - last) / 1000, 0.05);
+        last = now;
+        const f = flags.current,
+          active = f.started && !f.paused && !f.settings && !f.chart && !f.help;
+        if (active) {
+          const c = emptyControls(),
+            k = keys.current;
+          c.pitch =
+            Number(k.has('ArrowUp')) -
+            Number(k.has('ArrowDown')) -
+            mouse.current.y;
+          c.yaw =
+            Number(k.has('ArrowLeft')) -
+            Number(k.has('ArrowRight')) -
+            mouse.current.x;
+          c.roll = Number(k.has('KeyQ')) - Number(k.has('KeyE'));
+          c.accelerate = k.has('KeyW');
+          c.decelerate = k.has('KeyS');
+          c.brake = k.has('KeyX') || k.has('Space');
+          c.boost = k.has('ShiftLeft') || k.has('ShiftRight');
+          sim.step(dt, c);
+        }
+        if (audio.current) {
+          audio.current.engine.frequency.setTargetAtTime(
+            38 + Math.min(110, sim.speed / 8),
+            audio.current.ctx.currentTime,
+            0.2,
+          );
+          if (!active)
+            audio.current.gain.gain.setTargetAtTime(
+              0,
+              audio.current.ctx.currentTime,
+              0.1,
+            );
+        }
+        view.draw(!f.started, dt);
+        if (now - hudTime > 100) {
+          hudTime = now;
+          const marker = view.targetScreen();
+          setData({
+            speed: sim.speed,
+            altitude: sim.altitude,
+            mode: sim.status,
+            system: sim.activeSystem.name,
+            target: sim.target.name,
+            kind: sim.target.star ? 'star' : sim.target.kind,
+            range: Math.max(
+              0,
+              sim.position.distanceTo(sim.target.position) - sim.target.radius,
+            ),
+            visited: sim.visited.size,
+            auto: sim.autopilot,
+            throttle: sim.throttle,
+            pulse: sim.pulse,
+            ...marker,
+          });
+        }
+        frame = requestAnimationFrame(animate);
+      };
+      frame = requestAnimationFrame(animate);
       // Named development scenes aid regression tests; the production UI always uses real flight.
-      if(import.meta.env.DEV){window.__VOID_EXPLORER__={state:()=>({...sim.snapshot(),drawCalls:view?.renderer.info.render.calls,triangles:view?.renderer.info.render.triangles}),select:(id)=>sim.select(id),scene:(name)=>{sim.reset();if(name==='descent'){sim.position.set(0,0,sim.target.radius+190);sim.face(sim.target.position);}if(name==='pulse'){sim.position.set(0,400,12000);sim.face(sim.target.position);sim.pulse=true;}setStarted(true);setPaused(false);}};}
-    }catch(e){setError(e instanceof Error?e.message:'Unable to initialize the flight renderer.');}
-    const resize=()=>view?.resize();window.addEventListener('resize',resize);
-    const blur=()=>{keys.current.clear();mouse.current={x:0,y:0,down:false};if(flags.current.started)setPaused(true);};window.addEventListener('blur',blur);
-    return()=>{stopped=true;cancelAnimationFrame(frame);window.removeEventListener('resize',resize);window.removeEventListener('blur',blur);view?.dispose();runtime.current=null;delete window.__VOID_EXPLORER__;void audio.current?.ctx.close();audio.current=null;};
-  },[]);
-  useEffect(()=>{
-    const blocked=paused||settings||chart||help;
-    if(blocked){keys.current.clear();mouse.current={x:0,y:0,down:false};}
-    const down=(e:KeyboardEvent)=>{
-      if(e.target instanceof HTMLInputElement)return;
-      if(['Tab','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
-      if(e.repeat)return;
-      if(e.code==='Escape'){if(settings||chart||help)return;if(started)setPaused(v=>!v);return;}
-      if(e.code==='Enter'&&!started&&!blocked){start();return;}
-      if(e.code==='KeyG'&&!chart&&!help){setSettings(v=>!v);return;}
-      if(!started||blocked)return;
-      if(e.code==='Tab'){toggleChart();return;}
-      if(e.code==='KeyH'){setHelp(true);return;}
-      const sim=runtime.current?.sim;if(!sim)return;
-      if(e.code==='KeyP')sim.pulse=!sim.pulse;
-      if(e.code==='KeyJ')sim.engage();
-      if(e.code==='KeyT')runtime.current?.view.pick(0,0);
-      if(e.code==='KeyL')sim.descend();
+      if (import.meta.env.DEV) {
+        window.__VOID_EXPLORER__ = {
+          state: () => ({
+            ...sim.snapshot(),
+            drawCalls: view?.renderer.info.render.calls,
+            triangles: view?.renderer.info.render.triangles,
+            terrainReady: !!view?.planets.find(
+              (p) => p.body.id === sim.nearest.id,
+            )?.patch,
+            terrainPending: view?.patchPending,
+          }),
+          select: (id) => sim.select(id),
+          scene: (name) => {
+            sim.reset();
+            if (name === 'descent') {
+              sim.position.set(0, 0, sim.target.radius + 190);
+              sim.face(sim.target.position);
+            }
+            if (name === 'pulse') {
+              sim.position.set(0, 400, 12000);
+              sim.face(sim.target.position);
+              sim.pulse = true;
+            }
+            setStarted(true);
+            setPaused(false);
+          },
+        };
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Unable to initialize the flight renderer.',
+      );
+    }
+    const resize = () => view?.resize();
+    window.addEventListener('resize', resize);
+    const blur = () => {
+      keys.current.clear();
+      mouse.current = { x: 0, y: 0, down: false };
+      if (flags.current.started) setPaused(true);
+    };
+    window.addEventListener('blur', blur);
+    return () => {
+      stopped = true;
+      unregisterTools();
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('blur', blur);
+      view?.dispose();
+      runtime.current = null;
+      delete window.__VOID_EXPLORER__;
+      void audio.current?.ctx.close();
+      audio.current = null;
+    };
+  }, []);
+  useEffect(() => {
+    const blocked = paused || settings || chart || help;
+    if (blocked) {
+      keys.current.clear();
+      mouse.current = { x: 0, y: 0, down: false };
+    }
+    const down = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return;
+      if (
+        [
+          'Tab',
+          'Space',
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+        ].includes(e.code)
+      )
+        e.preventDefault();
+      if (e.repeat) return;
+      if (e.code === 'Escape') {
+        if (settings || chart || help) return;
+        if (started) setPaused((v) => !v);
+        return;
+      }
+      if (e.code === 'Enter' && !started && !blocked) {
+        start();
+        return;
+      }
+      if (e.code === 'KeyG' && !chart && !help) {
+        setSettings((v) => !v);
+        return;
+      }
+      if (!started || blocked) return;
+      if (e.code === 'Tab') {
+        toggleChart();
+        return;
+      }
+      if (e.code === 'KeyH') {
+        setHelp(true);
+        return;
+      }
+      const sim = runtime.current?.sim;
+      if (!sim) return;
+      if (e.code === 'KeyP') sim.pulse = !sim.pulse;
+      if (e.code === 'KeyJ') sim.engage();
+      if (e.code === 'KeyT') runtime.current?.view.pick(0, 0);
+      if (e.code === 'KeyL') sim.descend();
       keys.current.add(e.code);
     };
-    const up=(e:KeyboardEvent)=>keys.current.delete(e.code);
-    window.addEventListener('keydown',down);window.addEventListener('keyup',up);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);};
-  },[started,paused,settings,chart,help]);
-  useEffect(()=>{const v=runtime.current?.view;if(v){v.quality=quality;v.resize();}if(ready)try{localStorage.setItem('void-preferences',JSON.stringify({quality,finish,sound}));}catch{/* Storage can be disabled. */}},[quality,finish,sound,ready]);
-  useEffect(()=>{if(audio.current){const active=started&&!paused&&!settings&&!chart&&!help;audio.current.gain.gain.setTargetAtTime(active?sound/100*.055:0,audio.current.ctx.currentTime,.15);}},[sound,started,paused,settings,chart,help,data.speed]);
-  const sim=runtime.current?.sim;
-  const allSystems=sim?.systems.filter(s=>s.name.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>a.position.distanceToSquared(sim.position)-b.position.distanceToSquared(sim.position)).slice(0,30)||[];
-  const choose=(id:string)=>{sim?.select(id);setChart(false);};
-  return <main className={`universe ${finish} ${started?'in-flight':'at-title'}`}>
-    <canvas ref={canvas} className="space-canvas" aria-label="Explorable three-dimensional universe" onPointerDown={e=>{if(!started||paused||settings||chart||help)return;e.currentTarget.setPointerCapture(e.pointerId);mouse.current.down=true;}} onPointerMove={e=>{if(!mouse.current.down)return;mouse.current.x=Math.max(-1,Math.min(1,mouse.current.x+e.movementX*.007));mouse.current.y=Math.max(-1,Math.min(1,mouse.current.y+e.movementY*.007));}} onPointerUp={e=>{const wasDrag=Math.abs(mouse.current.x)+Math.abs(mouse.current.y)>.05;mouse.current={x:0,y:0,down:false};if(!wasDrag){const r=e.currentTarget.getBoundingClientRect();runtime.current?.view.pick((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);}}} onPointerCancel={()=>mouse.current={x:0,y:0,down:false}}/>
-    <div className="vignette"/><div className="phosphor"/><div className="frame-corners"/>
-    {!started?<>
-      <header className="title-top"><span><i className="live-dot"/> DEEP RANGE SURVEY PROGRAM</span><span>FLIGHT SYSTEM <b>ONLINE</b></span></header>
-      <section className="title-content">
-        <div className="ship-mark"><Compass size={48} strokeWidth={.8}/><span>VX / 09</span></div>
-        <div className="eyebrow">THE CHARTED FRONTIER <span/> <b>ASTRIS PRIME</b></div>
-        <h1>VOID<span>EXPLORER</span></h1>
-        <p className="tagline">A PROCEDURAL UNIVERSE</p><p className="intro">Every light is somewhere you can go.</p>
-        <Button className="embark" onClick={start} disabled={!ready}><Crosshair size={25}/><span>{ready?'START EXPEDITION':'INITIALIZING FLIGHT'}</span><ArrowRight size={19}/></Button>
-        <div className="embark-hint"><kbd>ENTER</kbd> TO EMBARK <span>/</span> HEADPHONES RECOMMENDED</div>
-        <Button variant="outline" className="small-button" onClick={()=>setSettings(true)}><SlidersHorizontal size={13}/> SETTINGS <kbd>G</kbd></Button>
-        <div className="survey-stats"><div><span>REACHABLE SYSTEMS</span><b>{SYSTEM_COUNT.toLocaleString()}</b></div><div><span>PROCEDURAL WORLDS</span><b>{(SYSTEM_COUNT*3).toLocaleString()}</b></div><div><span>DISCOVERED</span><b>{data.visited}</b></div></div>
-      </section>
-      <aside className="manifest"><div>EXPEDITION MANIFEST <b>NAVIGATION READY</b></div><p><span>VESSEL</span>AURORA VX-9</p><p><span>WAYPOINT</span>AURELIA VEIL</p><div className="signal">▂ ▄ ▃ ▆ ▂ ▅ ▃ ▆ ▄ ▂ ▃ ▅</div></aside>
-      <footer className="title-footer"><span>THE UNIVERSE IS OPEN. THE JOURNEY IS YOURS.</span><span>EXPEDITION 001 <b> / </b> THE FIRST FRONTIER</span></footer>
-    </>:<>
-      <header className="flight-top"><div><strong>VOID EXPLORER</strong><span><i className="live-dot"/> LONG RANGE EXPLORATION VESSEL</span></div><div className="heading"><span>N</span> ───── <b>{Math.round(((sim?.orientation.y||0)*180+360)%360)}°</b> ───── <span>E</span></div><div className="location"><span>CURRENT LOCATION</span><b>{data.system.toUpperCase()}</b><span>{data.visited} SYSTEMS DISCOVERED</span></div></header>
-      <aside className="navigation"><div className="nav-heading"><i className="live-dot"/> NAVIGATION LOCK <b>LIVE</b></div><h2>{data.target}</h2><span className="planet-kind">{data.kind.toUpperCase()}</span><p className="range">{distanceLabel(data.range)}</p><div className="arrival"><span>{data.auto?'AUTOPILOT':'MANUAL FLIGHT'}</span><b>{data.speed>1?`${Math.ceil(data.range/data.speed)} s`:'STANDBY'}</b></div><div className="nav-actions"><button onClick={()=>sim?.engage()}>{data.auto?'Disengage':'Engage autopilot'} <kbd>J</kbd></button>{data.kind!=='star'&&<button onClick={()=>sim?.descend()}>Descend to surface <kbd>L</kbd></button>}<button onClick={toggleChart}>Open star chart <kbd>TAB</kbd></button></div></aside>
-      <div className="reticle"><span/><i/></div>
-      {data.visible&&<div className="target-marker" style={{left:`${data.x}%`,top:`${data.y}%`}}><div/><span>{data.target}<small>{distanceLabel(data.range)}</small></span></div>}
-      {data.pulse&&<div className="pulse-banner">PULSE DRIVE {data.speed>500?'ENGAGED':'ARMED'} <span>PROXIMITY BRAKING ACTIVE</span></div>}
-      <footer className="flight-bottom"><div className="telemetry"><div><span>VELOCITY</span><b>{data.speed.toFixed(1)} <small>km/s</small></b></div><div><span>FLIGHT PROFILE</span><b className="cyan">{data.mode}</b></div><div><span>SURFACE ALTITUDE</span><b>{distanceLabel(data.altitude)}</b></div><div className="throttle"><span>THROTTLE</span><div><i style={{width:`${data.throttle*100}%`}}/></div></div></div><div className="flight-buttons"><button onClick={()=>setHelp(true)}><kbd>H</kbd> CONTROLS</button><button onClick={()=>setPaused(true)}><kbd>ESC</kbd> MENU</button></div></footer>
-      <div className="control-strip"><span><kbd>W</kbd><kbd>S</kbd> THROTTLE</span><span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> STEER</span><span><kbd>SHIFT</kbd> BOOST</span><span><kbd>P</kbd> PULSE</span><span><kbd>X</kbd> BRAKE</span></div>
-      <div className="touch-controls">{[['ArrowLeft','←'],['ArrowUp','↑'],['ArrowDown','↓'],['ArrowRight','→'],['KeyW','+'],['KeyS','−'],['KeyX','BRAKE']].map(([code,label])=><button key={code} aria-label={code} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);keys.current.add(code);}} onPointerUp={()=>keys.current.delete(code)} onPointerCancel={()=>keys.current.delete(code)}>{label}</button>)}</div>
-    </>}
-    {error&&<div role="alert" className="error-panel"><h2>Flight renderer unavailable</h2><p>This expedition needs a browser with WebGL 2 and hardware acceleration enabled.</p><small>{error}</small><button onClick={()=>location.reload()}>Retry</button></div>}
-    <Dialog open={settings} onOpenChange={setSettings}><DialogContent className="space-dialog"><span className="eyebrow">VESSEL CONFIGURATION</span><DialogTitle>Settings</DialogTitle><DialogDescription>Adjust presentation and sound for your expedition.</DialogDescription><fieldset><legend>GRAPHICS QUALITY</legend>{[['high','High','Full resolution · atmospheric bloom'],['low','Low','Reduced resolution · lighter effects']].map(([value,label,desc])=><label className={`quality-option ${quality===value?'selected':''}`} key={value}><input type="radio" name="quality" value={value} checked={quality===value} onChange={()=>setQuality(value)}/><span>{label}<small>{desc}</small></span></label>)}</fieldset><fieldset><legend>SCREEN APPEARANCE</legend><div className="appearance">{['authentic','clean'].map(v=><label className={finish===v?'selected':''} key={v}><input type="radio" name="finish" checked={finish===v} onChange={()=>setFinish(v)}/>{v}</label>)}</div></fieldset><label className="sound-label"><span><Volume2 size={15}/> Engine sound <b>{sound}%</b></span><input type="range" min="0" max="100" value={sound} onChange={e=>{setSound(Number(e.target.value));bootSound();}}/></label><p className="muted">Preferences are saved on this device.</p><Button className="primary-button" onClick={()=>setSettings(false)}>Done</Button></DialogContent></Dialog>
-    <Dialog open={paused} onOpenChange={setPaused}><DialogContent className="space-dialog"><span className="eyebrow">FLIGHT SUSPENDED</span><DialogTitle>Between the stars.</DialogTitle><DialogDescription>Your expedition is paused.</DialogDescription><Button className="primary-button" onClick={()=>setPaused(false)}>Resume flight <ArrowRight/></Button><Button variant="outline" onClick={()=>{setPaused(false);setSettings(true);}}>Settings</Button><Button variant="outline" onClick={()=>{sim?.reset();setPaused(false);setStarted(false);}}>Return to title</Button></DialogContent></Dialog>
-    <Dialog open={help} onOpenChange={setHelp}><DialogContent className="space-dialog"><span className="eyebrow">AURORA VX-9 / FLIGHT MANUAL</span><DialogTitle>Find your own way.</DialogTitle><DialogDescription>Click a star to target it. Drag the sky or use the arrow keys to steer.</DialogDescription><dl className="manual">{[['W / S','Increase / decrease throttle'],['Arrow keys','Pitch and turn'],['Q / E','Roll left / right'],['Shift','Hold to boost'],['P','Toggle pulse drive'],['X / Space','Brake to a stop'],['T','Target center of view'],['J','Engage / disengage autopilot'],['L','Descend to selected planet'],['Tab','Open star chart'],['Esc','Pause flight']].map(([key,label])=><div key={key}><dt><kbd>{key}</kbd></dt><dd>{label}</dd></div>)}</dl><p className="muted">The ship slows near planets. Pulse drive covers the longest distances; disengage it for close flight.</p></DialogContent></Dialog>
-    <Dialog open={chart} onOpenChange={setChart}><DialogContent className="space-dialog chart-dialog"><span className="eyebrow">DEEP RANGE CARTOGRAPHY</span><DialogTitle>Every light. A destination.</DialogTitle><DialogDescription>Select a world or star, then engage autopilot to approach it.</DialogDescription><div className="local-worlds">{sim?.activeSystem.planets.map(p=><button key={p.id} onClick={()=>choose(p.id)}><Orbit size={21}/><span>{p.name}<small>{p.kind.toUpperCase()} · {distanceLabel(sim.position.distanceTo(p.position))}</small></span><ChevronRight size={18}/></button>)}</div><label className="search-label">FIND A STAR SYSTEM<input placeholder="Search by name…" value={query} onChange={e=>setQuery(e.target.value)}/></label><div className="system-list">{allSystems.length?allSystems.map(s=><button key={s.id} onClick={()=>choose(s.star.id)}><i style={{background:s.color}}/><span>{s.name}</span><small>{distanceLabel(sim!.position.distanceTo(s.position))}</small><ChevronRight size={14}/></button>):<p>No systems match that name.</p>}</div></DialogContent></Dialog>
-  </main>;
+    const up = (e: KeyboardEvent) => keys.current.delete(e.code);
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, [started, paused, settings, chart, help]);
+  useEffect(() => {
+    const v = runtime.current?.view;
+    if (v) {
+      v.quality = quality;
+      v.resize();
+    }
+    if (ready)
+      try {
+        localStorage.setItem(
+          'void-preferences',
+          JSON.stringify({ quality, finish, sound }),
+        );
+      } catch {
+        /* Storage can be disabled. */
+      }
+  }, [quality, finish, sound, ready]);
+  useEffect(() => {
+    if (audio.current) {
+      const active = started && !paused && !settings && !chart && !help;
+      audio.current.gain.gain.setTargetAtTime(
+        active ? (sound / 100) * 0.055 : 0,
+        audio.current.ctx.currentTime,
+        0.15,
+      );
+    }
+  }, [sound, started, paused, settings, chart, help, data.speed]);
+  const sim = runtime.current?.sim;
+  const allSystems =
+    sim?.systems
+      .filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
+      .sort(
+        (a, b) =>
+          a.position.distanceToSquared(sim.position) -
+          b.position.distanceToSquared(sim.position),
+      )
+      .slice(0, 30) || [];
+  const choose = (id: string) => {
+    sim?.select(id);
+    setChart(false);
+  };
+  return (
+    <main
+      className={`universe ${finish} ${started ? 'in-flight' : 'at-title'}`}
+    >
+      <canvas
+        ref={canvas}
+        className="space-canvas"
+        aria-label="Explorable three-dimensional universe"
+        onPointerDown={(e) => {
+          if (!started || paused || settings || chart || help) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          mouse.current.down = true;
+        }}
+        onPointerMove={(e) => {
+          if (!mouse.current.down) return;
+          mouse.current.x = Math.max(
+            -1,
+            Math.min(1, mouse.current.x + e.movementX * 0.007),
+          );
+          mouse.current.y = Math.max(
+            -1,
+            Math.min(1, mouse.current.y + e.movementY * 0.007),
+          );
+        }}
+        onPointerUp={(e) => {
+          const wasDrag =
+            Math.abs(mouse.current.x) + Math.abs(mouse.current.y) > 0.05;
+          mouse.current = { x: 0, y: 0, down: false };
+          if (!wasDrag) {
+            const r = e.currentTarget.getBoundingClientRect();
+            runtime.current?.view.pick(
+              ((e.clientX - r.left) / r.width) * 2 - 1,
+              (-(e.clientY - r.top) / r.height) * 2 + 1,
+            );
+          }
+        }}
+        onPointerCancel={() => (mouse.current = { x: 0, y: 0, down: false })}
+      />
+      <div className="vignette" />
+      <div className="phosphor" />
+      <div className="frame-corners" />
+      {!started ? (
+        <>
+          <header className="title-top">
+            <span>
+              <i className="live-dot" /> DEEP RANGE SURVEY PROGRAM
+            </span>
+            <span>
+              FLIGHT SYSTEM <b>ONLINE</b>
+            </span>
+          </header>
+          <section className="title-content">
+            <div className="ship-mark">
+              <Compass size={48} strokeWidth={0.8} />
+              <span>VX / 09</span>
+            </div>
+            <div className="eyebrow">
+              THE CHARTED FRONTIER <span /> <b>ASTRIS PRIME</b>
+            </div>
+            <h1>
+              VOID<span>EXPLORER</span>
+            </h1>
+            <p className="tagline">A PROCEDURAL UNIVERSE</p>
+            <p className="intro">Every light is somewhere you can go.</p>
+            <Button className="embark" onClick={start} disabled={!ready}>
+              <Crosshair size={25} />
+              <span>{ready ? 'START EXPEDITION' : 'INITIALIZING FLIGHT'}</span>
+              <ArrowRight size={19} />
+            </Button>
+            <div className="embark-hint">
+              <kbd>ENTER</kbd> TO EMBARK <span>/</span> HEADPHONES RECOMMENDED
+            </div>
+            <Button
+              variant="outline"
+              className="small-button"
+              onClick={() => setSettings(true)}
+            >
+              <SlidersHorizontal size={13} /> SETTINGS <kbd>G</kbd>
+            </Button>
+            <div className="survey-stats">
+              <div>
+                <span>REACHABLE SYSTEMS</span>
+                <b>{SYSTEM_COUNT.toLocaleString()}</b>
+              </div>
+              <div>
+                <span>PROCEDURAL WORLDS</span>
+                <b>{(SYSTEM_COUNT * 3).toLocaleString()}</b>
+              </div>
+              <div>
+                <span>DISCOVERED</span>
+                <b>{data.visited}</b>
+              </div>
+            </div>
+          </section>
+          <aside className="manifest">
+            <div>
+              EXPEDITION MANIFEST <b>NAVIGATION READY</b>
+            </div>
+            <p>
+              <span>VESSEL</span>AURORA VX-9
+            </p>
+            <p>
+              <span>WAYPOINT</span>AURELIA VEIL
+            </p>
+            <div className="signal">▂ ▄ ▃ ▆ ▂ ▅ ▃ ▆ ▄ ▂ ▃ ▅</div>
+          </aside>
+          <footer className="title-footer">
+            <span>THE UNIVERSE IS OPEN. THE JOURNEY IS YOURS.</span>
+            <span>
+              EXPEDITION 001 <b> / </b> THE FIRST FRONTIER
+            </span>
+          </footer>
+        </>
+      ) : (
+        <>
+          <header className="flight-top">
+            <div>
+              <strong>VOID EXPLORER</strong>
+              <span>
+                <i className="live-dot" /> LONG RANGE EXPLORATION VESSEL
+              </span>
+            </div>
+            <div className="heading">
+              <span>N</span> ─────{' '}
+              <b>
+                {Math.round(
+                  ((Math.atan2(
+                    -2 *
+                      ((sim?.orientation.x || 0) * (sim?.orientation.z || 0) +
+                        (sim?.orientation.w || 1) * (sim?.orientation.y || 0)),
+                    1 -
+                      2 *
+                        ((sim?.orientation.x || 0) ** 2 +
+                          (sim?.orientation.y || 0) ** 2),
+                  ) *
+                    180) /
+                    Math.PI +
+                    360) %
+                    360,
+                )}
+                °
+              </b>{' '}
+              ───── <span>E</span>
+            </div>
+            <div className="location">
+              <span>CURRENT LOCATION</span>
+              <b>{data.system.toUpperCase()}</b>
+              <span>{data.visited} SYSTEMS DISCOVERED</span>
+            </div>
+          </header>
+          <aside className="navigation">
+            <div className="nav-heading">
+              <i className="live-dot" /> NAVIGATION LOCK <b>LIVE</b>
+            </div>
+            <h2>{data.target}</h2>
+            <span className="planet-kind">{data.kind.toUpperCase()}</span>
+            <p className="range">{distanceLabel(data.range)}</p>
+            <div className="arrival">
+              <span>{data.auto ? 'AUTOPILOT' : 'MANUAL FLIGHT'}</span>
+              <b>
+                {data.speed > 1
+                  ? `${Math.ceil(data.range / data.speed)} s`
+                  : 'STANDBY'}
+              </b>
+            </div>
+            <div className="nav-actions">
+              <button onClick={() => sim?.engage()}>
+                {data.auto ? 'Disengage' : 'Engage autopilot'} <kbd>J</kbd>
+              </button>
+              {data.kind !== 'star' && (
+                <button onClick={() => sim?.descend()}>
+                  Descend to surface <kbd>L</kbd>
+                </button>
+              )}
+              <button onClick={toggleChart}>
+                Open star chart <kbd>TAB</kbd>
+              </button>
+            </div>
+          </aside>
+          <div className="reticle">
+            <span />
+            <i />
+          </div>
+          {data.visible && (
+            <div
+              className="target-marker"
+              style={{ left: `${data.x}%`, top: `${data.y}%` }}
+            >
+              <div />
+              <span>
+                {data.target}
+                <small>{distanceLabel(data.range)}</small>
+              </span>
+            </div>
+          )}
+          {data.pulse && (
+            <div className="pulse-banner">
+              PULSE DRIVE {data.speed > 500 ? 'ENGAGED' : 'ARMED'}{' '}
+              <span>PROXIMITY BRAKING ACTIVE</span>
+            </div>
+          )}
+          <footer className="flight-bottom">
+            <div className="telemetry">
+              <div>
+                <span>VELOCITY</span>
+                <b>
+                  {data.speed.toFixed(1)} <small>km/s</small>
+                </b>
+              </div>
+              <div>
+                <span>FLIGHT PROFILE</span>
+                <b className="cyan">{data.mode}</b>
+              </div>
+              <div>
+                <span>SURFACE ALTITUDE</span>
+                <b>{distanceLabel(data.altitude)}</b>
+              </div>
+              <div className="throttle">
+                <span>THROTTLE</span>
+                <div>
+                  <i style={{ width: `${data.throttle * 100}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="flight-buttons">
+              <button onClick={() => setHelp(true)}>
+                <kbd>H</kbd> CONTROLS
+              </button>
+              <button onClick={() => setPaused(true)}>
+                <kbd>ESC</kbd> MENU
+              </button>
+            </div>
+          </footer>
+          <div className="control-strip">
+            <span>
+              <kbd>W</kbd>
+              <kbd>S</kbd> THROTTLE
+            </span>
+            <span>
+              <kbd>↑</kbd>
+              <kbd>↓</kbd>
+              <kbd>←</kbd>
+              <kbd>→</kbd> STEER
+            </span>
+            <span>
+              <kbd>SHIFT</kbd> BOOST
+            </span>
+            <span>
+              <kbd>P</kbd> PULSE
+            </span>
+            <span>
+              <kbd>X</kbd> BRAKE
+            </span>
+          </div>
+          <div className="touch-controls">
+            {[
+              ['ArrowLeft', '←'],
+              ['ArrowUp', '↑'],
+              ['ArrowDown', '↓'],
+              ['ArrowRight', '→'],
+              ['KeyW', '+'],
+              ['KeyS', '−'],
+              ['KeyX', 'BRAKE'],
+            ].map(([code, label]) => (
+              <button
+                key={code}
+                aria-label={code}
+                onPointerDown={(e) => {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  keys.current.add(code);
+                }}
+                onPointerUp={() => keys.current.delete(code)}
+                onPointerCancel={() => keys.current.delete(code)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {error && (
+        <div role="alert" className="error-panel">
+          <h2>Flight renderer unavailable</h2>
+          <p>
+            This expedition needs a browser with WebGL 2 and hardware
+            acceleration enabled.
+          </p>
+          <small>{error}</small>
+          <button onClick={() => location.reload()}>Retry</button>
+        </div>
+      )}
+      <Dialog open={settings} onOpenChange={setSettings}>
+        <DialogContent className="space-dialog">
+          <span className="eyebrow">VESSEL CONFIGURATION</span>
+          <DialogTitle>Settings</DialogTitle>
+          <DialogDescription>
+            Adjust presentation and sound for your expedition.
+          </DialogDescription>
+          <fieldset>
+            <legend>GRAPHICS QUALITY</legend>
+            {[
+              ['high', 'High', 'Full resolution · atmospheric bloom'],
+              ['low', 'Low', 'Reduced resolution · lighter effects'],
+            ].map(([value, label, desc]) => (
+              <label
+                className={`quality-option ${quality === value ? 'selected' : ''}`}
+                key={value}
+              >
+                <input
+                  type="radio"
+                  name="quality"
+                  value={value}
+                  checked={quality === value}
+                  onChange={() => setQuality(value)}
+                />
+                <span>
+                  {label}
+                  <small>{desc}</small>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          <fieldset>
+            <legend>SCREEN APPEARANCE</legend>
+            <div className="appearance">
+              {['authentic', 'clean'].map((v) => (
+                <label className={finish === v ? 'selected' : ''} key={v}>
+                  <input
+                    type="radio"
+                    name="finish"
+                    checked={finish === v}
+                    onChange={() => setFinish(v)}
+                  />
+                  {v}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <label className="sound-label">
+            <span>
+              <Volume2 size={15} /> Engine sound <b>{sound}%</b>
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={sound}
+              onChange={(e) => {
+                setSound(Number(e.target.value));
+                bootSound();
+              }}
+            />
+          </label>
+          <p className="muted">Preferences are saved on this device.</p>
+          <Button className="primary-button" onClick={() => setSettings(false)}>
+            Done
+          </Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={paused} onOpenChange={setPaused}>
+        <DialogContent className="space-dialog">
+          <span className="eyebrow">FLIGHT SUSPENDED</span>
+          <DialogTitle>Between the stars.</DialogTitle>
+          <DialogDescription>Your expedition is paused.</DialogDescription>
+          <Button className="primary-button" onClick={() => setPaused(false)}>
+            Resume flight <ArrowRight />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setPaused(false);
+              setSettings(true);
+            }}
+          >
+            Settings
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              sim?.reset();
+              setPaused(false);
+              setStarted(false);
+            }}
+          >
+            Return to title
+          </Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={help} onOpenChange={setHelp}>
+        <DialogContent className="space-dialog">
+          <span className="eyebrow">AURORA VX-9 / FLIGHT MANUAL</span>
+          <DialogTitle>Find your own way.</DialogTitle>
+          <DialogDescription>
+            Click a star to target it. Drag the sky or use the arrow keys to
+            steer.
+          </DialogDescription>
+          <dl className="manual">
+            {[
+              ['W / S', 'Increase / decrease throttle'],
+              ['Arrow keys', 'Pitch and turn'],
+              ['Q / E', 'Roll left / right'],
+              ['Shift', 'Hold to boost'],
+              ['P', 'Toggle pulse drive'],
+              ['X / Space', 'Brake to a stop'],
+              ['T', 'Target center of view'],
+              ['J', 'Engage / disengage autopilot'],
+              ['L', 'Descend to selected planet'],
+              ['Tab', 'Open star chart'],
+              ['Esc', 'Pause flight'],
+            ].map(([key, label]) => (
+              <div key={key}>
+                <dt>
+                  <kbd>{key}</kbd>
+                </dt>
+                <dd>{label}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="muted">
+            The ship slows near planets. Pulse drive covers the longest
+            distances; disengage it for close flight.
+          </p>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={chart} onOpenChange={setChart}>
+        <DialogContent className="space-dialog chart-dialog">
+          <span className="eyebrow">DEEP RANGE CARTOGRAPHY</span>
+          <DialogTitle>Every light. A destination.</DialogTitle>
+          <DialogDescription>
+            Select a world or star, then engage autopilot to approach it.
+          </DialogDescription>
+          <div className="local-worlds">
+            {sim?.activeSystem.planets.map((p) => (
+              <button key={p.id} onClick={() => choose(p.id)}>
+                <Orbit size={21} />
+                <span>
+                  {p.name}
+                  <small>
+                    {p.kind.toUpperCase()} ·{' '}
+                    {distanceLabel(sim.position.distanceTo(p.position))}
+                  </small>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+            ))}
+          </div>
+          <label className="search-label">
+            FIND A STAR SYSTEM
+            <input
+              placeholder="Search by name…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+          <div className="system-list">
+            {allSystems.length ? (
+              allSystems.map((s) => (
+                <button key={s.id} onClick={() => choose(s.star.id)}>
+                  <i style={{ background: s.color }} />
+                  <span>{s.name}</span>
+                  <small>
+                    {distanceLabel(sim!.position.distanceTo(s.position))}
+                  </small>
+                  <ChevronRight size={14} />
+                </button>
+              ))
+            ) : (
+              <p>No systems match that name.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </main>
+  );
 }
