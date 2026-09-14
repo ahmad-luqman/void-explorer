@@ -10,6 +10,7 @@ import { FlightSimulation } from './simulation';
 import { createShip } from './ship';
 import { terrainColor } from './terrain';
 import { contactRequest, terrainRefresh } from './terrain-stream';
+import { blendTerrain, protectContact } from './terrain-transition';
 import TerrainWorker from './terrain.worker?worker';
 import ContactWorker from './contact.worker?worker';
 import { createTerrainSkirt } from './terrain-seam';
@@ -38,6 +39,15 @@ type PlanetView = {
   patch?: T.Mesh;
   anchor?: T.Vector3;
   terrainQuality?: string;
+  terrainKey?: number;
+  terrainProjection?: number;
+  transition?: {
+    age: number;
+    from: Float32Array;
+    to: Float32Array;
+    fromColors: Float32Array;
+    toColors: Float32Array;
+  };
 };
 const daylightWhite = new T.Color('#fff3e8');
 const atmosphereVertex = `varying vec3 vNormal; varying vec3 vPosition; void main(){vNormal=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vPosition=p.xyz;gl_Position=projectionMatrix*p;}`;
@@ -132,6 +142,11 @@ export class FlightRenderer {
     maxDepth: 0,
     bytes: 0,
     maxErrorPixels: 0,
+    transitions: 0,
+    transitionMs: 0,
+    morphProgress: 1,
+    maxDelta: 0,
+    cache: { hits: 0, misses: 0, evictions: 0, bytes: 0, entries: 0 },
   };
   contactRetryAt = 0;
   contactWorker: Worker;
@@ -275,6 +290,19 @@ export class FlightRenderer {
         observer: number[];
         quality: string;
         generationMs: number;
+        key: number;
+        projection: number;
+        cache: {
+          hits: number;
+          misses: number;
+          evictions: number;
+          bytes: number;
+          entries: number;
+        };
+        transitionMs: number;
+        startPositions?: Float32Array;
+        startColors?: Float32Array;
+        maxDelta: number;
         leaves: number;
         maxDepth: number;
         maxErrorPixels: number;
@@ -284,26 +312,64 @@ export class FlightRenderer {
         token: number;
       }>,
     ) => {
-      this.patchPending = false;
       if (this.disposed || event.data.token !== this.patchToken) {
         this.terrainStats.discarded++;
         return;
       }
+      this.patchPending = false;
       const p = this.planets.find((p) => p.body.id === event.data.id);
       if (!p) return;
       if (p.patch) {
         p.group.remove(p.patch);
         disposeObject(p.patch);
       }
+      const data = event.data;
+      const transitioning = !!data.startPositions && !!data.startColors;
+      if (transitioning) {
+        protectContact(
+          data.startPositions!,
+          data.positions,
+          this.sim.position.clone().sub(p.body.position),
+          CONTACT_RADIUS + 20,
+        );
+        p.transition = {
+          age: 0,
+          from: data.startPositions!,
+          to: data.positions,
+          fromColors: data.startColors!,
+          toColors: data.colors,
+        };
+      } else p.transition = undefined;
       const g = new T.BufferGeometry();
       g.setAttribute(
         'position',
-        new T.BufferAttribute(event.data.positions, 3),
+        new T.BufferAttribute(
+          transitioning ? data.startPositions!.slice() : data.positions,
+          3,
+        ).setUsage(T.DynamicDrawUsage),
       );
-      g.setAttribute('color', new T.BufferAttribute(event.data.colors, 3));
+      g.setAttribute(
+        'color',
+        new T.BufferAttribute(
+          transitioning ? data.startColors!.slice() : data.colors,
+          3,
+        ).setUsage(T.DynamicDrawUsage),
+      );
       g.setIndex(new T.BufferAttribute(event.data.indices, 1));
       g.computeVertexNormals();
       g.computeBoundingSphere();
+      // A radial bound encloses every intermediate vertex through the blend.
+      let radius = g.boundingSphere!.radius + g.boundingSphere!.center.length();
+      for (let i = 0; i < data.positions.length; i += 3)
+        radius = Math.max(
+          radius,
+          Math.hypot(
+            data.positions[i],
+            data.positions[i + 1],
+            data.positions[i + 2],
+          ),
+        );
+      g.boundingSphere = new T.Sphere(new T.Vector3(), radius);
       const material = new T.MeshStandardMaterial({
         vertexColors: true,
         flatShading: true,
@@ -323,6 +389,8 @@ export class FlightRenderer {
       p.patch = new T.Mesh(g, material);
       p.anchor = new T.Vector3().fromArray(event.data.observer);
       p.terrainQuality = event.data.quality;
+      p.terrainKey = data.key;
+      p.terrainProjection = data.projection;
       p.group.add(p.patch);
       if (p.ground.parent) {
         p.group.remove(p.ground);
@@ -331,6 +399,11 @@ export class FlightRenderer {
       this.terrainStats = {
         ...this.terrainStats,
         generated: this.terrainStats.generated + 1,
+        transitions: this.terrainStats.transitions + Number(transitioning),
+        morphProgress: transitioning ? 0 : 1,
+        transitionMs: data.transitionMs,
+        maxDelta: data.maxDelta,
+        cache: data.cache,
         generationMs: event.data.generationMs,
         vertices: event.data.positions.length / 3,
         triangles: event.data.indices.length / 3,
@@ -340,7 +413,9 @@ export class FlightRenderer {
         bytes:
           event.data.positions.byteLength +
           event.data.colors.byteLength +
-          event.data.indices.byteLength,
+          event.data.indices.byteLength +
+          (data.startPositions?.byteLength ?? 0) +
+          (data.startColors?.byteLength ?? 0),
       };
     };
     this.worker.onerror = () => {
@@ -700,6 +775,31 @@ export class FlightRenderer {
     this.enableLogDepth();
     this.frame++;
     this.planets.forEach((p) => {
+      if (p.transition && p.patch) {
+        const t = p.transition;
+        t.age = Math.min(0.8, t.age + dt);
+        const progress = t.age / 0.8;
+        const geometry = p.patch.geometry;
+        blendTerrain(
+          geometry.attributes.position.array as Float32Array,
+          t.from,
+          t.to,
+          progress,
+        );
+        blendTerrain(
+          geometry.attributes.color.array as Float32Array,
+          t.fromColors,
+          t.toColors,
+          progress,
+        );
+        geometry.attributes.position.needsUpdate = true;
+        geometry.attributes.color.needsUpdate = true;
+        this.terrainStats.morphProgress = progress;
+        if (progress === 1) {
+          geometry.computeVertexNormals();
+          p.transition = undefined;
+        }
+      }
       p.group.position.copy(p.body.position).sub(this.sim.position);
       p.atmosphere.uniforms.keyDirection.value
         .copy(
@@ -714,10 +814,16 @@ export class FlightRenderer {
         .normalize();
     });
     const near = this.planets.find((p) => p.body.id === this.sim.nearest.id);
+    // Budget for the narrowest FOV; animated speed FOV must not fragment the cache.
+    const projection = Math.min(
+      1000,
+      this.height / (2 * Math.tan(T.MathUtils.degToRad(58 / 2))),
+    );
     if (
       near &&
       this.sim.altitude < 5000 &&
       !this.patchPending &&
+      !near.transition &&
       performance.now() >= this.terrainRequestAt
     ) {
       const observer = this.sim.position.clone().sub(near.body.position);
@@ -726,7 +832,8 @@ export class FlightRenderer {
           observer,
           near.anchor,
           near.body.radius,
-          near.terrainQuality !== this.quality,
+          near.terrainQuality !== this.quality ||
+            near.terrainProjection !== projection,
         )
       ) {
         this.patchPending = true;
@@ -735,14 +842,11 @@ export class FlightRenderer {
           body: { ...near.body, position: undefined },
           observer: observer.toArray(),
           token: this.patchToken,
+          previousKey: near.terrainKey,
           quality: this.quality,
           options: {
             pixels: this.quality === 'high' ? 2 : 5,
-            projection: Math.min(
-              1000,
-              this.height /
-                (2 * Math.tan(T.MathUtils.degToRad(this.camera.fov / 2))),
-            ),
+            projection,
             maxLeaves: this.quality === 'high' ? 3000 : 1500,
           },
         });
