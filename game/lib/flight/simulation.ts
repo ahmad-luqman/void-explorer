@@ -8,6 +8,7 @@ import {
 import {
   address,
   translate,
+  validAddress,
   zeroCells,
   type Cells,
   type SpaceAddress,
@@ -83,14 +84,30 @@ export class FlightSimulation {
     this.originRevision++;
   }
   private moveBy(delta: Vector3) {
-    if (this.position.clone().add(delta).length() < 2_000_000) {
-      this.position.add(delta);
-      return;
+    const local = this.position.clone().add(delta);
+    if (
+      local.length() < 2_000_000 &&
+      validAddress(address(this.origin, local))
+    ) {
+      this.position.copy(local);
+      return true;
     }
-    this.setAddress(translate(this.address, delta));
+    const next = translate(this.address, delta);
+    if (!validAddress(next)) {
+      this.speed = 0;
+      this.throttle = 0;
+      this.pulse = false;
+      this.autopilot = false;
+      this.descending = false;
+      this.flightMessage =
+        'Survey range limit. Turn back toward the charted systems.';
+      return false;
+    }
+    this.setAddress(next);
     // Rebasing happens only in flight, far beyond contact range. Native terrain
     // remains reusable; discard world-space transient surface references.
     this.surface.reset();
+    return true;
   }
   face(point: Vector3) {
     this.orientation.setFromRotationMatrix(
@@ -395,7 +412,7 @@ export class FlightSimulation {
         this.flightMessage = candidate.reason;
         break;
       }
-      this.moveBy(direction.clone().multiplyScalar(travel));
+      if (!this.moveBy(direction.clone().multiplyScalar(travel))) break;
       current = candidate;
       remaining -= travel;
       this.flightMessage = '';

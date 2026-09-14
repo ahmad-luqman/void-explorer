@@ -87,6 +87,11 @@ describe('cell-based space addresses', () => {
     expect(sim.surface.walked).toBeGreaterThan(0.004);
     const save = captureExpedition(sim)!;
     const restored = new FlightSimulation();
+    const inconsistent = structuredClone(save);
+    inconsistent.address!.offset[0] += 1;
+    const untouched = restored.snapshot();
+    expect(restoreExpedition(restored, inconsistent)).toBe(false);
+    expect(restored.snapshot()).toEqual(untouched);
     expect(restoreExpedition(restored, save)).toBe(true);
     const target = restored.nearest;
     restored.surface.setPatch(
@@ -145,4 +150,22 @@ describe('cell-based space addresses', () => {
     expect(restoreExpedition(source, current)).toBe(false);
     expect(source.snapshot()).toEqual(before);
   });
+});
+
+it('stops safely before exceeding the supported address range', () => {
+  const sim = new FlightSimulation();
+  sim.setAddress(address([1_000_000_000, 0, 0], new Vector3(499999, 0, 0)));
+  sim.updateEnvironment();
+  sim.face(sim.position.clone().add(new Vector3(1, 0, 0)));
+  sim.speed = 5e12;
+  sim.pulse = true;
+  sim.throttle = 1;
+  const before = sim.address;
+  sim.step(0.05, emptyControls());
+  expect(sim.address).toEqual(before);
+  expect(sim.speed).toBe(0);
+  expect(sim.flightMessage).toContain('range limit');
+  expect(
+    parseExpedition(JSON.stringify(captureExpedition(sim))),
+  ).not.toBeNull();
 });

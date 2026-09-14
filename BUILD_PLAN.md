@@ -33,15 +33,15 @@ Start with TypeScript, Vite, and Three.js, one authored or procedural placeholde
 
 Expose a small development-only inspection API for position, target, flight mode, altitude, terrain readiness, and rendering counters. Create repeatable orbit, fast-travel, descent, and landing scenes. Use unit tests for generation and coordinate invariants, and browser tests for actual journeys using controls.
 
-## 4. Represent the universe across scales — deterministic destinations and visual charts implemented
+## 4. Represent the universe across scales — integer-cell addresses and interstellar scale implemented
 
-Generate deterministic star systems and planet descriptions from seeds. Render distant stars from those real descriptions. Separate physical addresses from camera-relative drawing coordinates. Add practical pulse and interstellar travel, target selection, and distance displays. The chart now projects the real X/Z coordinates of systems and bodies, supports pan/zoom and searchable previews, and shows the ship and direct destination bearing. Expand toward the reference's universe scale only after basic travel works.
+Generate deterministic star systems and planet descriptions from seeds. Render distant stars from those real descriptions. Canonical integer cells and bounded kilometer offsets now separate physical addresses from the local simulation/rendering frame. Interstellar spacing is expanded 100 million times across roughly 15 light-years, preserving local system layouts and surface precision. Pulse speed scales with deep-space clearance and slows safely near systems. Charts, target selection, distance displays, and version-4 saves share the same addresses; version-2/3 saves migrate to their original system-relative or planet-relative locations.
 
 ## 5. Make descent continuous — adaptive planetary and precise local terrain implemented
 
 Use one terrain sampling function for planet shape, water, biome colors, and ground collision. Add cube-sphere terrain with adaptive refinement and worker generation. Keep coarse coverage visible until replacement terrain is ready. Tie atmosphere and clouds to altitude; reduce approach speed near the surface and along shallow trajectories.
 
-Current progress: manual flight now checks the ship envelope against rendered ground and rock volumes, stops residual high-speed travel at contact, and holds at the edge of detailed coverage until replacement terrain arrives. Worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A drifting cloud shell now follows the terrain, and seeded rock/mineral fields provide local geometry with walking collisions. A worker-generated cube-sphere quadtree now adapts the full planet to observer distance with shared edges and bounded detail; ground generation predicts travel ahead of the ship. Planetary mesh morphing and a bounded in-memory cache of complete meshes are now implemented. Persistent per-tile storage, vegetation, and authored points of interest remain.
+Current progress: manual flight now checks the ship envelope against rendered ground and rock volumes, stops residual high-speed travel at contact, and holds at the edge of detailed coverage until replacement terrain arrives. Worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A drifting cloud shell now follows the terrain, and seeded rock/mineral fields provide local geometry with walking collisions. A worker-generated cube-sphere quadtree now adapts the full planet to observer distance with shared edges and bounded detail; ground generation predicts travel ahead of the ship. Planetary mesh morphing, bounded in-memory reuse, and cross-session IndexedDB storage of native planetary/contact meshes are implemented. The disk cache shares 32 MiB/48-entry limits across workers and falls back to generation when unavailable or corrupt. Independent per-tile refinement, vegetation, and authored points of interest remain.
 
 ## 6. Add landing and surface exploration — implemented with rotating-world attachment
 
@@ -65,11 +65,11 @@ The article's separate ocean and 2D game experiments are reference material, not
 
 ## Stage boundary
 
-The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, and saved progress. This is not the finished reference game. Further terrain streaming refinement, richer surface scenery, integer-cell interstellar addressing, and further spacecraft animation/polish remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
+The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, saved progress, rotating worlds, integer-cell interstellar addressing, and cross-session terrain reuse. This is not the finished reference game. Further terrain streaming refinement, richer surface scenery, and spacecraft animation/polish remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
 
 ## Next implementation milestone
 
-Expand universe scale with precision-safe coordinates and persistent terrain reuse across sessions. Rotating planets, surface-relative attachment, compatible expedition saves, planetary mesh transitions and bounded in-memory reuse are now implemented. Richer biomes, coastal landing concepts, landmarks and ship animation follow.
+Richer exploration: establish coastal landing concepts, add deterministic biome variety and vegetation, and introduce recognizable landmarks with safe landing/walking behavior. Preserve the established art direction, exact concept prompts, rotating-world attachment, and expedition saves. Presentation polish and hardware release validation follow.
 
 ### Completed rotating-world implementation plan
 
@@ -78,7 +78,7 @@ Expand universe scale with precision-safe coordinates and persistent terrain reu
 3. Save attached poses in planet coordinates with a versioned rotation clock. Migrate existing stationary version-2 expeditions at zero rotation, including scenery clearings.
 4. Verify transformed triangle contact, stable scenery, complete surface journeys, delayed ground restoration, pause/reset and both renderers. Commit the coherent implementation and validation milestones, then update the private build.
 
-### Universe scale and terrain persistence plan
+### Completed universe scale and terrain persistence plan
 
 1. Introduce integer cells with bounded kilometer offsets, widen interstellar spacing while retaining local system layouts, and rebase the working frame away from surfaces. Keep charts, star rendering, targeting and pulse travel consistent with the same addresses.
 2. Migrate version-2/3 expeditions without losing their system-relative or planet-relative locations. Save version-4 addresses independently of the current rendering origin.

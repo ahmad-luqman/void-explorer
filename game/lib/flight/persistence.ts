@@ -4,6 +4,7 @@ import type { SurfaceRecord } from './surface';
 import { planetRotation, toPlanet } from './rotation';
 import {
   relative,
+  difference,
   translate,
   validAddress,
   type SpaceAddress,
@@ -168,6 +169,11 @@ export function restoreExpedition(
     }
     const rotation = planetRotation(body, time);
     location = translate(body.address, pilot.applyQuaternion(rotation));
+    if (
+      save.version === 4 &&
+      difference(location, save.address!).length() > 1e-6
+    )
+      return false;
     record.shipPosition = relative(
       translate(body.address, ship.applyQuaternion(rotation)),
       location.cells,
