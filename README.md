@@ -26,7 +26,7 @@ Open the local URL printed by the server. The app needs WebGL 2. High graphics a
 - Tab opens the star chart. Switch between System and Galaxy, inspect markers, drag to pan, and scroll or use +/− to zoom. Search finds remote systems and their planets.
 - Set destination updates your target without moving the ship; Set course & engage autopilot starts the approach. J toggles autopilot during flight.
 - Navigation shows alignment, approach, and moving-away feedback. Arrival estimates use current closing speed and disappear when you are not approaching.
-- L descends to the selected planet and finishes facing the horizon.
+- L descends to the selected planet and finishes facing the horizon. Continue manually with throttle and pitch to fly close to the ground; proximity protection stops the engines before the hull reaches terrain or rocks. Pitch up and apply throttle to climb away. Slow flight displays meters per second.
 - B lands on suitable ground below 30 km, finding a nearby clearing when rocks obstruct the footprint; F leaves or boards the ship; R takes off.
 - On foot, WASD walks, arrows or dragging looks around, and Shift runs.
 - Expeditions save automatically every 15 seconds and at stable phase changes. Save manually from pause or the surface panel; Continue restores progress on this device.
