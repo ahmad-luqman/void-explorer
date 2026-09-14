@@ -14,7 +14,7 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by the server. The app needs WebGL 2. High graphics adds bloom and near-ground ship shadows; Low reduces resolution and skips those passes. Both retain sun-aware atmospheric colors, distance haze, drifting clouds, animated water shading, and local rock/mineral fields. Preferences are stored on this device. No API keys are needed.
+Open the local URL printed by the server. The app needs WebGL 2. High graphics adds bloom and near-ground ship shadows; Low reduces resolution and skips those passes. Both retain sun-aware atmospheric colors, distance haze, drifting clouds, animated water shading, and local rock/mineral fields. Planet terrain adapts its detail to the observer, and precise ground generation looks ahead during surface flight. Preferences are stored on this device. No API keys are needed.
 
 ## Fly
 

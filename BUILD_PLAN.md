@@ -13,7 +13,7 @@ The [official showcase](https://developers.openai.com/showcase/void-explorer) su
 5. Refine the spacecraft concept — dedicated turnaround sheet created, with a documented geometry contract.
 6. Build and integrate AURORA — authored Blender model and compact GLB integrated; animation and further visual polish remain.
 7. Make exploration physical — landing, walking, reboarding, takeoff, and local expedition saves implemented.
-8. Keep the world coherent — shared terrain, water shading, cloud layers, persistent rock fields, obstacle-aware landing, and saved exploration implemented; further terrain streaming and moving worlds remain.
+8. Keep the world coherent — shared terrain, water shading, cloud layers, persistent rock fields, obstacle-aware landing, and saved exploration implemented; adaptive cube-sphere flight terrain and predictive ground streaming are now implemented; moving worlds and further refinement remain.
 
 ## Incremental commits
 
@@ -37,11 +37,11 @@ Expose a small development-only inspection API for position, target, flight mode
 
 Generate deterministic star systems and planet descriptions from seeds. Render distant stars from those real descriptions. Separate physical addresses from camera-relative drawing coordinates. Add practical pulse and interstellar travel, target selection, and distance displays. The chart now projects the real X/Z coordinates of systems and bodies, supports pan/zoom and searchable previews, and shows the ship and direct destination bearing. Expand toward the reference's universe scale only after basic travel works.
 
-## 5. Make descent continuous — graded local terrain implemented
+## 5. Make descent continuous — adaptive planetary and precise local terrain implemented
 
 Use one terrain sampling function for planet shape, water, biome colors, and ground collision. Add cube-sphere terrain with adaptive refinement and worker generation. Keep coarse coverage visible until replacement terrain is ready. Tie atmosphere and clouds to altitude; reduce approach speed near the surface and along shallow trajectories.
 
-Current progress: manual flight now checks the ship envelope against rendered ground and rock volumes, stops residual high-speed travel at contact, and holds at the edge of detailed coverage until replacement terrain arrives. Worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A drifting cloud shell now follows the terrain, and seeded rock/mineral fields provide local geometry with walking collisions. A full view-dependent planetary quadtree, vegetation, and authored points of interest remain.
+Current progress: manual flight now checks the ship envelope against rendered ground and rock volumes, stops residual high-speed travel at contact, and holds at the edge of detailed coverage until replacement terrain arrives. Worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A drifting cloud shell now follows the terrain, and seeded rock/mineral fields provide local geometry with walking collisions. A worker-generated cube-sphere quadtree now adapts the full planet to observer distance with shared edges and bounded detail; ground generation predicts travel ahead of the ship. Terrain morphing, persistent tile caching, vegetation, and authored points of interest remain.
 
 ## 6. Add landing and surface exploration — implemented for stationary worlds
 
@@ -65,4 +65,8 @@ The article's separate ocean and 2D game experiments are reference material, not
 
 ## Stage boundary
 
-The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, and saved progress. This is not the finished reference game. WebGPU, full adaptive terrain streaming, richer surface scenery, rotating worlds, integer-cell interstellar addressing, and further spacecraft animation/polish remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
+The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, and saved progress. This is not the finished reference game. WebGPU, further terrain streaming refinement, richer surface scenery, rotating worlds, integer-cell interstellar addressing, and further spacecraft animation/polish remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
+
+## Next implementation milestone
+
+Evaluate and integrate a WebGPU rendering path while preserving the current WebGL expedition and graphics options. Terrain morphing/tile caching, rotating worlds, larger-scale addressing, richer biomes, and ship animation remain later work.
