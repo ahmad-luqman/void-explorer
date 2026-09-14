@@ -13,7 +13,7 @@ export function coastalScenery(
   const native = toPlanet(focus, body).normalize();
   if (
     body.id !== 'p0-0' ||
-    body.terrainVersion !== 2 ||
+    (body.terrainVersion ?? 1) < 2 ||
     native.dot(COAST_UP) < 0.99998
   )
     return [];

@@ -95,7 +95,7 @@ export function generateScenery(
   ];
   const visible = (p: SurfaceProp) =>
     body.id !== 'p0-0' ||
-    body.terrainVersion !== 2 ||
+    (body.terrainVersion ?? 1) < 2 ||
     p.id.includes(':coast:') ||
     toPlanet(p.point, body).normalize().distanceTo(COAST_UP) * body.radius >
       1.5;

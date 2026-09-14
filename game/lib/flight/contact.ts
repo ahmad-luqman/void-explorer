@@ -1,3 +1,4 @@
+import { COAST_UP } from './coast';
 import { sampleBiome } from './biomes';
 import { Quaternion, Ray, Vector3 } from 'three';
 import { type Body, elevation, surfaceRadius } from './universe';
@@ -17,7 +18,25 @@ export const CONTACT_RADIUS = 48;
 export const CONTACT_CORE = 1.2;
 
 // Shared vertices join the dense walking grid to progressively wider terrain cells.
-export function contactAxis() {
+export function contactAxis(detailed = false) {
+  if (detailed) {
+    const positive = [0];
+    for (let i = 1; i <= 32; i++) positive.push(i * 0.009375);
+    for (let i = 1; i <= 48; i++) positive.push(0.3 + i * 0.01875);
+    let step = 0.01875;
+    while (positive[positive.length - 1] < 64) {
+      const near = positive[positive.length - 1] < 3;
+      step = Math.min(near ? 0.075 : 2, step * (near ? 1.12 : 1.25));
+      positive.push(positive[positive.length - 1] + step);
+    }
+    return new Float64Array([
+      ...positive
+        .slice(1)
+        .reverse()
+        .map((x) => -x),
+      ...positive,
+    ]);
+  }
   const positive = Array.from(
     { length: 65 },
     (_, i) => (i * CONTACT_CORE) / 64,
@@ -75,7 +94,11 @@ export function generateContact(body: Body, center: Vector3): ContactData {
       .normalize(),
     north = new Vector3().crossVectors(up, east);
   const origin = up.clone().multiplyScalar(surfaceRadius(up, body));
-  const axis = contactAxis(),
+  const axis = contactAxis(
+      body.id === 'p0-0' &&
+        body.terrainVersion === 3 &&
+        up.dot(COAST_UP) > 0.99998,
+    ),
     extent = axis[axis.length - 1],
     resolution = axis.length - 1,
     positions = new Float32Array((resolution + 1) ** 2 * 3),

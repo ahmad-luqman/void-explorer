@@ -23,7 +23,9 @@ export type TerrainRecipe = {
   ground?: { body: Body; anchor: T.Vector3 };
 };
 const hash = N.Fn(([point, seed]: [Node<'vec3'>, Node<'float'>]) => {
-  const p = N.fract(point.mul(0.1031).add(seed.mul(0.001))).toVar();
+  const p = N.fract(
+    N.mod(point, 4096).mul(0.1031).add(seed.mul(0.001)),
+  ).toVar();
   p.addAssign(N.dot(p, p.yzx.add(33.33)));
   return N.fract(p.x.add(p.y).mul(p.z));
 });
@@ -108,7 +110,20 @@ export function convertMaterial(source: T.Material): T.Material {
     );
     const seed = N.float(body.seed % 997);
     const gravel = hash(p.mul(7200).floor(), seed),
-      stone = noise(p.mul(440), seed);
+      stone = noise(
+        local
+          .mul(440)
+          .add(
+            N.uniform(
+              new T.Vector3(
+                (((anchor.x * 440) % 4096) + 4096) % 4096,
+                (((anchor.y * 440) % 4096) + 4096) % 4096,
+                (((anchor.z * 440) % 4096) + 4096) % 4096,
+              ),
+            ),
+          ),
+        seed,
+      );
     const strata = height.mul(600).add(stone.mul(0.6)).sin().mul(0.5).add(0.5);
     const rawTone = stone
       .mul(0.16)
@@ -120,8 +135,44 @@ export function convertMaterial(source: T.Material): T.Material {
       0.94,
       N.smoothstep(0.06, 0.4, N.positionView.length()),
     );
+    const mass = noise(p.mul(9), seed);
+    const bedPhase = height
+      .mul(240)
+      .add(noise(p.mul(5), seed).mul(18))
+      .add(noise(p.mul(23), seed).mul(3));
+    const bedFilter = N.smoothstep(0.4, 2, N.fwidth(bedPhase)).oneMinus();
+    const beds = bedPhase.sin().mul(bedFilter).mul(0.5).add(0.5);
+    const geology = N.mix(
+      N.vec3(0.84, 0.79, 0.91),
+      N.vec3(1.08, 1.04, 1),
+      beds,
+    ).mul(N.mix(0.8, 1.16, mass));
+    const grainFilter = N.smoothstep(
+      0.3,
+      1.5,
+      N.dFdx(local).length().max(N.dFdy(local).length()).mul(440),
+    ).oneMinus();
+    const rockHeight = stone.mul(0.00006).mul(grainFilter);
+    const sx = N.dFdx(N.positionView),
+      sy = N.dFdy(N.positionView);
+    const r1 = N.cross(sy, N.normalViewGeometry),
+      r2 = N.cross(N.normalViewGeometry, sx);
+    const det = sx.dot(r1);
+    const grad = r1
+      .mul(N.dFdx(rockHeight))
+      .add(r2.mul(N.dFdy(rockHeight)))
+      .mul(det.sign());
+    const rockNormal = N.normalViewGeometry
+      .mul(det.abs().max(1e-20))
+      .sub(grad)
+      .normalize();
+    material.normalNode = N.mix(
+      N.normalViewGeometry,
+      rockNormal,
+      wet.oneMinus(),
+    ).normalize();
     material.colorNode = N.materialColor
-      .mul(N.mix(tone, 1, wet))
+      .mul(N.mix(geology.mul(tone), N.vec3(1), wet))
       .mul(N.mix(N.vec3(1), N.vec3(0.8, 1.06, 1.13), wet.mul(0.3)));
     material.roughnessNode = N.mix(0.95, 0.3, wet);
   }
@@ -175,7 +226,11 @@ export function convertMaterial(source: T.Material): T.Material {
     const normal = N.modelViewMatrix
       .mul(N.vec4(radial.add(tangent.mul(0.07).mul(detail)), 0))
       .xyz.normalize();
-    material.normalNode = N.mix(N.normalViewGeometry, normal, wet).normalize();
+    material.normalNode = N.mix(
+      (material.normalNode as Node<'vec3'> | null) ?? N.normalViewGeometry,
+      normal,
+      wet,
+    ).normalize();
     // Compress only water highlights before fog and bloom; preserve shore color.
     const previousOutput = material.setupOutput.bind(material);
     material.setupOutput = (builder, result) => {

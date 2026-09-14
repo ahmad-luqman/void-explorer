@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { coastDirection, COAST_UP } from '../lib/flight/coast';
+import {
+  coastDirection,
+  coastalElevation,
+  COAST_UP,
+} from '../lib/flight/coast';
+import { validContact } from '../lib/flight/terrain-validation';
 import { planetRotation } from '../lib/flight/rotation';
 import { elevation } from '../lib/flight/universe';
 import { FlightSimulation, emptyControls } from '../lib/flight/simulation';
@@ -26,6 +31,13 @@ describe('playable coastal visual slice', () => {
         body,
       );
     const center = patch.sample(patch.origin)!;
+    expect(validContact(patch.data)).toBe(true);
+    expect(patch.data.positions.length / 3).toBeLessThan(100000);
+    expect(patch.data.indices.length / 3).toBeLessThan(200000);
+    const near = [...patch.data.axis].filter((x) => x >= 0 && x <= 3);
+    expect(
+      Math.max(...near.slice(1).map((x, i) => x - near[i])),
+    ).toBeLessThanOrEqual(0.07500001);
     expect(center.water).toBe(false);
     expect(center.slope).toBeLessThan(1);
     expect(elevation(coastDirection(0, 0.5), body)).toBeLessThan(0);
@@ -89,19 +101,84 @@ describe('playable coastal visual slice', () => {
     expect(migrated.version).toBe(5);
     expect(migrated.terrainVersion).toBe(1);
     expect(
-      parseExpedition(JSON.stringify({ ...migrated, terrainVersion: 3 })),
+      parseExpedition(JSON.stringify({ ...migrated, terrainVersion: 4 })),
     ).toBeNull();
     restored.startCoast();
-    expect(restored.terrainVersion).toBe(2);
+    expect(restored.terrainVersion).toBe(3);
     expect(elevation(COAST_UP, restored.nearest)).toBeCloseTo(0.062, 8);
   });
-  it('separates both terrain profiles in persistent and in-memory planet cache signatures', () => {
+  it('retains profile-2 saved coast geometry while new expeditions gain distinct ridges', () => {
+    const source = new FlightSimulation();
+    source.startCoast();
+    source.setTerrainVersion(2);
+    source.surface.setPatch(
+      new ContactSurface(
+        generateContact(
+          source.target,
+          COAST_UP.clone().applyQuaternion(planetRotation(source.target)),
+        ),
+        source.target,
+      ),
+    );
+    expect(source.surface.land()).toBe(true);
+    for (let i = 0; i < 300; i++) source.step(0.05, emptyControls());
+    expect(source.surface.exit()).toBe(true);
+    const saved = captureExpedition(source)!;
+    const restored = new FlightSimulation();
+    expect(restoreExpedition(restored, saved)).toBe(true);
+    expect(restored.terrainVersion).toBe(2);
+    restored.surface.setPatch(
+      new ContactSurface(
+        generateContact(
+          restored.target,
+          restored.position.clone().sub(restored.target.position),
+        ),
+        restored.target,
+      ),
+    );
+    const original = { ...source.target, terrainVersion: 1 as const };
+    const refined = { ...source.target, terrainVersion: 3 as const };
+    let changed = 0;
+    for (const [x, z] of [
+      [0, 0],
+      [0.02, 0.02],
+      [1.5, 1.8],
+      [-0.8, 1],
+      [1, -4.8],
+      [20, 10],
+    ]) {
+      const d = coastDirection(x, z);
+      const legacy = coastalElevation(
+        d,
+        original.radius,
+        elevation(d, original),
+      );
+      expect(elevation(d, restored.target)).toBe(legacy);
+      if (Math.abs(elevation(d, refined) - legacy) > 0.001) changed++;
+    }
+    expect(changed).toBeGreaterThanOrEqual(3);
+    expect(elevation(COAST_UP, refined)).toBe(
+      elevation(COAST_UP, restored.target),
+    );
+    expect(captureExpedition(restored)!.terrainVersion).toBe(2);
+    expect(restored.surface.phase).toBe('walking');
+    const resaved = captureExpedition(restored)!;
+    resaved.position.forEach((n, i) =>
+      expect(Math.abs(n - saved.position[i])).toBeLessThan(1e-6),
+    );
+    resaved.surface.shipPosition.forEach((n, i) =>
+      expect(n).toBeCloseTo(saved.surface.shipPosition[i], 8),
+    );
+  });
+  it('separates every terrain profile in persistent and in-memory planet cache signatures', () => {
     const body = new FlightSimulation().target;
     const options = { pixels: 2, projection: 800, maxLeaves: 3000 };
     expect(
-      terrainSignature({ ...body, terrainVersion: 1 }, 'high', options),
-    ).not.toBe(
-      terrainSignature({ ...body, terrainVersion: 2 }, 'high', options),
-    );
+      new Set(
+        ([1, 2, 3] as const).map((terrainVersion) =>
+          terrainSignature({ ...body, terrainVersion }, 'high', options),
+        ),
+      ).size,
+    ).toBe(3);
   });
 });

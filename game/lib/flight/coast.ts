@@ -55,7 +55,12 @@ const peaks = [
   [-11, -7, 4.6, 3.4],
   [5, -10, 5, 3.8],
 ];
-export function coastalElevation(d: Vector3, radius: number, original: number) {
+export function coastalElevation(
+  d: Vector3,
+  radius: number,
+  original: number,
+  detailed = false,
+) {
   // Cheap angular reject for the rest of the planet (including the antipode).
   if (d.dot(COAST_UP) < 0.9994) return original;
   const { x, z } = coastCoordinates(d, radius);
@@ -70,7 +75,31 @@ export function coastalElevation(d: Vector3, radius: number, original: number) {
     const angle = Math.atan2(dz, dx);
     const broken =
       1 + 0.17 * Math.sin(angle * 5 + px) + 0.1 * Math.cos(angle * 9);
-    h += height * Math.max(0, 1 - Math.hypot(dx, dz) * broken) ** 1.5;
+    if (detailed) {
+      // Cross-cut ridges and side summits break the single-cone island shape.
+      const warp = Math.min(1, Math.hypot(dx, dz) * 3);
+      const warpX = dx + Math.sin(dz * 5.4 + px) * 0.12 * warp;
+      const warpZ = dz + Math.sin(dx * 4.7 + pz) * 0.1 * warp;
+      const ridge = Math.max(
+        0,
+        1 - Math.hypot(warpX * 0.82, warpZ * 1.16) * broken,
+      );
+      const flank = Math.max(
+        0,
+        1 - Math.hypot((dx - 0.37) * 1.65, (dz + 0.18) * 2.1),
+      );
+      const cut = 0.8 + 0.2 * Math.abs(Math.sin(dx * 15 + dz * 8 + px));
+      h += height * (ridge ** 1.12 * cut + flank ** 1.5 * 0.23);
+    } else {
+      h += height * Math.max(0, 1 - Math.hypot(dx, dz) * broken) ** 1.5;
+    }
+  }
+  if (detailed && h > 0) {
+    const outside = smooth(0.16, 0.3, distance);
+    const beds =
+      Math.sin(h * 190 + x * 2 - z * 3) * 0.003 +
+      Math.sin(x * 39 + z * 21) * Math.sin(z * 43 - x * 13) * 0.004;
+    h += beds * outside;
   }
   // Centimeter-to-meter shader detail rests on real meter-scale rocky relief.
   const relief =

@@ -13,7 +13,7 @@ import { createUniverse, nearestSystem, surfaceRadius } from './universe';
 export const EXPEDITION_KEY = 'void-expedition-v2';
 export type ExpeditionSave = {
   version: 2 | 3 | 4 | 5;
-  terrainVersion?: 1 | 2;
+  terrainVersion?: 1 | 2 | 3;
   address?: SpaceAddress;
   rotationTime?: number;
   savedAt: number;
@@ -83,7 +83,7 @@ export function parseExpedition(raw: string | null): ExpeditionSave | null {
           s.rotationTime < 0 ||
           s.rotationTime > 1e9)) ||
       (s.version >= 4 && !validAddress(s.address)) ||
-      (s.version === 5 && ![1, 2].includes(s.terrainVersion)) ||
+      (s.version === 5 && ![1, 2, 3].includes(s.terrainVersion)) ||
       !Number.isFinite(s.savedAt) ||
       !vector(s.position, 3) ||
       !quaternion(s.orientation) ||

@@ -102,7 +102,7 @@ test('production Lumen Coast entry supports a saved coastal excursion without in
     .getByRole('button', { name: 'Explore Lumen Coast' })
     .click({ timeout: 45000 });
   await expect(page.locator('.flight-top')).toBeVisible();
-  await page.waitForTimeout(1800);
+  await page.waitForTimeout(3500);
   await page.screenshot({ path: 'test-results/production-coast-approach.png' });
   await expect(async () => {
     const land = page.getByRole('button', { name: /Land here/ });
@@ -136,7 +136,7 @@ test('production Lumen Coast entry supports a saved coastal excursion without in
     JSON.parse(localStorage.getItem('void-expedition-v2')!),
   );
   expect(saved.version).toBe(5);
-  expect(saved.terrainVersion).toBe(2);
+  expect(saved.terrainVersion).toBe(3);
   await page.reload();
   await page
     .getByRole('button', { name: /Continue expedition/ })

@@ -97,7 +97,7 @@ export class SurfaceExpedition {
       biome,
       coast:
         body.id === 'p0-0' &&
-        body.terrainVersion === 2 &&
+        (body.terrainVersion ?? 1) >= 2 &&
         toPlanet(this.sim.position, body).normalize().distanceTo(COAST_UP) *
           body.radius <
           1.5,
