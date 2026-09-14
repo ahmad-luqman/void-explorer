@@ -1598,3 +1598,21 @@ h1 > span {
   font-weight: 400;
   color: #b6c8d1;
 }
+
+@media (max-width: 560px) {
+  .surface-survey {
+    position: absolute;
+    top: 0;
+    left: 200px;
+    width: min(150px, calc(100vw - 232px));
+    margin: 0;
+    padding: 12px 10px;
+    border-top: 0;
+    border-left: 1px solid rgba(129, 220, 229, 0.5);
+    background: rgba(4, 23, 35, 0.72);
+    backdrop-filter: blur(8px);
+  }
+  .surface-survey button {
+    overflow-wrap: anywhere;
+  }
+}

@@ -75,6 +75,21 @@ test('coastal biome, vegetation and landmark survive a complete saved excursion'
     page.getByRole('button', { name: /Tide Sentinels/ }),
   ).toBeInViewport();
   await page.getByRole('button', { name: /Tide Sentinels/ }).click();
+  expect(
+    await page.evaluate(() =>
+      [
+        ...document.querySelectorAll('.surface-navigation, .surface-survey'),
+      ].some((el) => {
+        const r = el.getBoundingClientRect();
+        return (
+          r.left < innerWidth / 2 &&
+          r.right > innerWidth / 2 &&
+          r.top < innerHeight / 2 &&
+          r.bottom > innerHeight / 2
+        );
+      }),
+    ),
+  ).toBe(false);
   await page.screenshot({
     path: 'test-results/coastal-exploration-mobile.png',
   });

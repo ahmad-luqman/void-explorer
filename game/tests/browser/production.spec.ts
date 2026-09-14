@@ -38,6 +38,24 @@ test('production export loads terrain workers and supports a complete approach',
   });
   await page.getByRole('button', { name: /Leave ship/ }).click();
   await expect(page.locator('.surface-navigation')).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.surface-survey')).toBeInViewport();
+  expect(
+    await page.evaluate(() =>
+      [
+        ...document.querySelectorAll('.surface-navigation, .surface-survey'),
+      ].some((el) => {
+        const r = el.getBoundingClientRect();
+        return (
+          r.left < innerWidth / 2 &&
+          r.right > innerWidth / 2 &&
+          r.top < innerHeight / 2 &&
+          r.bottom > innerHeight / 2
+        );
+      }),
+    ),
+  ).toBe(false);
+  await page.setViewportSize({ width: 1440, height: 960 });
   await page.keyboard.down('s');
   await page.waitForTimeout(1500);
   await page.keyboard.up('s');

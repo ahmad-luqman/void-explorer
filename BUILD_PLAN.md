@@ -21,7 +21,7 @@ Commit each coherent, reviewable milestone as work progresses. Separate art, imp
 
 ## 1. Establish the experience and art direction — in progress
 
-The first concept sheet covers orbital flight, atmospheric descent, and high-speed travel. Preserve the prompt and review the balance between faceted geometry and detail. Dedicated AURORA turnaround references and an authored Blender model are now present. Coastal landing concepts and further visual refinement remain.
+The first concept sheet covers orbital flight, atmospheric descent, and high-speed travel. Preserve the prompt and review the balance between faceted geometry and detail. Dedicated AURORA turnaround references and an authored Blender model are now present. A coastal landing sheet now establishes sparse fan vegetation and recognizable column landmarks. Further visual refinement remains.
 
 The eventual experience: choose a visible star, accelerate toward it, approach a planet, descend continuously to its terrain, land, explore, board, and take off.
 
@@ -41,7 +41,7 @@ Generate deterministic star systems and planet descriptions from seeds. Render d
 
 Use one terrain sampling function for planet shape, water, biome colors, and ground collision. Add cube-sphere terrain with adaptive refinement and worker generation. Keep coarse coverage visible until replacement terrain is ready. Tie atmosphere and clouds to altitude; reduce approach speed near the surface and along shallow trajectories.
 
-Current progress: manual flight now checks the ship envelope against rendered ground and rock volumes, stops residual high-speed travel at contact, and holds at the edge of detailed coverage until replacement terrain arrives. Worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A drifting cloud shell now follows the terrain, and seeded rock/mineral fields provide local geometry with walking collisions. A worker-generated cube-sphere quadtree now adapts the full planet to observer distance with shared edges and bounded detail; ground generation predicts travel ahead of the ship. Planetary mesh morphing, bounded in-memory reuse, and cross-session IndexedDB storage of native planetary/contact meshes are implemented. The disk cache shares 32 MiB/48-entry limits across workers and falls back to generation when unavailable or corrupt. Independent per-tile refinement, vegetation, and authored points of interest remain.
+Current progress: manual flight now checks the ship envelope against rendered ground and rock volumes, stops residual high-speed travel at contact, and holds at the edge of detailed coverage until replacement terrain arrives. Worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A drifting cloud shell now follows the terrain, and seeded rock/mineral fields provide local geometry with walking collisions. A worker-generated cube-sphere quadtree now adapts the full planet to observer distance with shared edges and bounded detail; ground generation predicts travel ahead of the ship. Planetary mesh morphing, bounded in-memory reuse, and cross-session IndexedDB storage of native planetary/contact meshes are implemented. The disk cache shares 32 MiB/48-entry limits across workers and falls back to generation when unavailable or corrupt. Native biome colors, dry-ground vegetation and bounded landmark clusters are now implemented. Independent per-tile refinement and unique authored points of interest remain.
 
 ## 6. Add landing and surface exploration — implemented with rotating-world attachment
 
@@ -65,11 +65,11 @@ The article's separate ocean and 2D game experiments are reference material, not
 
 ## Stage boundary
 
-The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, saved progress, rotating worlds, integer-cell interstellar addressing, and cross-session terrain reuse. This is not the finished reference game. Further terrain streaming refinement, richer surface scenery, and spacecraft animation/polish remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
+The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, saved progress, rotating worlds, integer-cell interstellar addressing, and cross-session terrain reuse. This is not the finished reference game. Coastal concepts, seeded biome regions, vegetation and recognizable surface landmarks are now present. Further terrain streaming refinement and spacecraft/presentation polish remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
 
 ## Next implementation milestone
 
-Richer exploration: establish coastal landing concepts, add deterministic biome variety and vegetation, and introduce recognizable landmarks with safe landing/walking behavior. Preserve the established art direction, exact concept prompts, rotating-world attachment, and expedition saves. Presentation polish and hardware release validation follow.
+Presentation polish, beginning with authored landing-gear animation and flight feel. Preserve the ship geometry/collision contract, rotating-world attachment and compatible expedition saves. Deeper route planning, atmospheric/speed effects and audio follow, then release validation on real hardware and broader browsers/devices.
 
 ### Completed rotating-world implementation plan
 
@@ -85,7 +85,7 @@ Richer exploration: establish coastal landing concepts, add deterministic biome 
 3. Persist disposable native planetary/contact meshes in a versioned, bounded IndexedDB cache. Generation remains authoritative; unavailable, corrupt or full storage must never prevent exploration. Independent per-tile refinement remains a later terrain architecture change.
 4. Verify cell boundaries, remote surface precision, legacy migration, long-distance arrival, cross-session terrain hits, cache limits and blocked storage, then run complete expeditions on both backends and publish privately.
 
-### Richer exploration implementation plan
+### Completed richer exploration implementation plan
 
 1. Preserve a coastal landing concept sheet and its exact prompt. Translate its faceted vegetation, open clearings, and landmark silhouettes into bounded runtime geometry.
 2. Add seeded native-frame biome regions and consistent ground colors across globe, adaptive planet and contact terrain. Preserve terrain heights and invalidate older cached colors.

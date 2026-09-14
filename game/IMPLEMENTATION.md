@@ -20,6 +20,10 @@ Type checking and all 75 unit/contract tests pass. Five new cases cover seeded b
 
 Browser validation also exposed a terrain-request race when changing systems while an earlier mesh was pending. System loading now releases the superseded pending flags while token checks keep late replies from replacing current terrain. A delayed-worker browser regression covers this transition.
 
+Nine focused browser cases passed on each backend: the coastal biome/landmark excursion including mobile controls; the existing scenery walk; manual low flight; lighting/shadows/water; remote surface reload with disk hits; denied storage; native cache eviction/corruption; the delayed old-system reply; and terrain transitions/memory reuse. Coastal images are preserved as `art/milestones/coastal-exploration-webgl.png`, `coastal-exploration-webgpu.png`, and `coastal-exploration-mobile.png`; the remote desert view is `desert-exploration-webgpu.png`. Type checking, scoped lint and the static production build pass. These runs use Chromium/SwiftShader; they do not establish hardware GPU performance, and repository-wide lint/dependency issues remain deferred.
+
+The final static export passed the full production expedition on WebGL (56 seconds) and WebGPU (about 1.4 minutes), including both terrain workers, the authored ship, descent, landing, walking, save/reload, reboarding, takeoff and destination selection, with no page/console errors. The new mobile survey panel sits beside the ship panel so it leaves the central view clear; this was verified in the coastal journey and in both final production runs at 390×844. These checks do not claim broader mobile hardware coverage. No development inspection API was used by the production journeys.
+
 
 ## Coordinate and travel contract
 

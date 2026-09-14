@@ -23,7 +23,7 @@ The first sheet is a direction study, not a precise geometry contract. Its cloud
 
 The dedicated [AURORA turnaround](ships/README.md) now develops the wing silhouette in top, side, front, and rear views: four distinct wings, symmetrical layout, pink tips, teal canopy, ivory armor, and twin cyan engines. The [editable Blender model](../models/aurora/README.md) resolves projection ambiguities and defines the runtime geometry contract.
 
-The ship turnaround study is complete. Dedicated coastal landing and navigation studies remain available as the design develops; the initial image remains a direction study rather than user-approved final art.
+The ship turnaround and coastal landing studies are complete. Navigation studies and further visual refinement remain possible as the design develops; these images remain direction studies rather than user-approved final art.
 
 ## Coastal exploration study
 
