@@ -5,6 +5,7 @@ import {
   type PlanetTerrain,
   type TerrainOptions,
 } from './planet-terrain';
+import { TERRAIN_REVISION } from './terrain-storage';
 import { terrainRefresh } from './terrain-stream';
 
 type Entry = {
@@ -34,17 +35,20 @@ export class TerrainCache {
     quality: string,
     options: TerrainOptions,
   ) {
-    // All geometry/palette inputs and the viewport budget participate in reuse.
-    const signature = JSON.stringify([
-      body.id,
-      body.seed,
-      body.radius,
-      body.kind,
-      quality,
-      options.pixels,
-      options.projection,
-      options.maxLeaves,
-    ]);
+    const signature = terrainSignature(body, quality, options);
+    const reused = this.find(body, observer, signature);
+    if (reused) return { entry: reused, hit: true };
+    this.misses++;
+    return {
+      entry: this.store(
+        signature,
+        observer.toArray(),
+        generatePlanetTerrain(body, observer, options),
+      ),
+      hit: false,
+    };
+  }
+  find(body: Body, observer: Vector3, signature: string) {
     for (const entry of [...this.entries.values()].reverse()) {
       if (
         entry.signature === signature &&
@@ -58,11 +62,12 @@ export class TerrainCache {
         this.entries.delete(entry.key);
         this.entries.set(entry.key, entry);
         this.hits++;
-        return { entry, hit: true };
+        return entry;
       }
     }
-    this.misses++;
-    const mesh = generatePlanetTerrain(body, observer, options);
+    return undefined;
+  }
+  store(signature: string, observer: number[], mesh: PlanetTerrain) {
     const bytes =
       mesh.positions.byteLength +
       mesh.colors.byteLength +
@@ -70,7 +75,7 @@ export class TerrainCache {
     const entry = {
       key: ++this.serial,
       signature,
-      observer: observer.toArray(),
+      observer,
       mesh,
       bytes,
     };
@@ -88,7 +93,7 @@ export class TerrainCache {
       this.entries.set(entry.key, entry);
       this.bytes += bytes;
     }
-    return { entry, hit: false };
+    return entry;
   }
   get stats() {
     return {
@@ -99,4 +104,23 @@ export class TerrainCache {
       entries: this.entries.size,
     };
   }
+}
+
+export function terrainSignature(
+  body: Body,
+  quality: string,
+  options: TerrainOptions,
+) {
+  return JSON.stringify([
+    'planet',
+    TERRAIN_REVISION,
+    body.id,
+    body.seed,
+    body.radius,
+    body.kind,
+    quality,
+    options.pixels,
+    options.projection,
+    options.maxLeaves,
+  ]);
 }

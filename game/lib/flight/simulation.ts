@@ -5,6 +5,13 @@ import {
   rotationPeriod,
   toPlanet,
 } from './rotation';
+import {
+  address,
+  translate,
+  zeroCells,
+  type Cells,
+  type SpaceAddress,
+} from './coordinates';
 import { SurfaceExpedition } from './surface';
 import { flightClearance } from './flight-clearance';
 import {
@@ -12,6 +19,7 @@ import {
   type System,
   createUniverse,
   nearestSystem,
+  placeUniverse,
   worldSurfaceRadius,
 } from './universe';
 
@@ -38,6 +46,8 @@ const FORWARD = new Vector3(0, 0, -1),
   UP = new Vector3(0, 1, 0);
 export class FlightSimulation {
   systems = createUniverse();
+  origin: Cells = zeroCells();
+  originRevision = 0;
   position = new Vector3(0, 420, 2680);
   orientation = new Quaternion();
   speed = 0;
@@ -62,6 +72,25 @@ export class FlightSimulation {
         body.rotationClock = this.rotationClock;
     this.face(this.target.position);
     this.updateEnvironment();
+  }
+  get address(): SpaceAddress {
+    return address(this.origin, this.position);
+  }
+  setAddress(at: SpaceAddress) {
+    this.origin = [...at.cells];
+    this.position.fromArray(at.offset);
+    placeUniverse(this.systems, this.origin);
+    this.originRevision++;
+  }
+  private moveBy(delta: Vector3) {
+    if (this.position.clone().add(delta).length() < 2_000_000) {
+      this.position.add(delta);
+      return;
+    }
+    this.setAddress(translate(this.address, delta));
+    // Rebasing happens only in flight, far beyond contact range. Native terrain
+    // remains reusable; discard world-space transient surface references.
+    this.surface.reset();
   }
   face(point: Vector3) {
     this.orientation.setFromRotationMatrix(
@@ -102,7 +131,7 @@ export class FlightSimulation {
     this.elapsed = 0;
     this.rotationClock.time = 0;
     this.flightMessage = '';
-    this.position.set(0, 420, 2680);
+    this.setAddress(address(zeroCells(), new Vector3(0, 420, 2680)));
     this.speed = 0;
     this.throttle = 0;
     this.pulse = false;
@@ -218,7 +247,11 @@ export class FlightSimulation {
     );
     // Cap travel by clearance; no loading or teleportation at atmosphere boundaries.
     const maxSpeed = Math.min(
-      this.pulse ? 24000 : input.boost ? 1400 : 280,
+      this.pulse
+        ? Math.min(5e12, 24000 + Math.max(0, clearance - 30000) * 0.7)
+        : input.boost
+          ? 1400
+          : 280,
       Math.max(0.004, clearance * 0.7),
     );
     let desired = this.throttle * maxSpeed;
@@ -300,14 +333,14 @@ export class FlightSimulation {
     this.speed +=
       (desired - this.speed) * (1 - Math.exp(-dt * (input.brake ? 9 : 2.5)));
     const direction = FORWARD.clone().applyQuaternion(this.orientation);
-    const solids = [
-      this.activeSystem.star,
-      ...this.activeSystem.planets,
-      ...(this.activeSystem.companion ? [this.activeSystem.companion] : []),
-    ];
     const clearanceAt = (point: Vector3) => {
+      const system = nearestSystem(point, this.systems);
       let closest = { distance: Infinity, reason: '' };
-      for (const body of solids) {
+      for (const body of [
+        system.star,
+        ...system.planets,
+        ...(system.companion ? [system.companion] : []),
+      ]) {
         const result = flightClearance(
           point,
           body,
@@ -325,7 +358,14 @@ export class FlightSimulation {
       // old travel vector after a collision, even with residual pulse speed.
       const travel = Math.min(
         remaining,
-        20,
+        Math.max(
+          20,
+          (this.position.distanceTo(
+            nearestSystem(this.position, this.systems).position,
+          ) -
+            50000) *
+            0.5,
+        ),
         Math.max(0.005, current.distance * 0.25),
       );
       const next = this.position.clone().addScaledVector(direction, travel);
@@ -355,7 +395,7 @@ export class FlightSimulation {
         this.flightMessage = candidate.reason;
         break;
       }
-      this.position.copy(next);
+      this.moveBy(direction.clone().multiplyScalar(travel));
       current = candidate;
       remaining -= travel;
       this.flightMessage = '';
@@ -373,6 +413,8 @@ export class FlightSimulation {
   }
   snapshot() {
     return {
+      address: this.address,
+      originRevision: this.originRevision,
       rotationTime: this.rotationClock.time,
       planetRotation: planetRotation(this.nearest).toArray(),
       surfacePosition: toPlanet(this.position, this.nearest).toArray(),

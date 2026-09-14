@@ -13,7 +13,7 @@ export function addSurfaceMaterial(
   material.onBeforeCompile = (shader, renderer) => {
     previous.call(material, shader, renderer);
     shader.uniforms.surfaceAnchor = {
-      value: anchor.clone().sub(body.position),
+      value: anchor.clone(),
     };
     shader.uniforms.planetRadius = { value: body.radius };
     shader.uniforms.oceanWorld = { value: body.kind === 'ocean' ? 1 : 0 };

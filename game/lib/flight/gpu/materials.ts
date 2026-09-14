@@ -82,7 +82,7 @@ export function convertMaterial(source: T.Material): T.Material {
   }
   if (spec.ground) {
     const { body, anchor } = spec.ground;
-    const p = local.add(N.uniform(anchor.clone().sub(body.position)));
+    const p = local.add(N.uniform(anchor.clone()));
     const height = p.length().sub(body.radius);
     const wet = N.float(body.kind === 'ocean' ? 1 : 0).mul(
       N.smoothstep(0.0002, 0.001, height).oneMinus(),
@@ -103,7 +103,7 @@ export function convertMaterial(source: T.Material): T.Material {
   }
   if (spec.water) {
     const { body, anchor, time } = spec.water;
-    const p = local.add(N.uniform(anchor.clone().sub(body.position)));
+    const p = local.add(N.uniform(anchor.clone()));
     // Preserve the vertex water mask: interpolated sphere chords sit below sea level.
     const wet = N.varying(
       N.smoothstep(0.0002, 0.001, p.length().sub(body.radius)).oneMinus(),

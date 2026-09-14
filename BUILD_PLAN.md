@@ -77,3 +77,10 @@ Expand universe scale with precision-safe coordinates and persistent terrain reu
 2. Transport landed craft, walkers, landing destinations and takeoff with that frame. Use surface-relative atmospheric flight, tapering rotation coupling between 130 and 260 km; retain inertial flight above it. Pause rotation during ground restoration.
 3. Save attached poses in planet coordinates with a versioned rotation clock. Migrate existing stationary version-2 expeditions at zero rotation, including scenery clearings.
 4. Verify transformed triangle contact, stable scenery, complete surface journeys, delayed ground restoration, pause/reset and both renderers. Commit the coherent implementation and validation milestones, then update the private build.
+
+### Universe scale and terrain persistence plan
+
+1. Introduce integer cells with bounded kilometer offsets, widen interstellar spacing while retaining local system layouts, and rebase the working frame away from surfaces. Keep charts, star rendering, targeting and pulse travel consistent with the same addresses.
+2. Migrate version-2/3 expeditions without losing their system-relative or planet-relative locations. Save version-4 addresses independently of the current rendering origin.
+3. Persist disposable native planetary/contact meshes in a versioned, bounded IndexedDB cache. Generation remains authoritative; unavailable, corrupt or full storage must never prevent exploration. Independent per-tile refinement remains a later terrain architecture change.
+4. Verify cell boundaries, remote surface precision, legacy migration, long-distance arrival, cross-session terrain hits, cache limits and blocked storage, then run complete expeditions on both backends and publish privately.

@@ -286,6 +286,8 @@ export class SurfaceExpedition {
   }
   reset() {
     this.phase = 'flight';
+    this.shipPosition.set(0, 0, 0);
+    this.shipOrientation.identity();
     this.patch = null;
     this.bodyId = null;
     this.message = '';

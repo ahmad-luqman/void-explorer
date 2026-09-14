@@ -1,3 +1,4 @@
+import { difference } from '../lib/flight/coordinates';
 import { describe, it, expect } from 'vitest';
 import { Vector3 } from 'three';
 import {
@@ -105,20 +106,23 @@ describe('continuous flight', () => {
     s.select('s8');
     s.pulse = true;
     s.engage();
-    const destination = s.target.position.clone();
+    const destination = s.target.address!;
     let maxStep = 0;
     for (let i = 0; i < 60 * 180; i++) {
-      const before = s.position.clone();
+      const before = s.address;
       s.step(1 / 60, emptyControls());
-      maxStep = Math.max(maxStep, s.position.distanceTo(before));
+      const travel = difference(s.address, before).length();
+      expect(travel).toBeLessThanOrEqual(5e12 / 60 + 0.01);
+      maxStep = Math.max(maxStep, travel);
       if (!s.autopilot && s.speed < 0.1) break;
     }
     expect(s.activeSystem.id).toBe(8);
     expect(s.visited.has(8)).toBe(true);
-    expect(s.position.distanceTo(destination)).toBeLessThan(
+    expect(difference(s.address, destination).length()).toBeLessThan(
       s.target.radius * 3,
     );
-    expect(maxStep).toBeLessThanOrEqual(401);
+    expect(maxStep).toBeGreaterThan(1e9);
+    expect(s.originRevision).toBeGreaterThan(10);
   });
   it('manual braking cancels navigation and pulse drive', () => {
     const s = new FlightSimulation();

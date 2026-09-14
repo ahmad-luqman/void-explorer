@@ -47,7 +47,7 @@ describe('rotating planet frames', () => {
   it('preserves native terrain, contact normals and scenery across a quarter turn, including remote worlds and poles', () => {
     for (const body of [
       createUniverse()[0].planets[0],
-      createUniverse()[500].planets[1],
+      createUniverse(1)[500].planets[1],
     ]) {
       for (const direction of [new Vector3(0, 0, 1), new Vector3(0, 1, 0)]) {
         body.rotationClock = { time: 0 };
@@ -183,7 +183,7 @@ describe('rotating planet frames', () => {
     source.surface.setPatch(patch);
     advance(source, 30);
     const migrated = captureExpedition(source)!;
-    expect(migrated.version).toBe(3);
+    expect(migrated.version).toBe(4);
     expect(migrated.surface.sceneryClearings).toHaveLength(2);
     close(
       new Vector3().fromArray(migrated.surface.sceneryClearings![0].point),

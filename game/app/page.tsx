@@ -21,6 +21,7 @@ import {
   planetRotation,
   rotationPeriod,
 } from '@/lib/flight/rotation';
+import { translate } from '@/lib/flight/coordinates';
 import { FlightSimulation, emptyControls } from '@/lib/flight/simulation';
 import type { FlightRenderer } from '@/lib/flight/renderer';
 import { createFlightRenderer } from '@/lib/flight/renderer-factory';
@@ -478,6 +479,14 @@ export default function Home() {
                 sim.face(sim.target.position);
                 sim.pulse = true;
               }
+              if (name === 'remote-landing') {
+                const body = sim.systems[500].planets[1];
+                sim.target = body;
+                sim.setAddress(
+                  translate(body.address!, new Vector3(0, 0, body.radius + 30)),
+                );
+                sim.face(body.position);
+              }
               if (name === 'rotating-landing') {
                 sim.rotationClock.time = rotationPeriod(sim.target) / 4;
                 sim.elapsed = sim.rotationClock.time;
@@ -915,8 +924,14 @@ export default function Home() {
               <div>
                 <span>VELOCITY</span>
                 <b>
-                  {(data.speed < 1 ? data.speed * 1000 : data.speed).toFixed(1)}{' '}
-                  <small>{data.speed < 1 ? 'm/s' : 'km/s'}</small>
+                  {data.speed >= 1e6
+                    ? distanceLabel(data.speed)
+                    : (data.speed < 1 ? data.speed * 1000 : data.speed).toFixed(
+                        1,
+                      )}{' '}
+                  <small>
+                    {data.speed >= 1e6 ? '/s' : data.speed < 1 ? 'm/s' : 'km/s'}
+                  </small>
                 </b>
               </div>
               <div>

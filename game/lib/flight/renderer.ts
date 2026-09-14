@@ -1,3 +1,4 @@
+import type { TerrainStorage } from './terrain-storage';
 import { planetRotation, toPlanet } from './rotation';
 import * as T from 'three';
 import type { WebGPURenderer } from 'three/webgpu';
@@ -117,6 +118,7 @@ export class FlightRenderer {
   craft = createShip();
   planets: PlanetView[] = [];
   system = -1;
+  originRevision = -1;
   stars: T.Points;
   sun = new T.Group();
   nebula: T.Mesh;
@@ -134,6 +136,8 @@ export class FlightRenderer {
   patchToken = 0;
   terrainRequestAt = 0;
   terrainStats = {
+    source: 'generated',
+    bodyId: '',
     generated: 0,
     discarded: 0,
     generationMs: 0,
@@ -148,11 +152,14 @@ export class FlightRenderer {
     morphProgress: 1,
     maxDelta: 0,
     cache: { hits: 0, misses: 0, evictions: 0, bytes: 0, entries: 0 },
+    storage: null as TerrainStorage['stats'] | null,
   };
   contactRetryAt = 0;
   contactWorker: Worker;
   contactPending = false;
   contactStats = {
+    source: 'generated',
+    storage: null as TerrainStorage['stats'] | null,
     generated: 0,
     discarded: 0,
     generationMs: 0,
@@ -222,7 +229,11 @@ export class FlightRenderer {
     const positions = new Float32Array(visibleStars.length * 3),
       colors = new Float32Array(positions.length);
     visibleStars.forEach((s, i) => {
-      s.position.toArray(positions, i * 3);
+      s.position
+        .clone()
+        .sub(sim.position)
+        .clampLength(0, 1_000_000)
+        .toArray(positions, i * 3);
       new T.Color(s.color).multiplyScalar(1.2).toArray(colors, i * 3);
     });
     const geometry = new T.BufferGeometry();
@@ -311,6 +322,10 @@ export class FlightRenderer {
         positions: Float32Array;
         colors: Float32Array;
         token: number;
+        error?: string;
+        cacheHit?: boolean;
+        storageHit?: boolean;
+        storage: TerrainStorage['stats'];
       }>,
     ) => {
       if (this.disposed || event.data.token !== this.patchToken) {
@@ -318,6 +333,10 @@ export class FlightRenderer {
         return;
       }
       this.patchPending = false;
+      if (event.data.error) {
+        this.terrainRequestAt = performance.now() + 1000;
+        return;
+      }
       const p = this.planets.find((p) => p.body.id === event.data.id);
       if (!p) return;
       if (p.patch) {
@@ -386,7 +405,7 @@ export class FlightRenderer {
         this.contactCenter,
         p.contactRadius,
       );
-      addWaterMaterial(material, p.body, p.body.position, this.waterTime);
+      addWaterMaterial(material, p.body, new T.Vector3(), this.waterTime);
       p.patch = new T.Mesh(g, material);
       p.anchor = new T.Vector3().fromArray(event.data.observer);
       p.terrainQuality = event.data.quality;
@@ -399,12 +418,19 @@ export class FlightRenderer {
       }
       this.terrainStats = {
         ...this.terrainStats,
+        source: data.cacheHit
+          ? 'memory'
+          : data.storageHit
+            ? 'disk'
+            : 'generated',
+        bodyId: data.id,
         generated: this.terrainStats.generated + 1,
         transitions: this.terrainStats.transitions + Number(transitioning),
         morphProgress: transitioning ? 0 : 1,
         transitionMs: data.transitionMs,
         maxDelta: data.maxDelta,
         cache: data.cache,
+        storage: data.storage,
         generationMs: event.data.generationMs,
         vertices: event.data.positions.length / 3,
         triangles: event.data.indices.length / 3,
@@ -428,12 +454,20 @@ export class FlightRenderer {
       event: MessageEvent<{
         data: ContactData;
         token: number;
+        error?: string;
+        cacheHit?: boolean;
+        storageHit?: boolean;
+        storage: TerrainStorage['stats'];
         generationMs: number;
       }>,
     ) => {
-      this.contactPending = false;
       if (event.data.token !== this.contactToken || this.disposed) {
         this.contactStats.discarded++;
+        return;
+      }
+      this.contactPending = false;
+      if (event.data.error) {
+        this.contactRetryAt = performance.now() + 1000;
         return;
       }
       const body = this.sim.systems
@@ -450,6 +484,8 @@ export class FlightRenderer {
       }
       this.contactStats = {
         ...this.contactStats,
+        source: event.data.cacheHit ? 'disk' : 'generated',
+        storage: event.data.storage,
         generated: this.contactStats.generated + 1,
         generationMs: event.data.generationMs,
         vertices: patch.data.positions.length / 3,
@@ -550,7 +586,7 @@ export class FlightRenderer {
       );
       this.contactMesh.frustumCulled = false;
       this.scene.add(this.contactMesh);
-      this.contactCenter.value.fromArray(patch.data.origin).sub(body.position);
+      this.contactCenter.value.fromArray(patch.data.origin);
       for (const view of this.planets)
         view.contactRadius.value =
           // A tiny overlap buries the circular skirt under both meshes;
@@ -617,7 +653,7 @@ export class FlightRenderer {
       this.contactCenter,
       contactRadius,
     );
-    addWaterMaterial(material, body, body.position, this.waterTime);
+    addWaterMaterial(material, body, new T.Vector3(), this.waterTime);
     const ground = new T.Mesh(geo, material);
     group.add(ground);
     const atmo = new T.Mesh(
@@ -791,6 +827,17 @@ export class FlightRenderer {
   draw(title: boolean, dt: number) {
     if (this.disposed || this.suspended) return;
     this.renderer.info.reset();
+    if (this.originRevision !== this.sim.originRevision) {
+      this.originRevision = this.sim.originRevision;
+      this.contactToken++;
+      this.contactPending = false;
+      for (const p of this.planets) p.contactRadius.value = 0;
+      if (this.contactMesh) {
+        this.scene.remove(this.contactMesh);
+        disposeObject(this.contactMesh);
+        this.contactMesh = null;
+      }
+    }
     this.loadSystem();
     this.enableLogDepth();
     this.frame++;
@@ -885,7 +932,21 @@ export class FlightRenderer {
     this.sun.position
       .copy(this.sim.activeSystem.position)
       .sub(this.sim.position);
-    this.stars.position.copy(this.sim.position).negate();
+    // Far stars retain their real directions on a bounded camera-relative shell.
+    const starPositions = this.stars.geometry.attributes.position;
+    let starIndex = 0;
+    for (const system of this.sim.systems)
+      for (const body of [
+        system.star,
+        ...(system.companion ? [system.companion] : []),
+      ]) {
+        const delta = body.position
+          .clone()
+          .sub(this.sim.position)
+          .clampLength(0, 1_000_000);
+        starPositions.setXYZ(starIndex++, delta.x, delta.y, delta.z);
+      }
+    starPositions.needsUpdate = true;
     const surface = this.sim.surface;
     if (this.sceneryProps !== surface.scenery) {
       if (this.sceneryView) {
@@ -897,9 +958,7 @@ export class FlightRenderer {
         ? createSceneryView(
             surface.scenery.map((prop) => ({
               ...prop,
-              point: toPlanet(prop.point, surface.patch!.body).add(
-                surface.patch!.body.position,
-              ),
+              point: toPlanet(prop.point, surface.patch!.body),
               normal: prop.normal
                 .clone()
                 .applyQuaternion(surface.patch!.rotation.clone().invert()),

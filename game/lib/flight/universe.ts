@@ -1,4 +1,13 @@
 import { Vector3 } from 'three';
+import {
+  address,
+  translate,
+  relative,
+  zeroCells,
+  LIGHT_YEAR,
+  type SpaceAddress,
+  type Cells,
+} from './coordinates';
 import { localDirection } from './rotation';
 
 export type WorldKind = 'ocean' | 'desert' | 'ice';
@@ -6,6 +15,7 @@ export type Body = {
   id: string;
   name: string;
   position: Vector3;
+  address?: SpaceAddress;
   radius: number;
   seed: number;
   kind: WorldKind;
@@ -19,6 +29,7 @@ export type System = {
   id: number;
   name: string;
   position: Vector3;
+  address?: SpaceAddress;
   color: string;
   planets: Body[];
   star: Body;
@@ -50,9 +61,10 @@ const prefixes = [
   'Velorum',
 ];
 export const SYSTEM_COUNT = 1024;
-export function createUniverse(): System[] {
+export const UNIVERSE_SCALE = 100_000_000;
+export function createUniverse(scale = UNIVERSE_SCALE): System[] {
   const rng = random(90519);
-  return Array.from({ length: SYSTEM_COUNT }, (_, id) => {
+  const systems = Array.from({ length: SYSTEM_COUNT }, (_, id) => {
     const az = rng() * Math.PI * 2,
       y = rng() * 2 - 1,
       r = 65000 + Math.cbrt(rng()) * 650000;
@@ -133,8 +145,42 @@ export function createUniverse(): System[] {
             color: '#ffa75d',
           }
         : null;
-    return { id, name, position, color, star, planets, companion };
+    const systemAddress = address(
+      zeroCells(),
+      id === 0 ? position : position.clone().multiplyScalar(scale),
+    );
+    for (const body of [star, ...planets, ...(companion ? [companion] : [])]) {
+      body.address = translate(
+        systemAddress,
+        body.position.clone().sub(position),
+      );
+    }
+    const system = {
+      id,
+      name,
+      position,
+      address: systemAddress,
+      color,
+      star,
+      planets,
+      companion,
+    };
+    return system;
   });
+  placeUniverse(systems, zeroCells());
+  return systems;
+}
+
+export function placeUniverse(systems: System[], origin: Cells) {
+  for (const system of systems) {
+    if (system.address) system.position.copy(relative(system.address, origin));
+    for (const body of [
+      system.star,
+      ...system.planets,
+      ...(system.companion ? [system.companion] : []),
+    ])
+      if (body.address) body.position.copy(relative(body.address, origin));
+  }
 }
 
 function hash(x: number, y: number, z: number, seed: number) {
@@ -203,6 +249,8 @@ export function nearestSystem(position: Vector3, systems: System[]) {
   return nearest;
 }
 export function distanceLabel(km: number) {
+  if (km >= LIGHT_YEAR * 0.01) return `${(km / LIGHT_YEAR).toFixed(2)} ly`;
+  if (km >= 1e9) return `${(km / 1e9).toFixed(2)} B km`;
   return km >= 1000000
     ? `${(km / 1000000).toFixed(2)} M km`
     : `${Math.max(0, km).toLocaleString('en-US', { maximumFractionDigits: km < 10 ? 1 : 0 })} km`;

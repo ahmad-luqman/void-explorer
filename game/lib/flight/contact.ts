@@ -73,9 +73,7 @@ export function generateContact(body: Body, center: Vector3): ContactData {
       )
       .normalize(),
     north = new Vector3().crossVectors(up, east);
-  const origin = body.position
-    .clone()
-    .addScaledVector(up, surfaceRadius(up, body));
+  const origin = up.clone().multiplyScalar(surfaceRadius(up, body));
   const axis = contactAxis(),
     extent = axis[axis.length - 1],
     resolution = axis.length - 1,
@@ -94,10 +92,7 @@ export function generateContact(body: Body, center: Vector3): ContactData {
       let height = 0;
       // Solve a radial heightfield along the tangent patch's vertical axis.
       for (let k = 0; k < 5; k++) {
-        const relative = base
-          .clone()
-          .addScaledVector(up, height)
-          .sub(body.position);
+        const relative = base.clone().addScaledVector(up, height);
         height -= relative.length() - surfaceRadius(relative.normalize(), body);
       }
       const local = east
@@ -106,11 +101,7 @@ export function generateContact(body: Body, center: Vector3): ContactData {
         .addScaledVector(north, y)
         .addScaledVector(up, height);
       local.toArray(positions, offset);
-      const direction = base
-        .clone()
-        .addScaledVector(up, height)
-        .sub(body.position)
-        .normalize();
+      const direction = base.clone().addScaledVector(up, height).normalize();
       const h = elevation(direction, body);
       terrainColor(
         h / body.radius,
@@ -166,10 +157,7 @@ export class ContactSurface {
   syncRotation() {
     this.rotation.copy(planetRotation(this.body));
     this.origin.copy(
-      fromPlanet(
-        new Vector3().fromArray(this.data.origin).sub(this.body.position),
-        this.body,
-      ),
+      fromPlanet(new Vector3().fromArray(this.data.origin), this.body),
     );
     this.east.fromArray(this.data.east).applyQuaternion(this.rotation);
     this.north.fromArray(this.data.north).applyQuaternion(this.rotation);

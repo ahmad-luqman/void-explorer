@@ -15,7 +15,7 @@ export function addWaterMaterial(
   const cacheKey = material.customProgramCacheKey();
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
-    shader.uniforms.waterAnchor = { value: anchor.clone().sub(body.position) };
+    shader.uniforms.waterAnchor = { value: anchor.clone() };
     shader.uniforms.waterRadius = { value: body.radius };
     shader.uniforms.waterTime = time;
     shader.vertexShader =

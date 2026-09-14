@@ -1,7 +1,12 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FlightSimulation } from '@/lib/flight/simulation';
-import { type Body, distanceLabel } from '@/lib/flight/universe';
+import { relative, zeroCells } from '@/lib/flight/coordinates';
+import {
+  type Body,
+  distanceLabel,
+  UNIVERSE_SCALE,
+} from '@/lib/flight/universe';
 
 type Props = {
   sim: FlightSimulation;
@@ -67,10 +72,14 @@ export function StarChart({ sim, onChoose }: Props) {
   };
   const bounds =
     mode === 'galaxy'
-      ? { x: 0, z: 0, size: 1550000 }
+      ? { x: 0, z: 0, size: 1550000 * UNIVERSE_SCALE }
       : (() => {
-          const xs = bodies.map((b) => b.position.x),
-            zs = bodies.map((b) => b.position.z);
+          const xs = bodies.map(
+              (b) => relative(b.address!, system.address!.cells).x,
+            ),
+            zs = bodies.map(
+              (b) => relative(b.address!, system.address!.cells).z,
+            );
           return {
             x: (Math.min(...xs) + Math.max(...xs)) / 2,
             z: (Math.min(...zs) + Math.max(...zs)) / 2,
@@ -82,12 +91,15 @@ export function StarChart({ sim, onChoose }: Props) {
               ) * 1.32,
           };
         })();
-  const project = (p: { x: number; z: number }) => ({
-    x: 400 + ((p.x - bounds.x) / bounds.size) * 500 * zoom + pan.x,
-    y: 280 + ((p.z - bounds.z) / bounds.size) * 500 * zoom + pan.y,
-  });
-  const pilot = project(sim.position),
-    destination = project(body.position);
+  const project = (p: { x: number; z: number }) => {
+    const dx = ((p.x - bounds.x) / bounds.size) * 500 * zoom,
+      dy = ((p.z - bounds.z) / bounds.size) * 500 * zoom;
+    const scale = Math.min(1, 10000 / Math.max(1, Math.abs(dx), Math.abs(dy)));
+    return { x: 400 + dx * scale + pan.x, y: 280 + dy * scale + pan.y };
+  };
+  const chartOrigin = mode === 'galaxy' ? zeroCells() : system.address!.cells;
+  const pilot = project(relative(sim.address, chartOrigin)),
+    destination = project(relative(body.address!, chartOrigin));
   const markers: {
     id: string;
     name: string;
@@ -100,7 +112,7 @@ export function StarChart({ sim, onChoose }: Props) {
       ? results.map((s) => ({
           id: s.star.id,
           name: s.name,
-          position: s.position,
+          position: relative(s.address!, chartOrigin),
           color: s.color,
           star: true,
           systemId: s.id,
@@ -108,7 +120,7 @@ export function StarChart({ sim, onChoose }: Props) {
       : bodies.map((b) => ({
           id: b.id,
           name: b.name,
-          position: b.position,
+          position: relative(b.address!, chartOrigin),
           color: b.star
             ? b.color || '#ffcd85'
             : b.kind === 'ocean'
