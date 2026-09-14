@@ -14,7 +14,7 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by the server. The app needs WebGL 2. High graphics adds bloom and near-ground ship shadows; Low reduces resolution and skips those passes. Both retain sun-aware atmospheric colors, distance haze, drifting clouds, animated water shading, and local rock/mineral fields. Planet terrain adapts its detail to the observer, and precise ground generation looks ahead during surface flight. Preferences are stored on this device. No API keys are needed.
+Open the local URL printed by the server. The app selects WebGPU when the browser supplies a usable device and falls back to WebGL 2 otherwise. Settings offers a saved WebGL compatibility preference. High graphics adds bloom and near-ground ship shadows; Low reduces resolution and skips those passes. Both retain sun-aware atmospheric colors, distance haze, drifting clouds, animated water shading, and local rock/mineral fields. Planet terrain adapts its detail to the observer, and precise ground generation looks ahead during surface flight. Preferences are stored on this device. No API keys are needed.
 
 ## Fly
 
@@ -42,14 +42,15 @@ From `game/`:
 npm run typecheck
 npm test
 npm run test:browser
+WEBGPU_TEST=1 npm run test:browser
 npm run build
 ```
 
-Browser tests expect the development server at `http://localhost:3000`. Override with `PLAYWRIGHT_BASE_URL`. If necessary, install the test browser with `npx playwright install chromium`. The production build exports static assets under `game/dist/client/` and includes both terrain workers.
+Browser tests expect the development server at `http://localhost:3000`. Override with `PLAYWRIGHT_BASE_URL`. If necessary, install the test browser with `npx playwright install chromium`. The WebGPU test mode explicitly requests a SwiftShader WebGPU adapter and asserts the active backend. It does not measure hardware performance. The production build exports static assets under `game/dist/client/` and includes both terrain workers.
 
 ## Current limits
 
-This is the first playable slice, not the finished reference game. Interstellar distances are compressed; the ship and walking use meter-scale dimensions. Planets remain stationary. Close terrain uses a worker-generated graded mesh extending 48 km from the pilot, with a dense central walking grid and closed outer seams, rather than a complete planetary quadtree. Landing and walking use the exact triangles of that detailed terrain. Coast depth colors and procedural gravel/mineral materials provide surface detail. Seeded boulders and mineral spires now provide local obstacles, with safe clearings and walking collision. Clouds use a thin drifting shell; volumetric weather, vegetation, authored landmarks, and rotating worlds remain later milestones. Rendering currently uses WebGL 2; WebGPU is still planned. The ship now loads from an authored GLB with a procedural fallback; mechanical gear animation remains future polish. Sound is a synthesized engine tone, with no soundtrack.
+This is the first playable slice, not the finished reference game. Interstellar distances are compressed; the ship and walking use meter-scale dimensions. Planets remain stationary. Close terrain uses a worker-generated graded mesh extending 48 km from the pilot, with a dense central walking grid and closed outer seams, within a surrounding adaptive cube-sphere planet. Landing and walking use the exact triangles of that detailed terrain. Coast depth colors and procedural gravel/mineral materials provide surface detail. Seeded boulders and mineral spires now provide local obstacles, with safe clearings and walking collision. Clouds use a thin drifting shell; volumetric weather, vegetation, authored landmarks, and rotating worlds remain later milestones. WebGPU and WebGL 2 share the expedition and graphics options. Both have software-rendered browser coverage; hardware performance profiling remains. The ship now loads from an authored GLB with a procedural fallback; mechanical gear animation remains future polish. Sound is a synthesized engine tone, with no soundtrack.
 
 ## Project references
 
