@@ -281,6 +281,7 @@ export default function Home() {
               (p) => p.body.id === sim.nearest.id,
             )?.patch,
             terrainPending: view?.patchPending,
+            terrainStats: view?.terrainStats,
             contactStats: view?.contactStats,
             shipModel: view?.craft.modelSource,
             lighting: view?.lighting,
@@ -312,6 +313,24 @@ export default function Home() {
                 new Matrix4().lookAt(
                   sim.position,
                   sim.position.clone().add(new Vector3(1, 0, -0.6)),
+                  up,
+                ),
+              );
+            }
+            if (name === 'surface-traverse') {
+              const up = new Vector3(0, 0, 1);
+              sim.position
+                .copy(sim.target.position)
+                .addScaledVector(
+                  up,
+                  sim.target.radius +
+                    Math.max(0, elevation(up, sim.target)) +
+                    0.5,
+                );
+              sim.orientation.setFromRotationMatrix(
+                new Matrix4().lookAt(
+                  sim.position,
+                  sim.position.clone().add(new Vector3(1, 0, 0)),
                   up,
                 ),
               );

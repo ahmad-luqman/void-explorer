@@ -1,20 +1,37 @@
 import { Vector3 } from 'three';
-import { generatePatch } from './terrain';
+import { generatePlanetTerrain, type TerrainOptions } from './planet-terrain';
 import type { Body } from './universe';
 self.onmessage = (
   event: MessageEvent<{
     body: Omit<Body, 'position'>;
-    center: number[];
+    observer: number[];
     token: number;
+    quality: string;
+    options: TerrainOptions;
   }>,
 ) => {
-  const { body, center, token } = event.data;
-  const result = generatePatch(
+  const { body, observer, token, quality, options } = event.data;
+  const began = performance.now();
+  const result = generatePlanetTerrain(
     { ...body, position: new Vector3() },
-    new Vector3().fromArray(center),
+    new Vector3().fromArray(observer),
+    options,
   );
   self.postMessage(
-    { id: body.id, center, token, ...result },
-    { transfer: [result.positions.buffer, result.colors.buffer] },
+    {
+      id: body.id,
+      observer,
+      token,
+      quality,
+      generationMs: performance.now() - began,
+      ...result,
+    },
+    {
+      transfer: [
+        result.positions.buffer,
+        result.colors.buffer,
+        result.indices.buffer,
+      ],
+    },
   );
 };

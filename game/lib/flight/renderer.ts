@@ -6,7 +6,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { type Body, elevation, random } from './universe';
 import { FlightSimulation } from './simulation';
 import { createShip } from './ship';
-import { PATCH_COS, terrainColor } from './terrain';
+import { terrainColor } from './terrain';
+import { contactRequest, terrainRefresh } from './terrain-stream';
 import TerrainWorker from './terrain.worker?worker';
 import ContactWorker from './contact.worker?worker';
 import { createTerrainSkirt } from './terrain-seam';
@@ -31,8 +32,10 @@ type PlanetView = {
   contactRadius: { value: number };
   atmosphere: T.ShaderMaterial;
   clouds: T.Mesh<T.BufferGeometry, T.ShaderMaterial>;
+  ground: T.Mesh;
   patch?: T.Mesh;
   anchor?: T.Vector3;
+  terrainQuality?: string;
 };
 const daylightWhite = new T.Color('#fff3e8');
 const atmosphereVertex = `varying vec3 vNormal; varying vec3 vPosition; void main(){vNormal=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vPosition=p.xyz;gl_Position=projectionMatrix*p;}`;
@@ -109,6 +112,19 @@ export class FlightRenderer {
   worker: Worker;
   patchPending = false;
   patchToken = 0;
+  terrainRequestAt = 0;
+  terrainStats = {
+    generated: 0,
+    discarded: 0,
+    generationMs: 0,
+    vertices: 0,
+    triangles: 0,
+    leaves: 0,
+    maxDepth: 0,
+    bytes: 0,
+    maxErrorPixels: 0,
+  };
+  contactRetryAt = 0;
   contactWorker: Worker;
   contactPending = false;
   contactStats = {
@@ -242,14 +258,23 @@ export class FlightRenderer {
     this.worker.onmessage = (
       event: MessageEvent<{
         id: string;
-        center: number[];
+        observer: number[];
+        quality: string;
+        generationMs: number;
+        leaves: number;
+        maxDepth: number;
+        maxErrorPixels: number;
+        indices: Uint32Array;
         positions: Float32Array;
         colors: Float32Array;
         token: number;
       }>,
     ) => {
       this.patchPending = false;
-      if (this.disposed || event.data.token !== this.patchToken) return;
+      if (this.disposed || event.data.token !== this.patchToken) {
+        this.terrainStats.discarded++;
+        return;
+      }
       const p = this.planets.find((p) => p.body.id === event.data.id);
       if (!p) return;
       if (p.patch) {
@@ -262,6 +287,7 @@ export class FlightRenderer {
         new T.BufferAttribute(event.data.positions, 3),
       );
       g.setAttribute('color', new T.BufferAttribute(event.data.colors, 3));
+      g.setIndex(new T.BufferAttribute(event.data.indices, 1));
       g.computeVertexNormals();
       g.computeBoundingSphere();
       const material = new T.MeshStandardMaterial({
@@ -270,23 +296,42 @@ export class FlightRenderer {
         roughness: 0.83,
         metalness: p.body.kind === 'ocean' ? 0.17 : 0.04,
       });
-      p.clipCenter.value.fromArray(event.data.center);
-      p.clipCos.value = PATCH_COS;
+      p.clipCos.value = 2;
       applyTerrainMask(
         material,
         p.clipCenter,
         p.clipCos,
-        true,
+        false,
         this.contactCenter,
         p.contactRadius,
       );
       addWaterMaterial(material, p.body, p.body.position, this.waterTime);
       p.patch = new T.Mesh(g, material);
-      p.anchor = p.clipCenter.value.clone();
+      p.anchor = new T.Vector3().fromArray(event.data.observer);
+      p.terrainQuality = event.data.quality;
       p.group.add(p.patch);
+      if (p.ground.parent) {
+        p.group.remove(p.ground);
+        disposeObject(p.ground);
+      }
+      this.terrainStats = {
+        ...this.terrainStats,
+        generated: this.terrainStats.generated + 1,
+        generationMs: event.data.generationMs,
+        vertices: event.data.positions.length / 3,
+        triangles: event.data.indices.length / 3,
+        leaves: event.data.leaves,
+        maxDepth: event.data.maxDepth,
+        maxErrorPixels: event.data.maxErrorPixels,
+        bytes:
+          event.data.positions.byteLength +
+          event.data.colors.byteLength +
+          event.data.indices.byteLength,
+      };
     };
     this.worker.onerror = () => {
       this.patchPending = false;
+      this.terrainRequestAt = performance.now() + 1000;
     };
     this.contactWorker = new ContactWorker();
     this.contactWorker.onmessage = (
@@ -397,11 +442,14 @@ export class FlightRenderer {
       this.contactCenter.value.copy(patch.origin).sub(body.position);
       for (const view of this.planets)
         view.contactRadius.value =
-          view.body.id === body.id ? CONTACT_RADIUS : 0;
+          // A tiny overlap buries the circular skirt under both meshes;
+          // an inset skirt and identical masks otherwise leave a subpixel gap.
+          view.body.id === body.id ? CONTACT_RADIUS - 0.01 : 0;
       this.sim.surface.setPatch(patch);
     };
     this.contactWorker.onerror = () => {
       this.contactPending = false;
+      this.contactRetryAt = performance.now() + 1000;
       this.sim.surface.message =
         'Ground mapping failed. Flight remains available.';
     };
@@ -520,6 +568,7 @@ export class FlightRenderer {
     return {
       body,
       group,
+      ground,
       clipCenter,
       clipCos,
       contactRadius,
@@ -648,17 +697,37 @@ export class FlightRenderer {
         .normalize();
     });
     const near = this.planets.find((p) => p.body.id === this.sim.nearest.id);
-    if (near && this.sim.altitude < 350 && !this.patchPending) {
-      const center = this.sim.position
-        .clone()
-        .sub(near.body.position)
-        .normalize();
-      if (!near.anchor || near.anchor.angleTo(center) > 0.065) {
+    if (
+      near &&
+      this.sim.altitude < 5000 &&
+      !this.patchPending &&
+      performance.now() >= this.terrainRequestAt
+    ) {
+      const observer = this.sim.position.clone().sub(near.body.position);
+      if (
+        terrainRefresh(
+          observer,
+          near.anchor,
+          near.body.radius,
+          near.terrainQuality !== this.quality,
+        )
+      ) {
         this.patchPending = true;
+        this.terrainRequestAt = performance.now() + 500;
         this.worker.postMessage({
           body: { ...near.body, position: undefined },
-          center: center.toArray(),
+          observer: observer.toArray(),
           token: this.patchToken,
+          quality: this.quality,
+          options: {
+            pixels: this.quality === 'high' ? 2 : 5,
+            projection: Math.min(
+              1000,
+              this.height /
+                (2 * Math.tan(T.MathUtils.degToRad(this.camera.fov / 2))),
+            ),
+            maxLeaves: this.quality === 'high' ? 3000 : 1500,
+          },
         });
       }
     }
@@ -695,30 +764,22 @@ export class FlightRenderer {
       surface.phase !== 'landing' &&
       surface.phase !== 'landed'
     ) {
-      const patch = surface.patch;
-      if (
-        !patch ||
-        patch.body.id !== this.sim.nearest.id ||
-        this.sim.position
-          .clone()
-          .sub(patch.origin)
-          .addScaledVector(
-            patch.up,
-            -this.sim.position.clone().sub(patch.origin).dot(patch.up),
-          )
-          .length() > 0.65
-      ) {
+      const center = contactRequest(
+        this.sim.nearest,
+        this.sim.position,
+        new T.Vector3(0, 0, -this.sim.speed).applyQuaternion(
+          this.sim.orientation,
+        ),
+        surface.patch,
+      );
+      if (center && performance.now() >= this.contactRetryAt) {
         this.contactPending = true;
         this.contactWorker.postMessage({
           body: {
             ...this.sim.nearest,
             position: this.sim.nearest.position.toArray(),
           },
-          center: this.sim.position
-            .clone()
-            .sub(this.sim.nearest.position)
-            .normalize()
-            .toArray(),
+          center: center.toArray(),
           token: this.contactToken,
         });
       }
