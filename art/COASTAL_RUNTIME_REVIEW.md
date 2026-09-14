@@ -26,3 +26,21 @@ Choose **Explore Lumen Coast**, land, leave the ship, select **Look over Lumen B
 The new region changes geography, camera heading and sunlight, so these are corresponding gameplay viewpoints rather than pixel-aligned before/after frames. Browser captures use Chromium software rendering and do not establish hardware performance.
 
 This is a first visual recovery pass, not concept parity. The next art pass should prioritize terrain silhouette/material detail and cloud lighting before returning to landing-gear animation or adding more exploration features.
+
+
+## Terrain detail review — 15 September 2026
+
+The second terrain pass adds side summits, cut ridges and shallow shelves to new coastal expeditions, with denser triangles across the nearby islands. Rock materials now have irregular geological bands and filtered fine normals. The first material draft produced obvious speckling and overly regular bands; the final captures use reduced-coordinate noise and softer, warped layers.
+
+- [Approach, WebGL](milestones/terrain-detail-approach-webgl.png)
+- [Bay, WebGL](milestones/terrain-detail-bay-webgl.png)
+- [Approach, WebGPU](milestones/terrain-detail-approach-webgpu.png)
+- [Bay, WebGPU](milestones/terrain-detail-bay-webgpu.png)
+- [Mobile, WebGPU](milestones/terrain-detail-mobile-webgpu.png)
+- [Sentinels, WebGL](milestones/terrain-detail-sentinels-webgl.png)
+- [Parked ship, WebGL](milestones/terrain-detail-ship-webgl.png)
+- [Mobile, WebGL](milestones/terrain-detail-mobile-webgl.png)
+
+The nearby ridge contours are more broken and their surfaces less uniform than the first recovery pass. The bands remain stylized; the landing clearing is still too smooth, the spires are simple, and the distant landscape is sparse. This is an incremental terrain improvement, not acceptance against the concept. Keep the visual recovery milestone open. Next prioritize cloud depth, less uniform lighting, terrain self-shadowing and more natural water reflections, followed by foreground art placement and ship finish. The original screenshots above remain available for comparison; the newer approach capture waits longer for the normal chase camera to settle.
+
+Validation: 80 unit tests, type checking, scoped lint and the static build passed. Both full production journeys (orbital approach and coastal entry) passed on WebGL and WebGPU, including saved excursions and mobile layouts, with no page or console errors. The development coastal landmark journey also passed. Screenshots use software rendering, so actual-device performance remains unverified.

@@ -104,9 +104,19 @@ The generated study and runtime are visibly far apart. Feature completion is not
 
 First recovery pass implemented: versioned Lumen Coast geography, production entry, violet dry-ground correction, clustered faceted scenery, bay view control, cleaner lighting and material refinements. See [the runtime review](art/COASTAL_RUNTIME_REVIEW.md) for actual images and remaining differences. The wider visual milestone remains active: refine terrain silhouettes/materials and cloud lighting before returning to gear animation.
 
-### Terrain detail pass — active
+### Terrain detail pass — completed
 
 1. Preserve terrain profiles 1 and 2 exactly; introduce profile 3 for new expeditions with eroded ridges, subsidiary peaks and stepped rock shelves outside the protected landing/walking area.
 2. Extend coastal mesh detail to the nearby island/ridge views while keeping contact buffers below the existing 100,000-vertex/200,000-triangle limits. Keep the same mesh authoritative for contact and walking.
 3. Add native-frame geological color bands, mineral variation and filtered small-scale normal detail on both renderers. Retain the existing water and lighting behavior.
 4. Check legacy coastal save restoration, geometry/cache bounds and complete coastal excursions. Compare actual approach/on-foot images before committing the validated result and publishing privately.
+
+
+Terrain pass delivered and reviewed on both rendering backends: profile-3 ridge detail, denser nearby contact terrain, geological material variation and filtered fine normals, with old geography preserved. All 80 unit tests, type checking, scoped lint, the static build and both complete production journeys pass. Actual comparison images and remaining gaps are in [the runtime review](art/COASTAL_RUNTIME_REVIEW.md). This closes the bounded terrain pass; the wider visual recovery milestone remains active.
+
+### Next: coastal lighting, clouds and water
+
+1. Improve cloud shape/depth and directional lighting; maintain readable sky, warm sunlight and cool shaded ground at the repeatable Lumen Coast viewpoints.
+2. Add terrain shading/self-shadowing within a measured cost budget; avoid flat uniform mountain faces and preserve both renderer paths.
+3. Refine broad water glare, reflection breakup and shoreline transitions without moving collision heights or invalidating saves.
+4. Review the actual approach, bay and parked-ship views and complete saved excursions on both backends. Then continue foreground art placement and spacecraft material/gear polish. Real-device profiling and broader release validation remain open.
