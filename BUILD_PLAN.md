@@ -69,7 +69,7 @@ The user authorized game implementation after the concept milestone. A playable 
 
 ## Next implementation milestone
 
-Presentation polish, beginning with authored landing-gear animation and flight feel. Preserve the ship geometry/collision contract, rotating-world attachment and compatible expedition saves. Deeper route planning, atmospheric/speed effects and audio follow, then release validation on real hardware and broader browsers/devices.
+Coastal visual quality recovery, following the plan below. Authored landing-gear animation and flight feel follow after the playable coastline passes visual review. Preserve the ship geometry/collision contract, rotating-world attachment and compatible expedition saves. Deeper route planning, atmospheric/speed effects and audio follow, then release validation on real hardware and broader browsers/devices.
 
 ### Completed rotating-world implementation plan
 
@@ -91,3 +91,13 @@ Presentation polish, beginning with authored landing-gear animation and flight f
 2. Add seeded native-frame biome regions and consistent ground colors across globe, adaptive planet and contact terrain. Preserve terrain heights and invalidate older cached colors.
 3. Add dry-ground fan plants, desert succulents, and recognizable stone/crystal landmark clusters with shared conservative collision bounds. Keep placement stable through movement, rotation and reload; protect older saved ship/player poses from new obstacles.
 4. Show the local biome and nearest landmark on the surface instruments. Verify placement, geometry/collision bounds, save migration, shoreline landing/walking and both renderers; publish privately after the full production expedition checks.
+
+### Coastal visual quality recovery — active
+
+The generated study and runtime are visibly far apart. Feature completion is not visual acceptance. This milestone takes priority over landing-gear animation.
+
+1. Establish a repeatable, production-accessible Lumen Coast expedition: a violet landing shelf, teal coves, offshore rock formations and layered ridges. Keep the coast part of the continuously traversable rotating planet and the authoritative collision heightfield. Version changed terrain so existing saves retain their original geography.
+2. Replace smooth foreground and column/plant blockouts with faceted relief, irregular rock silhouettes and broad clustered fan foliage. Keep geometry budgets and conservative collision bounds explicit.
+3. Correct the cyan lighting wash and scanline veil; refine stone color, shore water and cloud scale on both renderers. Preserve warm sunlight, cool shadows and readable ivory spacecraft materials.
+4. Validate landing, walking, rotation, save/reload, boarding and takeoff; review actual runtime screenshots at shore and landscape viewpoints on WebGL and WebGPU. Acceptance requires readable coastline, foreground detail, broken rock silhouettes, distant relief and warm/cool separation. Record remaining differences from the concept honestly.
+5. Commit coherent implementation and validation milestones and publish the verified private build. Hardware profiling, full concept parity and global biome art remain subsequent work.
