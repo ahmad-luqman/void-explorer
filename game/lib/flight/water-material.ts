@@ -46,20 +46,27 @@ export function addWaterMaterial(
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
-       roughnessFactor=mix(roughnessFactor,.26,clamp(vWaterMask,0.,1.));`,
+       roughnessFactor=mix(roughnessFactor,.38,clamp(vWaterMask,0.,1.));`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
        vec3 radial=normalize(vWaterPosition);
-       vec3 wave=vec3(cos(dot(vWaterPosition,vec3(43.,17.,29.))+waterTime*.65),
-         cos(dot(vWaterPosition,vec3(-21.,37.,13.))-waterTime*.48),
-         sin(dot(vWaterPosition,vec3(19.,-31.,41.))+waterTime*.53));
+       vec3 wave=vec3(cos(dot(vWaterPosition,vec3(943.,417.,729.))+waterTime*.65),
+         cos(dot(vWaterPosition,vec3(-721.,1037.,513.))-waterTime*.48),
+         sin(dot(vWaterPosition,vec3(619.,-831.,941.))+waterTime*.53));
        wave-=radial*dot(wave,radial);
-       float waveDetail=1.-smoothstep(1.,12.,length(vViewPosition));
-       vec3 waterNormal=normalize((vWaterFrame*(radial+wave*.13*waveDetail)));
+       float footprint=max(length(dFdx(vWaterPosition)),length(dFdy(vWaterPosition)))*1500.;
+       float waveDetail=(1.-smoothstep(1.,12.,length(vViewPosition)))*(1.-smoothstep(.3,2.,footprint));
+       vec3 waterNormal=normalize((vWaterFrame*(radial+wave*.07*waveDetail)));
        normal=normalize(mix(normal,waterNormal,clamp(vWaterMask,0.,1.)));`,
     );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      `float waterHighlight=max(max(outgoingLight.r,outgoingLight.g),outgoingLight.b);
+       outgoingLight=mix(outgoingLight,outgoingLight/(1.+waterHighlight),clamp(vWaterMask,0.,1.));
+       #include <opaque_fragment>`,
+    );
   };
-  material.customProgramCacheKey = () => cacheKey + '-water-v2';
+  material.customProgramCacheKey = () => cacheKey + '-water-v3';
 }

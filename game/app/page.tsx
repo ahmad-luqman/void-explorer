@@ -60,7 +60,8 @@ const initial = {
   guidance: 'Ready to navigate',
   eta: null as number | null,
   closingSpeed: 0,
-  survey: { biome: '', landmark: null } as {
+  survey: { biome: '', landmark: null, coast: false } as {
+    coast: boolean;
     biome: string;
     landmark: { id: string; name: string; distance: number } | null;
   },
@@ -902,6 +903,11 @@ export default function Home() {
               <div className="surface-survey">
                 <span>LOCAL BIOME</span>
                 <b>{data.survey.biome || 'Surveying terrain…'}</b>
+                {data.survey.coast && (
+                  <button onClick={() => sim?.surface.lookOverBay()}>
+                    Look over Lumen Bay
+                  </button>
+                )}
                 {data.survey.landmark && (
                   <button onClick={() => sim?.surface.lookAtLandmark()}>
                     <span>{data.survey.landmark.name}</span>

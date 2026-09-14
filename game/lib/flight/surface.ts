@@ -8,7 +8,8 @@ import {
   type GroundSample,
 } from './contact';
 import { sampleBiome } from './biomes';
-import { toPlanet } from './rotation';
+import { toPlanet, planetRotation } from './rotation';
+import { COAST_UP, COAST_FORWARD, COAST_RIGHT } from './coast';
 import type { Body } from './universe';
 import type { FlightSimulation, Controls } from './simulation';
 import {
@@ -80,7 +81,7 @@ export class SurfaceExpedition {
   get survey() {
     const body = this.patch?.body;
     if (!body || body.id !== this.sim.nearest.id)
-      return { biome: '', landmark: null };
+      return { biome: '', landmark: null, coast: false };
     const biome = sampleBiome(
       toPlanet(this.sim.position, body).normalize(),
       body,
@@ -94,6 +95,12 @@ export class SurfaceExpedition {
       )[0];
     return {
       biome,
+      coast:
+        body.id === 'p0-0' &&
+        body.terrainVersion === 2 &&
+        toPlanet(this.sim.position, body).normalize().distanceTo(COAST_UP) *
+          body.radius <
+          1.5,
       landmark: prop
         ? {
             id: prop.id,
@@ -102,6 +109,23 @@ export class SurfaceExpedition {
           }
         : null,
     };
+  }
+  lookOverBay() {
+    if (this.phase !== 'walking' || !this.patch || !this.survey.coast) return;
+    const direction = COAST_FORWARD.clone()
+      .addScaledVector(COAST_RIGHT, 0.65)
+      .normalize()
+      .applyQuaternion(planetRotation(this.patch.body));
+    this.sim.orientation.setFromRotationMatrix(
+      new Matrix4().lookAt(
+        this.sim.position,
+        this.sim.position
+          .clone()
+          .add(direction)
+          .addScaledVector(this.patch.up, -0.12),
+        this.patch.up,
+      ),
+    );
   }
   lookAtLandmark() {
     if (this.phase !== 'walking' || !this.patch) return;

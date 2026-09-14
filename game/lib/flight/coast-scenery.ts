@@ -34,6 +34,14 @@ export function coastalScenery(
       Math.hypot(x - fx, z - fz) > (shape === 'landmark' ? 1.4 : 0.8)
     )
       return;
+    // Keep a narrow walking route from either side exit toward the overlook.
+    if (
+      Math.min(Math.abs(x - 0.027 - z * 0.65), Math.abs(x + 0.027 - z * 0.65)) <
+        0.008 + radius &&
+      z > -0.01 &&
+      z < 0.105
+    )
+      return;
     const direction = coastDirection(x, z, body.radius);
     const point = fromPlanet(
       direction.clone().multiplyScalar(surfaceRadius(direction, body)),

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { coastDirection, COAST_UP } from '../lib/flight/coast';
 import { planetRotation } from '../lib/flight/rotation';
 import { elevation } from '../lib/flight/universe';
-import { FlightSimulation } from '../lib/flight/simulation';
+import { FlightSimulation, emptyControls } from '../lib/flight/simulation';
 import { ContactSurface, generateContact } from '../lib/flight/contact';
 import {
   captureExpedition,
@@ -37,6 +37,12 @@ describe('playable coastal visual slice', () => {
     expect(patch.sample(sea)?.water).toBe(true);
     sim.surface.setPatch(patch);
     expect(sim.surface.land()).toBe(true);
+    for (let i = 0; i < 300; i++) sim.step(0.05, emptyControls());
+    expect(sim.surface.exit()).toBe(true);
+    expect(sim.surface.survey.coast).toBe(true);
+    const at = sim.position.clone();
+    sim.surface.lookOverBay();
+    expect(sim.position.distanceTo(at)).toBe(0);
   });
   it('colors dry coastal shelves violet rather than using the shallow-water palette', () => {
     const sim = new FlightSimulation(),

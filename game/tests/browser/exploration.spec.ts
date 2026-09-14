@@ -36,7 +36,16 @@ test('coastal biome, vegetation and landmark survive a complete saved excursion'
     .getByRole('button', { name: /Leave ship/ })
     .click({ timeout: 30000 });
   await expect(page.locator('.surface-survey')).toContainText('Tidal terraces');
+  await page.waitForTimeout(800);
   await page.screenshot({ path: 'test-results/coastal-ship.png' });
+  await page.getByRole('button', { name: 'Look over Lumen Bay' }).click();
+  await page.keyboard.down('w');
+  await expect
+    .poll(async () => (await state()).walked, { timeout: 25000 })
+    .toBeGreaterThan(0.028);
+  await page.keyboard.up('w');
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: 'test-results/coastal-bay.png' });
   const before = await state();
   expect(before.rendererBackend).toBe(
     process.env.WEBGPU_TEST ? 'WEBGPU' : 'WEBGL',
@@ -46,11 +55,7 @@ test('coastal biome, vegetation and landmark survive a complete saved excursion'
   await page.getByRole('button', { name: /Tide Sentinels/ }).click();
   await page.waitForTimeout(1000);
   await page.screenshot({ path: 'test-results/coastal-vista.png' });
-  await page.keyboard.down('w');
-  await expect
-    .poll(async () => (await state()).walked, { timeout: 15000 })
-    .toBeGreaterThan(0.006);
-  await page.keyboard.up('w');
+  expect((await state()).walked).toBeGreaterThan(0.028);
   await page.screenshot({ path: 'test-results/coastal-exploration.png' });
   await page
     .getByRole('button', { name: 'Save expedition', exact: true })

@@ -27,6 +27,25 @@ const hash = N.Fn(([point, seed]: [Node<'vec3'>, Node<'float'>]) => {
   p.addAssign(N.dot(p, p.yzx.add(33.33)));
   return N.fract(p.x.add(p.y).mul(p.z));
 });
+const noise = N.Fn(([point, seed]: [Node<'vec3'>, Node<'float'>]) => {
+  const i = point.floor(),
+    f = N.smoothstep(0, 1, point.fract());
+  const h = (x: number, y: number, z: number) =>
+    hash(i.add(N.vec3(x, y, z)), seed);
+  return N.mix(
+    N.mix(
+      N.mix(h(0, 0, 0), h(1, 0, 0), f.x),
+      N.mix(h(0, 1, 0), h(1, 1, 0), f.x),
+      f.y,
+    ),
+    N.mix(
+      N.mix(h(0, 0, 1), h(1, 0, 1), f.x),
+      N.mix(h(0, 1, 1), h(1, 1, 1), f.x),
+      f.y,
+    ),
+    f.z,
+  );
+});
 export function convertMaterial(source: T.Material): T.Material {
   if (source instanceof T.ShaderMaterial) {
     const material = new MeshBasicNodeMaterial().copy(source);
@@ -89,13 +108,13 @@ export function convertMaterial(source: T.Material): T.Material {
     );
     const seed = N.float(body.seed % 997);
     const gravel = hash(p.mul(7200).floor(), seed),
-      stone = hash(p.mul(440).floor(), seed);
+      stone = noise(p.mul(440), seed);
     const strata = height.mul(600).add(stone.mul(0.6)).sin().mul(0.5).add(0.5);
     const rawTone = stone
-      .mul(0.22)
-      .add(gravel.mul(0.14))
-      .add(strata.mul(0.18))
-      .add(0.65);
+      .mul(0.16)
+      .add(gravel.mul(0.07))
+      .add(strata.mul(0.07))
+      .add(0.78);
     const tone = N.mix(
       rawTone,
       0.94,
@@ -136,27 +155,40 @@ export function convertMaterial(source: T.Material): T.Material {
     );
     const wave = N.vec3(
       p
-        .dot(N.vec3(43, 17, 29))
+        .dot(N.vec3(943, 417, 729))
         .add(t.mul(0.65))
         .cos(),
       p
-        .dot(N.vec3(-21, 37, 13))
+        .dot(N.vec3(-721, 1037, 513))
         .sub(t.mul(0.48))
         .cos(),
       p
-        .dot(N.vec3(19, -31, 41))
+        .dot(N.vec3(619, -831, 941))
         .add(t.mul(0.53))
         .sin(),
     );
     const tangent = wave.sub(radial.mul(wave.dot(radial)));
-    const detail = N.smoothstep(1, 12, N.positionView.length()).oneMinus();
+    const footprint = N.dFdx(p).length().max(N.dFdy(p).length()).mul(1500);
+    const detail = N.smoothstep(1, 12, N.positionView.length())
+      .oneMinus()
+      .mul(N.smoothstep(0.3, 2, footprint).oneMinus());
     const normal = N.modelViewMatrix
-      .mul(N.vec4(radial.add(tangent.mul(0.13).mul(detail)), 0))
+      .mul(N.vec4(radial.add(tangent.mul(0.07).mul(detail)), 0))
       .xyz.normalize();
     material.normalNode = N.mix(N.normalViewGeometry, normal, wet).normalize();
+    // Compress only water highlights before fog and bloom; preserve shore color.
+    const previousOutput = material.setupOutput.bind(material);
+    material.setupOutput = (builder, result) => {
+      const color = N.vec4(result as Node<'vec4'>),
+        peak = N.max(N.max(color.r, color.g), color.b);
+      return previousOutput(
+        builder,
+        N.vec4(N.mix(color.rgb, color.rgb.div(peak.add(1)), wet), color.a),
+      );
+    };
     material.roughnessNode = N.mix(
       (material.roughnessNode as Node<'float'> | null) ?? N.materialRoughness,
-      0.26,
+      0.38,
       wet,
     );
   }
