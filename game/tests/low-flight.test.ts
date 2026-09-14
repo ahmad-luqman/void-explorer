@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { toPlanet } from '../lib/flight/rotation';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Matrix4, Vector3 } from 'three';
 import { ContactSurface, generateContact } from '../lib/flight/contact';
 import { FLIGHT_RADIUS, flightClearance } from '../lib/flight/flight-clearance';
@@ -19,15 +20,22 @@ function setup(height = 0.3) {
   );
   return sim;
 }
+beforeEach(() => {
+  body.rotationClock = { time: 0 };
+  patch.syncRotation();
+});
 describe('manual surface flight', () => {
   it('descends using throttle to whole-ship clearance, then climbs away without teleporting', () => {
     const sim = setup();
     const input = { ...emptyControls(), accelerate: true };
     let largestStep = 0;
     for (let i = 0; i < 1200; i++) {
-      const before = sim.position.clone();
+      const before = toPlanet(sim.position, sim.nearest);
       sim.step(1 / 60, input);
-      largestStep = Math.max(largestStep, sim.position.distanceTo(before));
+      largestStep = Math.max(
+        largestStep,
+        toPlanet(sim.position, sim.nearest).distanceTo(before),
+      );
     }
     expect(sim.surface.phase).toBe('flight');
     expect(sim.altitude).toBeLessThan(0.05);
@@ -80,9 +88,11 @@ describe('manual surface flight', () => {
     sim.step(0.05, emptyControls());
     expect(patch.coordinates(sim.position).x).toBeLessThan(1.16);
     expect(sim.flightMessage).toContain('mapped');
-    const held = sim.position.clone();
+    const held = toPlanet(sim.position, sim.nearest);
     sim.step(0.05, { ...emptyControls(), accelerate: true });
-    expect(sim.position.distanceTo(held)).toBeLessThan(1e-6);
+    expect(toPlanet(sim.position, sim.nearest).distanceTo(held)).toBeLessThan(
+      1e-6,
+    );
     sim.surface.setPatch(
       new ContactSurface(
         generateContact(body, sim.position.clone().sub(body.position)),
@@ -91,13 +101,15 @@ describe('manual surface flight', () => {
     );
     for (let i = 0; i < 120; i++)
       sim.step(1 / 60, { ...emptyControls(), accelerate: true });
-    expect(sim.position.distanceTo(held)).toBeGreaterThan(0.005);
+    expect(
+      toPlanet(sim.position, sim.nearest).distanceTo(held),
+    ).toBeGreaterThan(0.005);
     expect(sim.flightMessage).toBe('');
   });
   it('checks the height of tilted rocks, allowing flight above them', () => {
     const prop = {
       id: 'spire',
-      point: patch.origin,
+      point: patch.origin.clone(),
       normal: patch.up.clone().addScaledVector(patch.east, 0.3).normalize(),
       radius: 0.003,
       height: 0.025,
@@ -122,8 +134,8 @@ describe('manual surface flight', () => {
     sim.surface.scenery = [
       {
         id: 'spire',
-        point: patch.origin,
-        normal: patch.up,
+        point: patch.origin.clone(),
+        normal: patch.up.clone(),
         radius: 0.003,
         height: 0.025,
         yaw: 0,

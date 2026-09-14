@@ -16,13 +16,16 @@ export function createTerrainSkirt(patch: ContactSurface) {
       .addScaledVector(patch.north, Math.sin(angle) * (CONTACT_RADIUS - 0.002));
     const sample = patch.sample(probe);
     if (!sample) throw new Error('Missing terrain seam contact');
-    const point = sample.point.sub(patch.origin);
+    const point = sample.point
+      .sub(patch.origin)
+      .applyQuaternion(patch.rotation.clone().invert());
+    const localUp = new Vector3().fromArray(patch.data.up);
     point
       .clone()
-      .addScaledVector(patch.up, 0.002)
+      .addScaledVector(localUp, 0.002)
       .toArray(positions, i * 6);
     point
-      .addScaledVector(patch.up, -patch.body.radius * 0.03)
+      .addScaledVector(localUp, -patch.body.radius * 0.03)
       .toArray(positions, i * 6 + 3);
     // Skirts remain below the surface and use the same biome palette.
     const c = patch.data.colors,

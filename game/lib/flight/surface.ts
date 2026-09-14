@@ -7,6 +7,7 @@ import {
   SHIP_SCALE,
   type GroundSample,
 } from './contact';
+import type { Body } from './universe';
 import type { FlightSimulation, Controls } from './simulation';
 import { generateScenery, sceneryBlocks, type SurfaceProp } from './scenery';
 export type SurfacePhase =
@@ -44,12 +45,39 @@ export class SurfaceExpedition {
   private lift = 0;
   private restoreRecord: SurfaceRecord | null = null;
   constructor(private sim: FlightSimulation) {}
+  // Transport world-space API values together; geometry remains in its native
+  // frame. In particular, never regenerate scenery just because its planet turns.
+  rotateWith(body: Body, delta: Quaternion, pilot: boolean) {
+    const rotate = (point: Vector3) =>
+      point.sub(body.position).applyQuaternion(delta).add(body.position);
+    if (pilot) {
+      rotate(this.sim.position);
+      this.sim.orientation.premultiply(delta).normalize();
+    }
+    if (this.bodyId === body.id) {
+      rotate(this.shipPosition);
+      this.shipOrientation.premultiply(delta).normalize();
+      rotate(this.destination);
+      this.landingOrientation.premultiply(delta).normalize();
+      for (const exclusion of this.sceneryExclusions) rotate(exclusion.point);
+    }
+    if (this.patch?.body.id === body.id) {
+      if (Number.isFinite(this.sceneryAnchor.x)) rotate(this.sceneryAnchor);
+      for (const prop of this.scenery) {
+        rotate(prop.point);
+        prop.normal.applyQuaternion(delta);
+      }
+      this.patch.syncRotation();
+    }
+  }
   get shipDistance() {
     return this.sim.position.distanceTo(this.shipPosition);
   }
   setPatch(patch: ContactSurface) {
     if ((this.phase === 'landing' || this.phase === 'landed') && this.patch)
       return;
+    patch.body.rotationClock = this.sim.rotationClock;
+    patch.syncRotation();
     this.patch = patch;
     this.refreshScenery(true);
     if (this.phase === 'restoring' && this.restoreRecord) {

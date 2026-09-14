@@ -1,5 +1,11 @@
-import { Ray, Vector3 } from 'three';
+import { Quaternion, Ray, Vector3 } from 'three';
 import { type Body, elevation, surfaceRadius } from './universe';
+import {
+  fromPlanet,
+  localDirection,
+  planetRotation,
+  toPlanet,
+} from './rotation';
 import { terrainColor } from './terrain';
 
 export const SHIP_SCALE = 0.004;
@@ -59,7 +65,7 @@ export type GroundSample = {
   water: boolean;
 };
 export function generateContact(body: Body, center: Vector3): ContactData {
-  const up = center.clone().normalize(),
+  const up = localDirection(center, body).normalize(),
     east = new Vector3()
       .crossVectors(
         Math.abs(up.y) < 0.9 ? new Vector3(0, 1, 0) : new Vector3(1, 0, 0),
@@ -142,6 +148,7 @@ export function generateContact(body: Body, center: Vector3): ContactData {
   };
 }
 export class ContactSurface {
+  rotation = new Quaternion();
   origin: Vector3;
   east: Vector3;
   north: Vector3;
@@ -154,6 +161,19 @@ export class ContactSurface {
     this.east = new Vector3().fromArray(data.east);
     this.north = new Vector3().fromArray(data.north);
     this.up = new Vector3().fromArray(data.up);
+    this.syncRotation();
+  }
+  syncRotation() {
+    this.rotation.copy(planetRotation(this.body));
+    this.origin.copy(
+      fromPlanet(
+        new Vector3().fromArray(this.data.origin).sub(this.body.position),
+        this.body,
+      ),
+    );
+    this.east.fromArray(this.data.east).applyQuaternion(this.rotation);
+    this.north.fromArray(this.data.north).applyQuaternion(this.rotation);
+    this.up.fromArray(this.data.up).applyQuaternion(this.rotation);
   }
   coordinates(world: Vector3) {
     const delta = world.clone().sub(this.origin);
@@ -177,8 +197,13 @@ export class ContactSurface {
     )
       return null;
 
-    const start = world.clone().sub(this.origin).addScaledVector(this.up, 100);
-    const ray = new Ray(start, this.up.clone().negate());
+    const inverse = this.rotation.clone().invert();
+    const start = world
+      .clone()
+      .sub(this.origin)
+      .applyQuaternion(inverse)
+      .addScaledVector(new Vector3().fromArray(this.data.up), 100);
+    const ray = new Ray(start, new Vector3().fromArray(this.data.up).negate());
     // Float32 vertices can cross their analytic grid boundary by a few ulps.
     // Check adjacent cells as well so an exact edge never becomes a contact hole.
     for (const [dx, dy] of [
@@ -211,8 +236,12 @@ export class ContactSurface {
           );
         const hit = ray.intersectTriangle(a, b, c, false, new Vector3());
         if (!hit) continue;
-        const normal = b.sub(a).cross(c.sub(a)).normalize(),
-          point = hit.add(this.origin),
+        const normal = b
+            .sub(a)
+            .cross(c.sub(a))
+            .normalize()
+            .applyQuaternion(this.rotation),
+          point = hit.applyQuaternion(this.rotation).add(this.origin),
           direction = point.clone().sub(this.body.position).normalize();
         return {
           point,
@@ -223,7 +252,8 @@ export class ContactSurface {
             Math.PI,
           water:
             this.body.kind === 'ocean' &&
-            elevation(direction, this.body) < 0.002,
+            elevation(toPlanet(point, this.body).normalize(), this.body) <
+              0.002,
         };
       }
     }

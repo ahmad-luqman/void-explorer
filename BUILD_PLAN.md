@@ -70,3 +70,10 @@ The user authorized game implementation after the concept milestone. A playable 
 ## Next implementation milestone
 
 Introduce rotating planets with surface-relative attachment for landed ships and walking players, including compatible expedition saves. Planetary mesh transitions and bounded in-memory reuse are now implemented. Larger-scale addressing, persistent tile storage, richer biomes, and ship animation remain later work.
+
+### Rotating-world implementation plan
+
+1. Add deterministic axial rotation driven by saved simulation time. Keep generated geometry, cache keys, terrain sampling and scenery identities in the native planet frame; transform world-space queries at the boundary.
+2. Transport landed craft, walkers, landing destinations and takeoff with that frame. Use surface-relative atmospheric flight, tapering rotation coupling between 130 and 260 km; retain inertial flight above it. Pause rotation during ground restoration.
+3. Save attached poses in planet coordinates with a versioned rotation clock. Migrate existing stationary version-2 expeditions at zero rotation, including scenery clearings.
+4. Verify transformed triangle contact, stable scenery, complete surface journeys, delayed ground restoration, pause/reset and both renderers. Commit the coherent implementation and validation milestones, then update the private build.

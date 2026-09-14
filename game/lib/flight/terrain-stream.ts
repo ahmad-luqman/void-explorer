@@ -1,5 +1,6 @@
 import { Vector3 } from 'three';
 import type { ContactSurface } from './contact';
+import { toPlanet } from './rotation';
 import type { Body } from './universe';
 
 // Predict a bounded distance ahead, retaining dense ground under the observer
@@ -23,7 +24,7 @@ export function contactRequest(
     if (Math.hypot(now.x, now.y) < 0.55 && Math.hypot(ahead.x, ahead.y) < 0.8)
       return null;
   }
-  return focus.sub(body.position).normalize();
+  return toPlanet(focus, body).normalize();
 }
 export function terrainRefresh(
   observer: Vector3,

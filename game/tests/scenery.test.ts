@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Matrix4, Vector3 } from 'three';
 import {
   ContactSurface,
@@ -22,6 +22,10 @@ const patch = new ContactSurface(
   generateContact(body, new Vector3(0, 0, 1)),
   body,
 );
+beforeEach(() => {
+  body.rotationClock = { time: 0 };
+  patch.syncRotation();
+});
 describe('persistent surface scenery', () => {
   it('places a bounded, repeatable field on dry rendered triangles', () => {
     const props = generateScenery(patch, patch.origin);
@@ -59,7 +63,7 @@ describe('persistent surface scenery', () => {
       {
         id: 'test-rock',
         point,
-        normal: patch.up,
+        normal: patch.up.clone(),
         radius: 0.003,
         height: 0.003,
         yaw: 0,

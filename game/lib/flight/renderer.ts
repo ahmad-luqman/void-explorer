@@ -1,3 +1,4 @@
+import { planetRotation, toPlanet } from './rotation';
 import * as T from 'three';
 import type { WebGPURenderer } from 'three/webgpu';
 import type { GpuBackend } from './gpu/backend';
@@ -329,7 +330,7 @@ export class FlightRenderer {
         protectContact(
           data.startPositions!,
           data.positions,
-          this.sim.position.clone().sub(p.body.position),
+          toPlanet(this.sim.position, p.body),
           CONTACT_RADIUS + 20,
         );
         p.transition = {
@@ -482,7 +483,10 @@ export class FlightRenderer {
         side: T.FrontSide,
       });
       material.userData.flightTerrain = {
-        contact: { up: patch.up, radius: CONTACT_RADIUS },
+        contact: {
+          up: new T.Vector3().fromArray(patch.data.up),
+          radius: CONTACT_RADIUS,
+        },
       };
       // The replacement and flight mesh share a circular boundary; publish
       // collision only after the matching render mesh exists.
@@ -496,14 +500,25 @@ export class FlightRenderer {
         shader.fragmentShader =
           'varying vec3 vContactLocal;uniform vec3 contactUp;\n' +
           shader.fragmentShader;
-        shader.uniforms.contactUp = { value: patch.up };
+        shader.uniforms.contactUp = {
+          value: new T.Vector3().fromArray(patch.data.up),
+        };
         shader.fragmentShader = shader.fragmentShader.replace(
           '#include <clipping_planes_fragment>',
           `#include <clipping_planes_fragment>\nif(length(vContactLocal-contactUp*dot(vContactLocal,contactUp))>${CONTACT_RADIUS.toFixed(1)}) discard;`,
         );
       };
-      addSurfaceMaterial(material, body, patch.origin);
-      addWaterMaterial(material, body, patch.origin, this.waterTime);
+      addSurfaceMaterial(
+        material,
+        body,
+        new T.Vector3().fromArray(patch.data.origin),
+      );
+      addWaterMaterial(
+        material,
+        body,
+        new T.Vector3().fromArray(patch.data.origin),
+        this.waterTime,
+      );
       if (this.contactMesh) {
         this.scene.remove(this.contactMesh);
         disposeObject(this.contactMesh);
@@ -531,7 +546,7 @@ export class FlightRenderer {
       );
       this.contactMesh.frustumCulled = false;
       this.scene.add(this.contactMesh);
-      this.contactCenter.value.copy(patch.origin).sub(body.position);
+      this.contactCenter.value.fromArray(patch.data.origin).sub(body.position);
       for (const view of this.planets)
         view.contactRadius.value =
           // A tiny overlap buries the circular skirt under both meshes;
@@ -654,6 +669,7 @@ export class FlightRenderer {
       ring.rotation.x = -Math.PI * 0.39;
       ring.rotation.y = 0.12;
       ring.rotation.z = -0.23;
+      ring.userData.fixedOrientation = ring.quaternion.clone();
       group.add(ring);
     }
     this.scene.add(group);
@@ -801,17 +817,27 @@ export class FlightRenderer {
         }
       }
       p.group.position.copy(p.body.position).sub(this.sim.position);
+      p.group.quaternion.copy(planetRotation(p.body));
+      // Rings keep their orbital plane as the solid world turns beneath them.
+      for (const child of p.group.children)
+        if (child.userData.fixedOrientation)
+          child.quaternion
+            .copy(p.group.quaternion)
+            .invert()
+            .multiply(child.userData.fixedOrientation);
       p.atmosphere.uniforms.keyDirection.value
         .copy(
           this.sim.activeSystem.companion?.position ??
             this.sim.activeSystem.star.position,
         )
         .sub(p.body.position)
-        .normalize();
+        .normalize()
+        .applyQuaternion(p.group.quaternion.clone().invert());
       p.atmosphere.uniforms.secondaryDirection.value
         .copy(this.sim.activeSystem.star.position)
         .sub(p.body.position)
-        .normalize();
+        .normalize()
+        .applyQuaternion(p.group.quaternion.clone().invert());
     });
     const near = this.planets.find((p) => p.body.id === this.sim.nearest.id);
     // Budget for the narrowest FOV; animated speed FOV must not fragment the cache.
@@ -826,7 +852,7 @@ export class FlightRenderer {
       !near.transition &&
       performance.now() >= this.terrainRequestAt
     ) {
-      const observer = this.sim.position.clone().sub(near.body.position);
+      const observer = toPlanet(this.sim.position, near.body);
       if (
         terrainRefresh(
           observer,
@@ -865,14 +891,23 @@ export class FlightRenderer {
       this.sceneryProps = surface.scenery;
       this.sceneryView = surface.patch
         ? createSceneryView(
-            surface.scenery,
-            surface.patch.origin,
+            surface.scenery.map((prop) => ({
+              ...prop,
+              point: toPlanet(prop.point, surface.patch!.body).add(
+                surface.patch!.body.position,
+              ),
+              normal: prop.normal
+                .clone()
+                .applyQuaternion(surface.patch!.rotation.clone().invert()),
+            })),
+            new T.Vector3().fromArray(surface.patch.data.origin),
             surface.patch.body.kind,
           )
         : null;
       if (this.sceneryView) this.scene.add(this.sceneryView);
     }
     if (this.sceneryView && surface.patch) {
+      this.sceneryView.quaternion.copy(surface.patch.rotation);
       this.sceneryView.position
         .copy(surface.patch.origin)
         .sub(this.sim.position);
@@ -898,6 +933,7 @@ export class FlightRenderer {
         this.contactWorker.postMessage({
           body: {
             ...this.sim.nearest,
+            rotationClock: undefined,
             position: this.sim.nearest.position.toArray(),
           },
           center: center.toArray(),
@@ -905,10 +941,12 @@ export class FlightRenderer {
         });
       }
     }
-    if (this.contactMesh && surface.patch)
+    if (this.contactMesh && surface.patch) {
+      this.contactMesh.quaternion.copy(surface.patch.rotation);
       this.contactMesh.position
         .copy(surface.patch.origin)
         .sub(this.sim.position);
+    }
     this.camera.position.set(0, 0, 0);
     const desired = this.sim.orientation.clone();
     if (title)

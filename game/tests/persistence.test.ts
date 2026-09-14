@@ -1,3 +1,5 @@
+import { toPlanet } from '../lib/flight/rotation';
+import { Vector3 } from 'three';
 import { describe, it, expect } from 'vitest';
 import { FlightSimulation, emptyControls } from '../lib/flight/simulation';
 import { ContactSurface, generateContact } from '../lib/flight/contact';
@@ -50,7 +52,11 @@ describe('expedition saves', () => {
     expect(restoreExpedition(b, save)).toBe(true);
     expect(b.surface.phase).toBe('restoring');
     advance(b, 1);
-    expect(b.position.toArray()).toEqual(save.position);
+    expect(
+      toPlanet(b.position, b.nearest).distanceTo(
+        new Vector3().fromArray(save.position),
+      ),
+    ).toBeLessThan(1e-8);
     b.surface.setPatch(
       new ContactSurface(
         generateContact(
@@ -61,7 +67,11 @@ describe('expedition saves', () => {
       ),
     );
     expect(b.surface.phase).toBe('walking');
-    expect(b.surface.shipPosition.toArray()).toEqual(save.surface.shipPosition);
+    expect(
+      toPlanet(b.surface.shipPosition, b.nearest).distanceTo(
+        new Vector3().fromArray(save.surface.shipPosition),
+      ),
+    ).toBeLessThan(1e-8);
     expect(b.surface.board()).toBe(true);
     expect(b.surface.takeoff()).toBe(true);
   });

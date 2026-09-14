@@ -1,7 +1,7 @@
 import { Vector3 } from 'three';
 import { CONTACT_CORE, type ContactSurface } from './contact';
 import type { SurfaceProp } from './scenery';
-import { type Body, surfaceRadius } from './universe';
+import { type Body, worldSurfaceRadius } from './universe';
 
 // A rotation-independent envelope encloses AURORA's 28.8 m wingspan and tail.
 // Two extra meters absorb substep/triangle-edge error. Landing has its own gear checks.
@@ -21,7 +21,8 @@ export function flightClearance(
   scenery: SurfaceProp[],
 ): FlightClearance {
   const radial = position.clone().sub(body.position);
-  const altitude = radial.length() - surfaceRadius(radial.normalize(), body);
+  const altitude =
+    radial.length() - worldSurfaceRadius(radial.normalize(), body);
   if (body.star)
     return {
       distance: altitude - 180,

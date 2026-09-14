@@ -20,17 +20,18 @@ export function addWaterMaterial(
     shader.uniforms.waterTime = time;
     shader.vertexShader =
       `uniform vec3 waterAnchor; uniform float waterRadius;
-      varying vec3 vWaterPosition; varying float vWaterMask;\n` +
+      varying mat3 vWaterFrame; varying vec3 vWaterPosition; varying float vWaterMask;\n` +
       shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
+       vWaterFrame=mat3(modelViewMatrix);
        vWaterPosition=position+waterAnchor;
        vWaterMask=1.-smoothstep(.0002,.001,length(vWaterPosition)-waterRadius);`,
     );
     shader.fragmentShader =
       `uniform float waterTime;
-      varying vec3 vWaterPosition; varying float vWaterMask;\n` +
+      varying mat3 vWaterFrame; varying vec3 vWaterPosition; varying float vWaterMask;\n` +
       shader.fragmentShader;
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',
@@ -46,7 +47,7 @@ export function addWaterMaterial(
          sin(dot(vWaterPosition,vec3(19.,-31.,41.))+waterTime*.53));
        wave-=radial*dot(wave,radial);
        float waveDetail=1.-smoothstep(1.,12.,length(vViewPosition));
-       vec3 waterNormal=normalize((viewMatrix*vec4(radial+wave*.13*waveDetail,0.)).xyz);
+       vec3 waterNormal=normalize((vWaterFrame*(radial+wave*.13*waveDetail)));
        normal=normalize(mix(normal,waterNormal,clamp(vWaterMask,0.,1.)));`,
     );
   };

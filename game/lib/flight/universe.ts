@@ -1,4 +1,5 @@
 import { Vector3 } from 'three';
+import { localDirection } from './rotation';
 
 export type WorldKind = 'ocean' | 'desert' | 'ice';
 export type Body = {
@@ -11,6 +12,7 @@ export type Body = {
   ring: boolean;
   system: number;
   star?: boolean;
+  rotationClock?: { time: number };
   color?: string;
 };
 export type System = {
@@ -183,6 +185,10 @@ export function surfaceRadius(direction: Vector3, body: Body) {
         ? Math.max(0, elevation(direction, body))
         : elevation(direction, body))
   );
+}
+// World-space callers must undo rotation before sampling the native heightfield.
+export function worldSurfaceRadius(direction: Vector3, body: Body) {
+  return surfaceRadius(localDirection(direction, body), body);
 }
 export function nearestSystem(position: Vector3, systems: System[]) {
   let nearest = systems[0],

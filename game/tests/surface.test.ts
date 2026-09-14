@@ -1,3 +1,4 @@
+import { toPlanet } from '../lib/flight/rotation';
 import { describe, it, expect } from 'vitest';
 import { Ray, Vector3 } from 'three';
 import { FlightSimulation, emptyControls } from '../lib/flight/simulation';
@@ -25,10 +26,14 @@ describe('surface contact and expedition', () => {
     const { sim, patch } = prepare();
     const sample = patch.sample(sim.position)!;
     expect(sample.slope).toBeLessThan(12);
-    const p = sample.point.clone().sub(patch.origin);
+    const p = sample.point
+      .clone()
+      .sub(patch.origin)
+      .applyQuaternion(patch.rotation.clone().invert());
+    const localUp = new Vector3().fromArray(patch.data.up);
     const ray = new Ray(
-      p.clone().addScaledVector(patch.up, 1),
-      patch.up.clone().negate(),
+      p.clone().addScaledVector(localUp, 1),
+      localUp.clone().negate(),
     );
     let distance = Infinity;
     const d = patch.data;
@@ -44,7 +49,7 @@ describe('surface contact and expedition', () => {
     }
     expect(distance).toBeLessThan(1e-7);
   });
-  it('flies down, lands, walks, boards, and takes off without moving the parked ship', () => {
+  it('flies down, lands, walks, boards, and takes off without moving the parked ship relative to terrain', () => {
     const { sim, patch } = prepare();
     expect(sim.surface.land()).toBe(true);
     const previous = sim.position.clone();
@@ -55,6 +60,7 @@ describe('surface contact and expedition', () => {
     }
     expect(sim.surface.phase).toBe('landed');
     const parked = sim.position.clone();
+    const localParked = toPlanet(parked, sim.nearest);
     expect(patch.sample(parked)!.point.distanceTo(parked)).toBeCloseTo(
       GEAR_HEIGHT,
       3,
@@ -66,19 +72,25 @@ describe('surface contact and expedition', () => {
     c.decelerate = true;
     advance(sim, 5, c);
     expect(sim.position.distanceTo(before)).toBeGreaterThan(0.018);
-    expect(sim.surface.shipPosition.toArray()).toEqual(parked.toArray());
+    expect(
+      toPlanet(sim.surface.shipPosition, sim.nearest).distanceTo(localParked),
+    ).toBeLessThan(1e-7);
     expect(
       sim.position.distanceTo(patch.sample(sim.position)!.point),
     ).toBeCloseTo(EYE_HEIGHT, 6);
     expect(sim.surface.board()).toBe(true);
-    expect(sim.position.toArray()).toEqual(parked.toArray());
+    expect(
+      toPlanet(sim.position, sim.nearest).distanceTo(localParked),
+    ).toBeLessThan(1e-7);
     expect(sim.surface.takeoff()).toBe(true);
     advance(sim, 2.3);
     expect(sim.surface.phase).toBe('flight');
     expect(sim.altitude).toBeGreaterThan(0.11);
-    const atRelease = sim.position.clone();
+    const atRelease = toPlanet(sim.position, sim.nearest);
     advance(sim, 0.1);
-    expect(sim.position.distanceTo(atRelease)).toBeLessThan(0.01);
+    expect(
+      toPlanet(sim.position, sim.nearest).distanceTo(atRelease),
+    ).toBeLessThan(0.01);
   });
   it('rejects landing before terrain is ready and in unsafe flight conditions', () => {
     const s = new FlightSimulation();

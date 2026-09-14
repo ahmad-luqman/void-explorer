@@ -1,5 +1,6 @@
 import { Vector3 } from 'three';
 import type { ContactSurface } from './contact';
+import { toPlanet, fromPlanet } from './rotation';
 import { random, surfaceRadius } from './universe';
 
 export const SCENERY_RANGE = 0.8;
@@ -22,10 +23,11 @@ export function generateScenery(
   focus: Vector3,
 ): SurfaceProp[] {
   const body = patch.body,
-    radial = focus.clone().sub(body.position).normalize();
-  const center = body.position
-    .clone()
-    .addScaledVector(radial, surfaceRadius(radial, body));
+    radial = toPlanet(focus, body).normalize();
+  const center = fromPlanet(
+    radial.clone().multiplyScalar(surfaceRadius(radial, body)),
+    body,
+  );
   const props: SurfaceProp[] = [];
   for (let axis = 0; axis < 3; axis++) {
     const a = (axis + 1) % 3,
@@ -61,9 +63,10 @@ export function generateScenery(
           .setComponent(a, u)
           .setComponent(b, v)
           .normalize();
-        const candidate = body.position
-          .clone()
-          .addScaledVector(direction, surfaceRadius(direction, body));
+        const candidate = fromPlanet(
+          direction.clone().multiplyScalar(surfaceRadius(direction, body)),
+          body,
+        );
         if (candidate.distanceTo(center) > SCENERY_RANGE) continue;
         const ground = patch.sample(candidate);
         if (!ground || ground.water || ground.slope > 28) continue;

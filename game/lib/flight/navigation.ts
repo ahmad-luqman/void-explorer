@@ -1,13 +1,13 @@
 import { Vector3 } from 'three';
 import type { FlightSimulation } from './simulation';
-import { surfaceRadius } from './universe';
+import { worldSurfaceRadius } from './universe';
 export function navigationReadout(sim: FlightSimulation) {
   const delta = sim.target.position.clone().sub(sim.position),
     distance = delta.length();
   const radial = delta.clone().negate().normalize();
   const radius = sim.target.star
     ? sim.target.radius
-    : surfaceRadius(radial, sim.target);
+    : worldSurfaceRadius(radial, sim.target);
   const range = Math.max(0, distance - radius);
   const stop = sim.target.star
     ? sim.target.radius * 2.8

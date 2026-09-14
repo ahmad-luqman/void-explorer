@@ -1,4 +1,10 @@
 import { Matrix4, Quaternion, Vector3 } from 'three';
+import {
+  planetRotation,
+  rotationAxis,
+  rotationPeriod,
+  toPlanet,
+} from './rotation';
 import { SurfaceExpedition } from './surface';
 import { flightClearance } from './flight-clearance';
 import {
@@ -6,7 +12,7 @@ import {
   type System,
   createUniverse,
   nearestSystem,
-  surfaceRadius,
+  worldSurfaceRadius,
 } from './universe';
 
 export type Controls = {
@@ -40,6 +46,7 @@ export class FlightSimulation {
   autopilot = false;
   descending = false;
   elapsed = 0;
+  rotationClock = { time: 0 };
   activeSystem: System = this.systems[0];
   target: Body = this.systems[0].planets[0];
   nearest: Body = this.target;
@@ -50,6 +57,9 @@ export class FlightSimulation {
   groundClearance = 0;
   surface = new SurfaceExpedition(this);
   constructor() {
+    for (const system of this.systems)
+      for (const body of system.planets)
+        body.rotationClock = this.rotationClock;
     this.face(this.target.position);
     this.updateEnvironment();
   }
@@ -89,6 +99,8 @@ export class FlightSimulation {
   }
   reset() {
     this.surface.reset();
+    this.elapsed = 0;
+    this.rotationClock.time = 0;
     this.flightMessage = '';
     this.position.set(0, 420, 2680);
     this.speed = 0;
@@ -111,7 +123,8 @@ export class FlightSimulation {
     let distance = Infinity;
     for (const b of candidates) {
       const direction = this.position.clone().sub(b.position);
-      const d = direction.length() - surfaceRadius(direction.normalize(), b);
+      const d =
+        direction.length() - worldSurfaceRadius(direction.normalize(), b);
       if (d < distance) {
         distance = d;
         this.nearest = b;
@@ -123,7 +136,35 @@ export class FlightSimulation {
   }
   step(dt: number, input: Controls) {
     dt = Math.min(Math.max(dt, 0), 1 / 20);
-    this.elapsed += dt;
+    if (dt === 0) return;
+    // A restoring expedition must wait at its saved phase while workers catch up.
+    if (this.surface.phase !== 'restoring') {
+      const oldTime = this.rotationClock.time;
+      this.elapsed += dt;
+      this.rotationClock.time += dt;
+      const body = this.nearest;
+      const attached = this.surface.phase !== 'flight';
+      const coupling = attached
+        ? 1
+        : Math.max(0, Math.min(1, (260 - this.altitude) / 130));
+      if (!body.star) {
+        const delta = planetRotation(body).multiply(
+          planetRotation(body, oldTime).invert(),
+        );
+        this.surface.rotateWith(body, delta, attached || coupling === 1);
+        if (!attached && coupling > 0 && coupling < 1) {
+          const drift = new Quaternion().setFromAxisAngle(
+            rotationAxis(body),
+            ((dt * Math.PI * 2) / rotationPeriod(body)) * coupling,
+          );
+          this.position
+            .sub(body.position)
+            .applyQuaternion(drift)
+            .add(body.position);
+          this.orientation.premultiply(drift).normalize();
+        }
+      }
+    }
     this.updateEnvironment();
     this.surface.refreshScenery();
     if (this.surface.phase !== 'flight') {
@@ -188,7 +229,7 @@ export class FlightSimulation {
         .normalize();
       const stop = this.target.star
         ? this.target.radius * 2.8
-        : surfaceRadius(radial, this.target) +
+        : worldSurfaceRadius(radial, this.target) +
           (this.descending ? 12 : Math.max(180, this.target.radius * 0.65));
       const remaining = this.position.distanceTo(this.target.position) - stop;
       if (remaining < 2) {
@@ -332,6 +373,13 @@ export class FlightSimulation {
   }
   snapshot() {
     return {
+      rotationTime: this.rotationClock.time,
+      planetRotation: planetRotation(this.nearest).toArray(),
+      surfacePosition: toPlanet(this.position, this.nearest).toArray(),
+      surfaceShipPosition: toPlanet(
+        this.surface.shipPosition,
+        this.nearest,
+      ).toArray(),
       position: this.position.toArray(),
       orientation: this.orientation.toArray(),
       speed: this.speed,

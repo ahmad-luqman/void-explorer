@@ -1,10 +1,12 @@
 import { Quaternion, Vector3 } from 'three';
 import type { FlightSimulation } from './simulation';
 import type { SurfaceRecord } from './surface';
+import { fromPlanet, planetRotation, toPlanet } from './rotation';
 import { surfaceRadius } from './universe';
 export const EXPEDITION_KEY = 'void-expedition-v2';
 export type ExpeditionSave = {
-  version: 2;
+  version: 2 | 3;
+  rotationTime?: number;
   savedAt: number;
   position: number[];
   orientation: number[];
@@ -27,14 +29,36 @@ export function captureExpedition(
   sim: FlightSimulation,
 ): ExpeditionSave | null {
   if (!['flight', 'landed', 'walking'].includes(sim.surface.phase)) return null;
+  const surface = sim.surface.record();
+  const body = sim.nearest;
+  const attached = surface.phase !== 'flight';
+  const inverse = planetRotation(body).invert();
+  if (attached) {
+    surface.shipPosition = toPlanet(sim.surface.shipPosition, body).toArray();
+    surface.shipOrientation = inverse
+      .clone()
+      .multiply(sim.surface.shipOrientation)
+      .toArray();
+    surface.sceneryClearings = surface.sceneryClearings?.map((e) => ({
+      ...e,
+      point: toPlanet(new Vector3().fromArray(e.point), body).toArray(),
+    }));
+  }
   return {
-    version: 2,
+    version: 3,
+    rotationTime: sim.rotationClock.time,
     savedAt: Date.now(),
-    position: sim.position.toArray(),
-    orientation: sim.orientation.toArray(),
+    position: (attached
+      ? toPlanet(sim.position, body)
+      : sim.position
+    ).toArray(),
+    orientation: (attached
+      ? inverse.multiply(sim.orientation)
+      : sim.orientation
+    ).toArray(),
     target: sim.target.id,
     visited: [...sim.visited],
-    surface: sim.surface.record(),
+    surface,
   };
 }
 export function parseExpedition(raw: string | null): ExpeditionSave | null {
@@ -42,7 +66,11 @@ export function parseExpedition(raw: string | null): ExpeditionSave | null {
     const s = JSON.parse(raw || 'null');
     if (
       !s ||
-      s.version !== 2 ||
+      ![2, 3].includes(s.version) ||
+      (s.version === 3 &&
+        (!Number.isFinite(s.rotationTime) ||
+          s.rotationTime < 0 ||
+          s.rotationTime > 1e9)) ||
       !Number.isFinite(s.savedAt) ||
       !vector(s.position, 3) ||
       !quaternion(s.orientation) ||
@@ -101,12 +129,35 @@ export function restoreExpedition(
     ]),
     target = bodies.find((b) => b.id === save.target);
   if (!target) return false;
-  const body = bodies.find((b) => b.id === save.surface.bodyId),
-    position = new Vector3().fromArray(save.position);
+  const body = bodies.find((b) => b.id === save.surface.bodyId);
+  const time = save.version === 3 ? save.rotationTime! : 0;
+  // Work on a copy until both saved poses pass validation.
+  const record = structuredClone(save.surface);
+  let position = new Vector3().fromArray(save.position);
+  const orientation = new Quaternion().fromArray(save.orientation);
+  if (body && save.version === 3 && record.phase !== 'flight') {
+    const frame = { ...body, rotationClock: { time } };
+    position = fromPlanet(position, frame);
+    orientation.premultiply(planetRotation(frame));
+    record.shipPosition = fromPlanet(
+      new Vector3().fromArray(record.shipPosition),
+      frame,
+    ).toArray();
+    record.shipOrientation = planetRotation(frame)
+      .multiply(new Quaternion().fromArray(record.shipOrientation))
+      .toArray();
+    record.sceneryClearings = record.sceneryClearings?.map((e) => ({
+      ...e,
+      point: fromPlanet(new Vector3().fromArray(e.point), frame).toArray(),
+    }));
+  }
   if (save.surface.phase !== 'flight') {
     if (!body || body.star) return false;
-    for (const coords of [save.position, save.surface.shipPosition]) {
-      const delta = new Vector3().fromArray(coords).sub(body.position),
+    for (const coords of [position.toArray(), record.shipPosition]) {
+      const delta = toPlanet(new Vector3().fromArray(coords), {
+          ...body,
+          rotationClock: { time },
+        }),
         distance = delta.length();
       if (
         distance < 1 ||
@@ -116,11 +167,13 @@ export function restoreExpedition(
     }
   }
   sim.reset();
+  sim.rotationClock.time = time;
+  sim.elapsed = time;
   sim.position.copy(position);
-  sim.orientation.copy(new Quaternion().fromArray(save.orientation));
+  sim.orientation.copy(orientation);
   sim.target = target;
   sim.visited = new Set(save.visited);
   sim.updateEnvironment();
-  sim.surface.restore(save.surface, sim.altitude < 60 && !sim.nearest.star);
+  sim.surface.restore(record, sim.altitude < 60 && !sim.nearest.star);
   return true;
 }

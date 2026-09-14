@@ -126,7 +126,7 @@ export function convertMaterial(source: T.Material): T.Material {
     );
     const tangent = wave.sub(radial.mul(wave.dot(radial)));
     const detail = N.smoothstep(1, 12, N.positionView.length()).oneMinus();
-    const normal = N.cameraViewMatrix
+    const normal = N.modelViewMatrix
       .mul(N.vec4(radial.add(tangent.mul(0.13).mul(detail)), 0))
       .xyz.normalize();
     material.normalNode = N.mix(N.normalViewGeometry, normal, wet).normalize();
