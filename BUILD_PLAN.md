@@ -84,3 +84,10 @@ Richer exploration: establish coastal landing concepts, add deterministic biome 
 2. Migrate version-2/3 expeditions without losing their system-relative or planet-relative locations. Save version-4 addresses independently of the current rendering origin.
 3. Persist disposable native planetary/contact meshes in a versioned, bounded IndexedDB cache. Generation remains authoritative; unavailable, corrupt or full storage must never prevent exploration. Independent per-tile refinement remains a later terrain architecture change.
 4. Verify cell boundaries, remote surface precision, legacy migration, long-distance arrival, cross-session terrain hits, cache limits and blocked storage, then run complete expeditions on both backends and publish privately.
+
+### Richer exploration implementation plan
+
+1. Preserve a coastal landing concept sheet and its exact prompt. Translate its faceted vegetation, open clearings, and landmark silhouettes into bounded runtime geometry.
+2. Add seeded native-frame biome regions and consistent ground colors across globe, adaptive planet and contact terrain. Preserve terrain heights and invalidate older cached colors.
+3. Add dry-ground fan plants, desert succulents, and recognizable stone/crystal landmark clusters with shared conservative collision bounds. Keep placement stable through movement, rotation and reload; protect older saved ship/player poses from new obstacles.
+4. Show the local biome and nearest landmark on the surface instruments. Verify placement, geometry/collision bounds, save migration, shoreline landing/walking and both renderers; publish privately after the full production expedition checks.
