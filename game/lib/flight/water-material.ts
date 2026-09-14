@@ -30,9 +30,19 @@ export function addWaterMaterial(
        vWaterMask=1.-smoothstep(.0002,.001,length(vWaterPosition)-waterRadius);`,
     );
     shader.fragmentShader =
-      `uniform float waterTime;
+      `uniform float waterTime; uniform float waterRadius;
       varying mat3 vWaterFrame; varying vec3 vWaterPosition; varying float vWaterMask;\n` +
       shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+       float bands=.5+.5*sin(dot(vWaterPosition,vec3(183.,57.,129.))+waterTime*.85+sin(dot(vWaterPosition,vec3(51.,-73.,91.))));
+       float wetWater=clamp(vWaterMask,0.,1.);
+       float shore=wetWater*(1.-wetWater)*2.*smoothstep(.35,.85,bands)*(1.-smoothstep(.0002,.001,length(vWaterPosition)-waterRadius));
+       diffuseColor.rgb*=mix(1.,.94+bands*.12,wetWater);
+       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.62,.83,.79),shore);
+      `,
+    );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
@@ -51,5 +61,5 @@ export function addWaterMaterial(
        normal=normalize(mix(normal,waterNormal,clamp(vWaterMask,0.,1.)));`,
     );
   };
-  material.customProgramCacheKey = () => cacheKey + '-water-v1';
+  material.customProgramCacheKey = () => cacheKey + '-water-v2';
 }

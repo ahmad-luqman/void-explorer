@@ -94,7 +94,7 @@ export default function Home() {
   const [saved, setSaved] = useState<ExpeditionSave | null>(null),
     [saveMessage, setSaveMessage] = useState('');
   const [quality, setQuality] = useState('high'),
-    [finish, setFinish] = useState('authentic'),
+    [finish, setFinish] = useState('clean'),
     [sound, setSound] = useState(35),
     [data, setData] = useState<Telemetry>(initial);
   const flags = useRef({
@@ -395,20 +395,7 @@ export default function Home() {
                 sim.position.set(0, 0, sim.target.radius + 35);
                 sim.face(sim.target.position);
               }
-              if (name === 'coastal-landing') {
-                const up = new Vector3(
-                  0.4578271005130527,
-                  0.8452666666666666,
-                  0.2755333160582099,
-                );
-                sim.position
-                  .copy(sim.target.position)
-                  .addScaledVector(
-                    up,
-                    sim.target.radius + elevation(up, sim.target) + 10,
-                  );
-                sim.face(sim.target.position);
-              }
+              if (name === 'coastal-landing') sim.startCoast();
               if (name === 'low-flight') {
                 const up = new Vector3(0, 0, 1);
                 sim.position
@@ -730,6 +717,17 @@ export default function Home() {
               <Crosshair size={25} />
               <span>{ready ? 'START EXPEDITION' : 'INITIALIZING FLIGHT'}</span>
               <ArrowRight size={19} />
+            </Button>
+            <Button
+              variant="outline"
+              className="continue-button"
+              disabled={!ready}
+              onClick={() => {
+                runtime.current?.sim.startCoast();
+                start();
+              }}
+            >
+              Explore Lumen Coast <ArrowRight size={15} />
             </Button>
             {saved && (
               <Button

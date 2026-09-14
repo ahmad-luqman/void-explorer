@@ -12,7 +12,8 @@ import {
 import { createUniverse, nearestSystem, surfaceRadius } from './universe';
 export const EXPEDITION_KEY = 'void-expedition-v2';
 export type ExpeditionSave = {
-  version: 2 | 3 | 4;
+  version: 2 | 3 | 4 | 5;
+  terrainVersion?: 1 | 2;
   address?: SpaceAddress;
   rotationTime?: number;
   savedAt: number;
@@ -53,7 +54,8 @@ export function captureExpedition(
     }));
   }
   return {
-    version: 4,
+    version: 5,
+    terrainVersion: sim.terrainVersion,
     address: sim.address,
     rotationTime: sim.rotationClock.time,
     savedAt: Date.now(),
@@ -75,12 +77,13 @@ export function parseExpedition(raw: string | null): ExpeditionSave | null {
     const s = JSON.parse(raw || 'null');
     if (
       !s ||
-      ![2, 3, 4].includes(s.version) ||
+      ![2, 3, 4, 5].includes(s.version) ||
       (s.version >= 3 &&
         (!Number.isFinite(s.rotationTime) ||
           s.rotationTime < 0 ||
           s.rotationTime > 1e9)) ||
-      (s.version === 4 && !validAddress(s.address)) ||
+      (s.version >= 4 && !validAddress(s.address)) ||
+      (s.version === 5 && ![1, 2].includes(s.terrainVersion)) ||
       !Number.isFinite(s.savedAt) ||
       !vector(s.position, 3) ||
       !quaternion(s.orientation) ||
@@ -145,6 +148,7 @@ export function restoreExpedition(
     target = bodies.find((b) => b.id === save.target);
   if (!target) return false;
   const body = bodies.find((b) => b.id === save.surface.bodyId);
+  const terrainVersion = save.version === 5 ? save.terrainVersion! : 1;
   const time = save.version >= 3 ? save.rotationTime! : 0;
   const record = structuredClone(save.surface);
   const orientation = new Quaternion().fromArray(save.orientation);
@@ -167,15 +171,20 @@ export function restoreExpedition(
       const distance = point.length();
       if (
         distance < 1 ||
-        Math.abs(distance - surfaceRadius(point.clone().normalize(), body)) >
-          0.06
+        Math.abs(
+          distance -
+            surfaceRadius(point.clone().normalize(), {
+              ...body,
+              terrainVersion,
+            }),
+        ) > 0.06
       )
         return false;
     }
     const rotation = planetRotation(body, time);
     location = translate(body.address, pilot.applyQuaternion(rotation));
     if (
-      save.version === 4 &&
+      save.version >= 4 &&
       difference(location, save.address!).length() > 1e-6
     )
       return false;
@@ -196,7 +205,7 @@ export function restoreExpedition(
     }));
     orientation.premultiply(rotation);
   } else {
-    if (save.version === 4) location = save.address!;
+    if (save.version >= 4) location = save.address!;
     else {
       // Keep old flights at their local address within the nearest legacy system.
       const oldPosition = new Vector3().fromArray(save.position);
@@ -213,6 +222,7 @@ export function restoreExpedition(
   }
   if (!validAddress(location)) return false;
   sim.reset();
+  sim.setTerrainVersion(terrainVersion);
   sim.setAddress(location);
   sim.rotationClock.time = time;
   sim.elapsed = time;

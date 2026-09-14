@@ -118,6 +118,7 @@ export function terrainSignature(
     body.seed,
     body.radius,
     body.kind,
+    body.terrainVersion ?? 1,
     quality,
     options.pixels,
     options.projection,

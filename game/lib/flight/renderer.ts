@@ -120,6 +120,7 @@ export class FlightRenderer {
   planets: PlanetView[] = [];
   system = -1;
   originRevision = -1;
+  terrainVersion = -1;
   stars: T.Points;
   sun = new T.Group();
   nebula: T.Mesh;
@@ -205,12 +206,12 @@ export class FlightRenderer {
     this.scene.add(this.keyLight.target, this.fillLight.target);
     this.keyLight.shadow.mapSize.set(1024, 1024);
     Object.assign(this.keyLight.shadow.camera, {
-      left: -0.07,
-      right: 0.07,
-      top: 0.07,
-      bottom: -0.07,
+      left: -0.16,
+      right: 0.16,
+      top: 0.16,
+      bottom: -0.16,
       near: 0.001,
-      far: 0.5,
+      far: 0.9,
     });
     this.keyLight.shadow.camera.updateProjectionMatrix();
     this.keyLight.shadow.bias = -0.0002;
@@ -727,7 +728,12 @@ export class FlightRenderer {
     };
   }
   loadSystem() {
-    if (this.system === this.sim.activeSystem.id) return;
+    if (
+      this.system === this.sim.activeSystem.id &&
+      this.terrainVersion === this.sim.terrainVersion
+    )
+      return;
+    this.terrainVersion = this.sim.terrainVersion;
     this.patchToken++;
     this.contactToken++;
     // Superseded replies are ignored, so they cannot release these flags for us.
@@ -1101,7 +1107,7 @@ export class FlightRenderer {
     this.keyLight.target.position.copy(this.craft.ship.position);
     this.keyLight.position
       .copy(this.keyLight.target.position)
-      .addScaledVector(environment.keyDirection, 0.22);
+      .addScaledVector(environment.keyDirection, 0.42);
     this.keyLight.color
       .set(
         this.sim.activeSystem.companion?.color ??
@@ -1117,10 +1123,10 @@ export class FlightRenderer {
       .set(this.sim.activeSystem.star.color!)
       .lerp(daylightWhite, 0.65);
     this.fillLight.intensity = environment.secondaryIntensity;
-    this.ambient.intensity = 0.38 - density * 0.12;
+    this.ambient.intensity = 0.38 - density * 0.2;
     this.skyLight.position.copy(environment.up);
-    this.skyLight.color.copy(environment.horizon);
-    this.skyLight.intensity = density * (0.6 + daylight * 1.2);
+    this.skyLight.color.set('#b7c8ea');
+    this.skyLight.intensity = density * (0.35 + daylight * 0.55);
     const shadowActive =
       !title &&
       this.quality === 'high' &&

@@ -81,14 +81,14 @@ export function createShader(uniforms) {
 
   const shade = /*@__PURE__*/ Fn(([cloudDirection, cloudView]) => {
     const radial = normalize(cloudDirection);
-    const p = radial.mul(19).add(vec3(time.mul(0.0006), 0, time.mul(0.00022)));
+    const p = radial.mul(145).add(vec3(time.mul(0.0006), 0, time.mul(0.00022)));
     const field = cloudNoise(p)
       .mul(0.62)
       .add(cloudNoise(p.mul(2.7)).mul(0.26));
     field.addAssign(
       select(detail.greaterThan(0.5), cloudNoise(p.mul(7)).mul(0.12), 0.06),
     );
-    const mass = smoothstep(coverage, coverage.add(0.2), field);
+    const mass = smoothstep(coverage, coverage.add(0.14), field);
     const light = smoothstep(
       -0.18,
       0.5,
@@ -99,7 +99,7 @@ export function createShader(uniforms) {
     );
     const closeFade = smoothstep(0.15, 1.5, length(cloudView));
 
-    return vec4(color, mass.mul(0.68).mul(closeFade));
+    return vec4(color, mass.mul(0.83).mul(closeFade));
   });
 
   return shade;

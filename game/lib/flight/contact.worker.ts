@@ -20,6 +20,7 @@ const handle = async (
     body.seed,
     body.radius,
     body.kind,
+    body.terrainVersion ?? 1,
   ]);
   const direction = new Vector3().fromArray(center);
   const cached = await storage.read(

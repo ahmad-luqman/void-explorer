@@ -35,7 +35,7 @@ export function createCloudLayer(
         value: body.kind === 'desert' ? 0.61 : body.kind === 'ice' ? 0.48 : 0.5,
       },
       tint: {
-        value: new T.Color(body.kind === 'desert' ? '#e3b6b5' : '#b2dce6'),
+        value: new T.Color(body.kind === 'desert' ? '#e3b6b5' : '#f4e5e8'),
       },
     },
     vertexShader: `varying vec3 cloudDirection;varying vec3 cloudView;
@@ -53,14 +53,14 @@ export function createCloudLayer(
         return mix(mix(mix(cloudHash(i),cloudHash(i+vec3(1,0,0)),f.x),mix(cloudHash(i+vec3(0,1,0)),cloudHash(i+vec3(1,1,0)),f.x),f.y),
         mix(mix(cloudHash(i+vec3(0,0,1)),cloudHash(i+vec3(1,0,1)),f.x),mix(cloudHash(i+vec3(0,1,1)),cloudHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
       void main(){vec3 radial=normalize(cloudDirection);
-        vec3 p=radial*19.+vec3(time*.0006,0.,time*.00022);
+        vec3 p=radial*145.+vec3(time*.0006,0.,time*.00022);
         float field=cloudNoise(p)*.62+cloudNoise(p*2.7)*.26;
         field+=detail>.5?cloudNoise(p*7.)*.12:.06;
-        float mass=smoothstep(coverage,coverage+.2,field);
+        float mass=smoothstep(coverage,coverage+.14,field);
         float light=smoothstep(-.18,.5,max(dot(radial,keyDirection),dot(radial,secondaryDirection)));
         vec3 color=mix(vec3(.025,.025,.06),tint,light)*(.75+field*.35);
         float closeFade=smoothstep(.15,1.5,length(cloudView));
-        gl_FragColor=vec4(color,mass*.68*closeFade);
+        gl_FragColor=vec4(color,mass*.83*closeFade);
         #include <fog_fragment>
       }`,
   });

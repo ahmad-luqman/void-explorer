@@ -2,7 +2,7 @@ import { Color, MathUtils, Vector3 } from 'three';
 import type { Body, System } from './universe';
 
 const palettes = {
-  ocean: { zenith: '#123257', horizon: '#649bac', dusk: '#a5679e' },
+  ocean: { zenith: '#286398', horizon: '#b7b9d2', dusk: '#a5679e' },
   desert: { zenith: '#48243f', horizon: '#bf8979', dusk: '#d15d86' },
   ice: { zenith: '#233859', horizon: '#9ab9c9', dusk: '#8e80bf' },
 };
@@ -55,7 +55,7 @@ export function sampleEnvironment(
           density,
         )
       : 0,
-    hazeDensity: density * (0.012 + daylight * 0.009),
+    hazeDensity: density * (0.025 + daylight * 0.04),
     starOpacity: 0.95 * (1 - density * (0.62 + daylight * 0.38)) ** 2,
   };
 }

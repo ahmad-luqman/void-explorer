@@ -1,3 +1,25 @@
+# Coastal visual quality recovery
+
+## Playable Lumen Coast
+
+The title's **Explore Lumen Coast** starts a new flight 120 m above a safe landing shelf on Aurelia Veil, at a deterministic late-afternoon rotation phase. Landing, walking, looking toward the Tide Sentinels, reboarding and taking off use the ordinary simulation. The original orbital expedition and Continue actions remain available.
+
+`coast.ts` shapes a bounded native region with a shelf, connected coves, offshore islands, broken peaks and inland ridges. It blends back into the original heightfield between 18 and 30 km. Globe/worker terrain and ground collision sample that same versioned heightfield. `coast-scenery.ts` adds fixed seeded 35 m clusters of broad fans and rubble, plus two fractured landmark formations. A 39 m central exclusion protects the ship footprint and side exits. The existing 700-prop budget, 800 m detail range and collision envelopes still apply. Landmark geometry remains below 200 triangles; rocks use 80 triangles. No camera-facing landscape image or collision-free scenic backdrop is used.
+
+Dry ocean-world elevations below 200 m previously entered the shallow-water color branch. They now receive violet land colors, while only submerged elevations receive depth colors. Neutral sky fill, a wider local shadow footprint, stronger distant haze and smaller cloud formations improve depth. Close ground detail fades with distance to avoid moire. Both rendering backends share animated water bands and a height-gated shoreline tint. Clean presentation is now the default for new settings; existing presentation preferences remain respected.
+
+## Saved geography
+
+Expedition format 5 records terrain profile 1 or 2. New expeditions use profile 2; version-2/3/4 expeditions restore profile 1 and retain that original terrain through subsequent saves. Attached poses are validated against the saved profile before live state changes. Terrain cache revision 5 and both worker signatures distinguish the profiles. The renderer reloads native meshes when the profile changes, even within the same system. Scenery revision 2 continues to protect earlier saved poses; new coastal props appear only in profile 2.
+
+## Validation and remaining visual work
+
+Type checking and all 79 unit tests pass. Added coverage checks the safe shelf, water and offshore/inland relief, violet dry-land colors, legacy terrain preservation and cache profile separation. Focused browser and production validation results will be recorded below after the final visual review.
+
+The concept remains a higher-detail target. This slice improves geography, palette, silhouettes and foreground density; it does not provide volumetric clouds, physical wave geometry/reflections, terrain self-shadowing, a newly detailed ship model or globally authored environments. Hardware performance and existing repository-wide lint/dependency work remain deferred. Historical milestone notes below describe earlier versions.
+
+---
+
 # Richer surface exploration milestone
 
 ## Biomes and coastal exploration

@@ -9,9 +9,9 @@ export function addSurfaceMaterial(
   anchor: Vector3,
 ) {
   (material.userData.flightTerrain ??= {}).ground = { body, anchor };
-  const previous = material.onBeforeCompile;
+  const previous = material.onBeforeCompile.bind(material);
   material.onBeforeCompile = (shader, renderer) => {
-    previous.call(material, shader, renderer);
+    previous(shader, renderer);
     shader.uniforms.surfaceAnchor = {
       value: anchor.clone(),
     };
@@ -28,10 +28,11 @@ export function addSurfaceMaterial(
   vec3 mineralPosition=vContactLocal+surfaceAnchor;
   float seaHeight=length(mineralPosition)-planetRadius;
   float wet=oceanWorld*(1.-smoothstep(.0002,.001,seaHeight));
-  float gravel=mineralHash(floor(mineralPosition*1200.));
-  float stone=mineralHash(floor(mineralPosition*95.));
-  float strata=.5+.5*sin(seaHeight*210.+stone*1.8);
-  float groundTone=.87+.10*stone+.10*gravel+.055*strata;
+  float gravel=mineralHash(floor(mineralPosition*7200.));
+  float stone=mineralHash(floor(mineralPosition*440.));
+  float strata=.5+.5*sin(seaHeight*600.+stone*.6);
+  float groundTone=.65+.22*stone+.14*gravel+.18*strata;
+  groundTone=mix(groundTone,.94,smoothstep(.06,.4,length(vViewPosition)));
   diffuseColor.rgb*=mix(groundTone,1.,wet);
   diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.8,1.06,1.13),wet*.3);
   `,
@@ -43,5 +44,5 @@ export function addSurfaceMaterial(
   `,
     );
   };
-  material.customProgramCacheKey = () => 'surface-minerals-v1';
+  material.customProgramCacheKey = () => 'surface-minerals-v2';
 }

@@ -110,7 +110,7 @@ export class SurfaceExpedition {
     if (!prop) return;
     const target = prop.point
       .clone()
-      .addScaledVector(prop.normal, prop.height * 0.5);
+      .addScaledVector(prop.normal, prop.height * 0.18);
     this.sim.orientation.setFromRotationMatrix(
       new Matrix4().lookAt(this.sim.position, target, this.patch.up),
     );

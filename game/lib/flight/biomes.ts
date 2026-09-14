@@ -13,7 +13,7 @@ const regions: Record<Body['kind'], Biome[]> = {
     {
       id: 'littoral',
       name: 'Tidal terraces',
-      color: '#7da8a8',
+      color: '#a27f96',
       vegetation: 'fan',
       density: 0.32,
     },

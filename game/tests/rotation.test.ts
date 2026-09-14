@@ -183,7 +183,7 @@ describe('rotating planet frames', () => {
     source.surface.setPatch(patch);
     advance(source, 30);
     const migrated = captureExpedition(source)!;
-    expect(migrated.version).toBe(4);
+    expect(migrated.version).toBe(5);
     expect(migrated.surface.sceneryClearings).toHaveLength(2);
     close(
       new Vector3().fromArray(migrated.surface.sceneryClearings![0].point),

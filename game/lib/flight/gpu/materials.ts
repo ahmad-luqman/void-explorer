@@ -88,14 +88,19 @@ export function convertMaterial(source: T.Material): T.Material {
       N.smoothstep(0.0002, 0.001, height).oneMinus(),
     );
     const seed = N.float(body.seed % 997);
-    const gravel = hash(p.mul(1200).floor(), seed),
-      stone = hash(p.mul(95).floor(), seed);
-    const strata = height.mul(210).add(stone.mul(1.8)).sin().mul(0.5).add(0.5);
-    const tone = stone
-      .mul(0.1)
-      .add(gravel.mul(0.1))
-      .add(strata.mul(0.055))
-      .add(0.87);
+    const gravel = hash(p.mul(7200).floor(), seed),
+      stone = hash(p.mul(440).floor(), seed);
+    const strata = height.mul(600).add(stone.mul(0.6)).sin().mul(0.5).add(0.5);
+    const rawTone = stone
+      .mul(0.22)
+      .add(gravel.mul(0.14))
+      .add(strata.mul(0.18))
+      .add(0.65);
+    const tone = N.mix(
+      rawTone,
+      0.94,
+      N.smoothstep(0.06, 0.4, N.positionView.length()),
+    );
     material.colorNode = N.materialColor
       .mul(N.mix(tone, 1, wet))
       .mul(N.mix(N.vec3(1), N.vec3(0.8, 1.06, 1.13), wet.mul(0.3)));
@@ -110,6 +115,25 @@ export function convertMaterial(source: T.Material): T.Material {
     ).clamp();
     const t = N.reference('value', 'float', time),
       radial = p.normalize();
+    const bands = p
+      .dot(N.vec3(183, 57, 129))
+      .add(t.mul(0.85))
+      .add(p.dot(N.vec3(51, -73, 91)).sin())
+      .sin()
+      .mul(0.5)
+      .add(0.5);
+    const shore = wet
+      .mul(wet.oneMinus())
+      .mul(2)
+      .mul(N.smoothstep(0.35, 0.85, bands))
+      .mul(N.smoothstep(0.0002, 0.001, p.length().sub(body.radius)).oneMinus());
+    const baseColor =
+      (material.colorNode as Node<'vec3'> | null) ?? N.materialColor;
+    material.colorNode = N.mix(
+      baseColor.mul(N.mix(1, bands.mul(0.12).add(0.94), wet)),
+      N.vec3(0.62, 0.83, 0.79),
+      shore,
+    );
     const wave = N.vec3(
       p
         .dot(N.vec3(43, 17, 29))

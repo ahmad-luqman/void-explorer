@@ -1,5 +1,7 @@
 import { Line3, Ray, Vector3 } from 'three';
 import type { ContactSurface } from './contact';
+import { COAST_UP } from './coast';
+import { coastalScenery } from './coast-scenery';
 import { sampleBiome } from './biomes';
 import { toPlanet, fromPlanet } from './rotation';
 import { random, surfaceRadius } from './universe';
@@ -87,12 +89,24 @@ export function generateScenery(
         });
       }
   }
-  const additions = generateExplorationScenery(patch, focus);
-  const landmarks = additions.filter((p) => p.shape === 'landmark');
+  const additions = [
+    ...generateExplorationScenery(patch, focus),
+    ...coastalScenery(patch, focus),
+  ];
+  const visible = (p: SurfaceProp) =>
+    body.id !== 'p0-0' ||
+    body.terrainVersion !== 2 ||
+    p.id.includes(':coast:') ||
+    toPlanet(p.point, body).normalize().distanceTo(COAST_UP) * body.radius >
+      1.5;
+  const landmarks = additions.filter(
+    (p) => p.shape === 'landmark' && visible(p),
+  );
   props.push(...additions.filter((p) => p.shape !== 'landmark'));
   // Reserve landmark coverage; retain nearby small obstacles within the total cap.
   return landmarks.concat(
     props
+      .filter(visible)
       .sort(
         (a, b) =>
           a.point.distanceToSquared(center) - b.point.distanceToSquared(center),

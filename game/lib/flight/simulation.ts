@@ -13,6 +13,8 @@ import {
   type Cells,
   type SpaceAddress,
 } from './coordinates';
+import { COAST_UP, COAST_FORWARD, COAST_TIME } from './coast';
+import { surfaceRadius } from './universe';
 import { SurfaceExpedition } from './surface';
 import { flightClearance } from './flight-clearance';
 import {
@@ -57,6 +59,7 @@ export class FlightSimulation {
   autopilot = false;
   descending = false;
   elapsed = 0;
+  terrainVersion: 1 | 2 = 2;
   rotationClock = { time: 0 };
   activeSystem: System = this.systems[0];
   target: Body = this.systems[0].planets[0];
@@ -71,7 +74,38 @@ export class FlightSimulation {
     for (const system of this.systems)
       for (const body of system.planets)
         body.rotationClock = this.rotationClock;
+    this.setTerrainVersion(2);
     this.face(this.target.position);
+    this.updateEnvironment();
+  }
+  setTerrainVersion(version: 1 | 2) {
+    this.terrainVersion = version;
+    for (const system of this.systems)
+      for (const body of system.planets) body.terrainVersion = version;
+  }
+  startCoast() {
+    this.reset();
+    this.rotationClock.time = COAST_TIME;
+    this.elapsed = COAST_TIME;
+    this.position
+      .copy(this.target.position)
+      .addScaledVector(COAST_UP, surfaceRadius(COAST_UP, this.target) + 0.12);
+    this.orientation.setFromRotationMatrix(
+      new Matrix4().lookAt(
+        this.position,
+        this.position
+          .clone()
+          .add(COAST_FORWARD)
+          .addScaledVector(COAST_UP, -0.15),
+        COAST_UP,
+      ),
+    );
+    const rotation = planetRotation(this.target);
+    this.position
+      .sub(this.target.position)
+      .applyQuaternion(rotation)
+      .add(this.target.position);
+    this.orientation.premultiply(rotation);
     this.updateEnvironment();
   }
   get address(): SpaceAddress {
@@ -144,6 +178,7 @@ export class FlightSimulation {
     this.pulse = false;
   }
   reset() {
+    this.setTerrainVersion(2);
     this.surface.reset();
     this.elapsed = 0;
     this.rotationClock.time = 0;

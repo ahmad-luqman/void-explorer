@@ -3,7 +3,7 @@
 export const TERRAIN_DATABASE = 'void-terrain-v1';
 export const TERRAIN_STORAGE_BYTES = 32 * 1024 * 1024;
 export const TERRAIN_STORAGE_ENTRIES = 48;
-export const TERRAIN_REVISION = 4;
+export const TERRAIN_REVISION = 5;
 export type MeshMetadata = {
   key: string;
   signature: string;

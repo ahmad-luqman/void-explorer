@@ -8,18 +8,14 @@ export function terrainColor(
   biome?: Biome,
 ) {
   const palettes = {
-    ocean: ['#092e50', '#11647b', '#369d9e', '#665d9c', '#be83ce'],
+    ocean: ['#ab8594', '#886b87', '#76627e', '#665578', '#b18db8'],
     desert: ['#41213b', '#87405c', '#b56c73', '#d69b87', '#f9d7b4'],
     ice: ['#174358', '#377e8f', '#84b7c9', '#b0ccdf', '#e5e5f9'],
   };
-  if (kind === 'ocean' && height < 0.0002) {
-    const deep = new Color('#092e50'),
-      shallow = new Color('#248e9c');
-    return (
-      height <= 0
-        ? deep.lerp(shallow, Math.exp(height / 0.006))
-        : shallow.lerp(new Color('#72afa6'), Math.min(1, height / 0.0002))
-    ).multiplyScalar(variation);
+  if (kind === 'ocean' && height <= 0) {
+    return new Color('#123e65')
+      .lerp(new Color('#38aaa6'), Math.exp(height / 0.00018))
+      .multiplyScalar(variation);
   }
   const index =
     kind === 'ocean'
