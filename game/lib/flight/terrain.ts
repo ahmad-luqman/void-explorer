@@ -1,9 +1,11 @@
 import { Color } from 'three';
+import type { Biome } from './biomes';
 import { type Body } from './universe';
 export function terrainColor(
   height: number,
   kind: Body['kind'],
   variation = 1,
+  biome?: Biome,
 ) {
   const palettes = {
     ocean: ['#092e50', '#11647b', '#369d9e', '#665d9c', '#be83ce'],
@@ -31,5 +33,7 @@ export function terrainColor(
               ? 3
               : 4
       : Math.min(4, Math.max(0, Math.floor((height + 0.06) * 43)));
-  return new Color(palettes[kind][index]).multiplyScalar(variation);
+  const color = new Color(palettes[kind][index]);
+  if (biome) color.lerp(new Color(biome.color), 0.6);
+  return color.multiplyScalar(variation);
 }

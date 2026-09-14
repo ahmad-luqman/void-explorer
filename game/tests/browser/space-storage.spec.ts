@@ -167,3 +167,40 @@ test('native IndexedDB cache enforces both LRU bounds and discards corrupt paylo
   expect(result.bounded.entries).toBe(4);
   expect(result.hit).toBeNull();
 });
+
+test('changing systems releases a superseded terrain request before its delayed reply', async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await page.route('**/terrain.worker.ts?worker_file*', async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      body: `const originalPost = self.postMessage.bind(self); let delayed = false; self.postMessage = (data, options) => { if (!delayed) { delayed = true; setTimeout(() => originalPost(data, options), 8000); } else originalPost(data, options); };\n${await response.text()}`,
+    });
+  });
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: 'START EXPEDITION' }),
+  ).toBeEnabled({ timeout: 45000 });
+  await expect
+    .poll(() => page.evaluate(() => window.__VOID_EXPLORER__!.state()), {
+      timeout: 5000,
+    })
+    .toMatchObject({ terrainPending: true });
+  await page.evaluate(() => window.__VOID_EXPLORER__!.scene('remote-landing'));
+  await expect
+    .poll(() => page.evaluate(() => window.__VOID_EXPLORER__!.state()), {
+      timeout: 20000,
+    })
+    .toMatchObject({
+      system: 500,
+      terrainStats: { bodyId: 'p500-1' },
+      contactReady: true,
+    });
+  await expect
+    .poll(() => page.evaluate(() => window.__VOID_EXPLORER__!.state()), {
+      timeout: 15000,
+    })
+    .toMatchObject({ terrainStats: { discarded: 1, bodyId: 'p500-1' } });
+});

@@ -1,3 +1,4 @@
+import { sampleBiome } from './biomes';
 import { Vector3 } from 'three';
 import { surfaceRadius, elevation, type Body } from './universe';
 import { terrainColor } from './terrain';
@@ -213,6 +214,7 @@ export function generatePlanetTerrain(
           Math.abs(
             Math.sin(direction.x * 127 + direction.y * 83 + direction.z * 59),
           ),
+      sampleBiome(direction, body),
     );
     colors.push(color.r, color.g, color.b);
     vertices.set(key, index);

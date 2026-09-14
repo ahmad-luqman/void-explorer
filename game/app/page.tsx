@@ -60,6 +60,10 @@ const initial = {
   guidance: 'Ready to navigate',
   eta: null as number | null,
   closingSpeed: 0,
+  survey: { biome: '', landmark: null } as {
+    biome: string;
+    landmark: { id: string; name: string; distance: number } | null;
+  },
 };
 type Telemetry = typeof initial;
 type Runtime = { sim: FlightSimulation; view: FlightRenderer };
@@ -340,6 +344,7 @@ export default function Home() {
                 sim.surface.message,
               shipDistance: sim.surface.shipDistance,
               walked: sim.surface.walked,
+              survey: sim.surface.survey,
               contactReady: !!sim.surface.patch,
               ...marker,
             });
@@ -371,6 +376,12 @@ export default function Home() {
               shipModel: view?.craft.modelSource,
               lighting: view?.lighting,
               sceneryCount: sim.surface.scenery.length,
+              vegetationCount: sim.surface.scenery.filter(
+                (p) => p.shape === 'fan' || p.shape === 'succulent',
+              ).length,
+              landmarkCount: sim.surface.scenery.filter((p) => p.landmark)
+                .length,
+              survey: sim.surface.survey,
               cloudLayers: view?.planets.length,
             }),
             select: (id) => sim.select(id),
@@ -382,6 +393,20 @@ export default function Home() {
               }
               if (name === 'landing' || name === 'rotating-landing') {
                 sim.position.set(0, 0, sim.target.radius + 35);
+                sim.face(sim.target.position);
+              }
+              if (name === 'coastal-landing') {
+                const up = new Vector3(
+                  0.4578271005130527,
+                  0.8452666666666666,
+                  0.2755333160582099,
+                );
+                sim.position
+                  .copy(sim.target.position)
+                  .addScaledVector(
+                    up,
+                    sim.target.radius + elevation(up, sim.target) + 10,
+                  );
                 sim.face(sim.target.position);
               }
               if (name === 'low-flight') {
@@ -875,6 +900,19 @@ export default function Home() {
                 >
                   Save expedition
                 </button>
+              </div>
+              <div className="surface-survey">
+                <span>LOCAL BIOME</span>
+                <b>{data.survey.biome || 'Surveying terrain…'}</b>
+                {data.survey.landmark && (
+                  <button onClick={() => sim?.surface.lookAtLandmark()}>
+                    <span>{data.survey.landmark.name}</span>
+                    <b>
+                      {distanceLabel(data.survey.landmark.distance)} · Look
+                      toward
+                    </b>
+                  </button>
+                )}
               </div>
               <p className="surface-hint">
                 WASD to walk · arrows or drag to look

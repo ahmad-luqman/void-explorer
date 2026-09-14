@@ -104,7 +104,12 @@ export function parseExpedition(raw: string | null): ExpeditionSave | null {
       f.walked < 0
     )
       return null;
-    if (f.sceneryVersion !== undefined && f.sceneryVersion !== 1) return null;
+    if (
+      f.sceneryVersion !== undefined &&
+      f.sceneryVersion !== 1 &&
+      f.sceneryVersion !== 2
+    )
+      return null;
     if (
       f.sceneryClearings !== undefined &&
       (!Array.isArray(f.sceneryClearings) ||

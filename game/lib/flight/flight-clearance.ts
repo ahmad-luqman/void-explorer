@@ -66,7 +66,7 @@ export function flightClearance(
   let reason =
     'Ground clearance — engines stopped. Pitch up or choose a clear landing site.';
   for (const prop of scenery) {
-    // A capsule encloses both rendered shapes, including tilted minerals and
+    // A capsule encloses all rendered shapes, including tilted minerals and
     // the translated icosahedron. Unlike walking footprints, this permits overflight.
     const relative = position.clone().sub(prop.point);
     const along = Math.max(
@@ -81,7 +81,7 @@ export function flightClearance(
     if (separation < distance) {
       distance = separation;
       reason =
-        'Obstacle clearance — engines stopped. Climb or steer around the rocks.';
+        'Obstacle clearance — engines stopped. Climb or steer around the obstacle.';
     }
   }
   return { distance, reason };

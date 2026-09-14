@@ -1,3 +1,4 @@
+import { sampleBiome } from './biomes';
 import type { TerrainStorage } from './terrain-storage';
 import { planetRotation, toPlanet } from './rotation';
 import * as T from 'three';
@@ -629,6 +630,7 @@ export class FlightRenderer {
           avg / body.radius,
           body.kind,
           0.94 + 0.06 * Math.abs(Math.sin(i * 7.713)),
+          sampleBiome(d.clone().normalize(), body, avg),
         ),
       );
       for (let j = 0; j < 3; j++) color.toArray(colors, (i + j) * 3);
@@ -728,6 +730,11 @@ export class FlightRenderer {
     if (this.system === this.sim.activeSystem.id) return;
     this.patchToken++;
     this.contactToken++;
+    // Superseded replies are ignored, so they cannot release these flags for us.
+    // The new system must be able to request its own terrain immediately.
+    this.patchPending = false;
+    this.contactPending = false;
+    this.terrainRequestAt = 0;
     for (const view of this.planets) view.contactRadius.value = 0;
     if (this.contactMesh) {
       this.scene.remove(this.contactMesh);

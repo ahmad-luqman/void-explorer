@@ -1,3 +1,4 @@
+import { sampleBiome } from './biomes';
 import { Quaternion, Ray, Vector3 } from 'three';
 import { type Body, elevation, surfaceRadius } from './universe';
 import {
@@ -111,6 +112,7 @@ export function generateContact(body: Body, center: Vector3): ContactData {
             Math.sin(
               direction.x * body.radius * 2.1 + direction.z * body.radius * 1.7,
             ),
+        sampleBiome(direction, body, h),
       ).toArray(colors, offset);
       offset += 3;
     }

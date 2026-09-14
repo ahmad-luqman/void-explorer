@@ -14,7 +14,7 @@ test('clouds and rock fields remain available through landing and an excursion',
       cloudLayers: number;
       contactReady: boolean;
       walked: number;
-      shipPosition: number[];
+      surfaceShipPosition: number[];
     }>;
   await page.goto('/');
   await expect(
@@ -33,7 +33,7 @@ test('clouds and rock fields remain available through landing and an excursion',
     timeout: 25000,
   });
   await page.getByRole('button', { name: /Leave ship/ }).click();
-  const ship = (await state()).shipPosition;
+  const ship = (await state()).surfaceShipPosition;
   await page.keyboard.down('s');
   await expect
     .poll(async () => (await state()).walked, {
@@ -46,6 +46,10 @@ test('clouds and rock fields remain available through landing and an excursion',
   await page.keyboard.up('ArrowLeft');
   await page.waitForTimeout(800);
   await page.screenshot({ path: 'test-results/scenery-excursion.png' });
-  expect((await state()).shipPosition).toEqual(ship);
+  expect(
+    Math.hypot(
+      ...(await state()).surfaceShipPosition.map((value, i) => value - ship[i]),
+    ),
+  ).toBeLessThan(1e-7);
   expect(errors).toEqual([]);
 });

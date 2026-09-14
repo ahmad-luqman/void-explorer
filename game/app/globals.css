@@ -1567,3 +1567,34 @@ h1 > span {
     width: 100%;
   }
 }
+
+.surface-survey {
+  border-top: 1px solid rgba(129, 220, 229, 0.2);
+  margin-top: 12px;
+  padding-top: 12px;
+  display: grid;
+  gap: 6px;
+}
+.surface-survey > span {
+  color: #a5bec8;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+.surface-survey > b {
+  font-size: 14px;
+  font-weight: 500;
+}
+.surface-survey button {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 10px 0;
+  color: #8bdde6;
+  font: inherit;
+  font-size: 14px;
+}
+.surface-survey button b {
+  font-size: 12px;
+  font-weight: 400;
+  color: #b6c8d1;
+}

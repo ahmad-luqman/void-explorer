@@ -7,9 +7,16 @@ import {
   SHIP_SCALE,
   type GroundSample,
 } from './contact';
+import { sampleBiome } from './biomes';
+import { toPlanet } from './rotation';
 import type { Body } from './universe';
 import type { FlightSimulation, Controls } from './simulation';
-import { generateScenery, sceneryBlocks, type SurfaceProp } from './scenery';
+import {
+  generateScenery,
+  sceneryBlocks,
+  sceneryApproachBlocked,
+  type SurfaceProp,
+} from './scenery';
 export type SurfacePhase =
   | 'flight'
   | 'landing'
@@ -23,7 +30,7 @@ export type SurfaceRecord = {
   shipPosition: number[];
   shipOrientation: number[];
   walked: number;
-  sceneryVersion?: 1;
+  sceneryVersion?: 1 | 2;
   sceneryClearings?: { point: number[]; radius: number }[];
 };
 const FORWARD = new Vector3(0, 0, -1),
@@ -70,6 +77,44 @@ export class SurfaceExpedition {
       this.patch.syncRotation();
     }
   }
+  get survey() {
+    const body = this.patch?.body;
+    if (!body || body.id !== this.sim.nearest.id)
+      return { biome: '', landmark: null };
+    const biome = sampleBiome(
+      toPlanet(this.sim.position, body).normalize(),
+      body,
+    ).name;
+    const prop = this.scenery
+      .filter((p) => p.landmark)
+      .sort(
+        (a, b) =>
+          a.point.distanceToSquared(this.sim.position) -
+          b.point.distanceToSquared(this.sim.position),
+      )[0];
+    return {
+      biome,
+      landmark: prop
+        ? {
+            id: prop.id,
+            name: prop.landmark!,
+            distance: prop.point.distanceTo(this.sim.position),
+          }
+        : null,
+    };
+  }
+  lookAtLandmark() {
+    if (this.phase !== 'walking' || !this.patch) return;
+    const selected = this.survey.landmark;
+    const prop = this.scenery.find((p) => p.id === selected?.id);
+    if (!prop) return;
+    const target = prop.point
+      .clone()
+      .addScaledVector(prop.normal, prop.height * 0.5);
+    this.sim.orientation.setFromRotationMatrix(
+      new Matrix4().lookAt(this.sim.position, target, this.patch.up),
+    );
+  }
   get shipDistance() {
     return this.sim.position.distanceTo(this.shipPosition);
   }
@@ -109,7 +154,13 @@ export class SurfaceExpedition {
     this.scenery = generateScenery(patch, this.sim.position).filter(
       (prop) =>
         !this.sceneryExclusions.some(
-          (e) => prop.point.distanceTo(e.point) < e.radius + prop.radius,
+          (e) =>
+            prop.point.distanceTo(e.point) <
+            e.radius +
+              prop.radius +
+              prop.height *
+                2 *
+                Math.sqrt(Math.max(0, 1 - prop.normal.dot(patch.up) ** 2)),
         ),
     );
     this.sceneryAnchor.copy(this.sim.position);
@@ -142,7 +193,8 @@ export class SurfaceExpedition {
       return null;
     }
     if (sceneryBlocks(this.scenery, ground.point, patch.up, 0.035)) {
-      this.message = 'Rocks near the landing footprint. Find an open clearing.';
+      this.message =
+        'Obstacles near the landing footprint. Find an open clearing.';
       return null;
     }
     const forward = FORWARD.clone().applyQuaternion(this.sim.orientation);
@@ -178,6 +230,11 @@ export class SurfaceExpedition {
         return null;
       }
     }
+    if (sceneryApproachBlocked(this.scenery, this.sim.position, position)) {
+      this.message =
+        'Obstacles near the landing approach. Find an open clearing.';
+      return null;
+    }
     return { ground, orientation, position };
   }
   land() {
@@ -195,7 +252,7 @@ export class SurfaceExpedition {
     this.refreshScenery(true);
     let site = this.stance();
     let adjusted = false;
-    if (!site && this.message.startsWith('Rocks near') && this.patch) {
+    if (!site && this.message.startsWith('Obstacles near') && this.patch) {
       // Choose a nearby dry, level opening before starting the final approach.
       for (const radius of [0.06, 0.1, 0.16]) {
         for (let i = 0; i < 12 && !site; i++) {
@@ -309,7 +366,7 @@ export class SurfaceExpedition {
       shipPosition: this.shipPosition.toArray(),
       shipOrientation: this.shipOrientation.toArray(),
       walked: this.walked,
-      sceneryVersion: 1,
+      sceneryVersion: 2,
       sceneryClearings: this.sceneryExclusions.map((e) => ({
         point: e.point.toArray(),
         radius: e.radius,
@@ -322,13 +379,13 @@ export class SurfaceExpedition {
     this.shipOrientation.fromArray(record.shipOrientation);
     this.walked = record.walked;
     this.bodyId = record.bodyId;
-    if (record.sceneryVersion === 1) {
+    if (record.sceneryVersion === 2) {
       this.sceneryExclusions = (record.sceneryClearings ?? []).map((e) => ({
         point: new Vector3().fromArray(e.point),
         radius: e.radius,
       }));
     } else if (record.phase !== 'flight') {
-      // Preserve access for expeditions saved before scenery was introduced.
+      // New scenery must not obstruct an older saved ship, exit, or walking pose.
       this.sceneryExclusions = [
         { point: this.shipPosition.clone(), radius: 0.04 },
         { point: this.sim.position.clone(), radius: 0.004 },
@@ -443,7 +500,7 @@ export class SurfaceExpedition {
     }
     if (sceneryBlocks(this.scenery, ground.point, up, 0.0007)) {
       s.speed = 0;
-      this.message = 'Rock formation ahead. Walk around it.';
+      this.message = 'Surface obstacle ahead. Walk around it.';
       return;
     }
     const before = s.position.clone();

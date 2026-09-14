@@ -121,7 +121,7 @@ describe('persistent surface scenery', () => {
     restored.surface.setPatch(patch);
     expect(restored.surface.scenery.some((p) => p.id === rock.id)).toBe(false);
     const saved = captureExpedition(restored)!;
-    expect(saved.surface.sceneryVersion).toBe(1);
+    expect(saved.surface.sceneryVersion).toBe(2);
     expect(saved.surface.sceneryClearings).toHaveLength(2);
     const again = new FlightSimulation();
     expect(restoreExpedition(again, saved)).toBe(true);
