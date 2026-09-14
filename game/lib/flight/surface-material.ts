@@ -8,6 +8,7 @@ export function addSurfaceMaterial(
   body: Body,
   anchor: Vector3,
 ) {
+  (material.userData.flightTerrain ??= {}).ground = { body, anchor };
   const previous = material.onBeforeCompile;
   material.onBeforeCompile = (shader, renderer) => {
     previous.call(material, shader, renderer);

@@ -18,6 +18,9 @@ test('production export loads terrain workers and supports a complete approach',
   await expect(
     page.getByRole('button', { name: 'START EXPEDITION' }),
   ).toBeEnabled({ timeout: 45000 });
+  await expect(page.locator('.title-top')).toContainText(
+    process.env.WEBGPU_TEST ? 'WEBGPU' : 'WEBGL',
+  );
   await page.screenshot({ path: 'test-results/production-title.png' });
   await page.getByRole('button', { name: 'START EXPEDITION' }).click();
   await expect(page.locator('.flight-top')).toBeVisible();

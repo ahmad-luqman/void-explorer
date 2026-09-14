@@ -10,6 +10,7 @@ export function addWaterMaterial(
   time: { value: number },
 ) {
   if (body.kind !== 'ocean') return;
+  (material.userData.flightTerrain ??= {}).water = { body, anchor, time };
   const previous = material.onBeforeCompile.bind(material);
   const cacheKey = material.customProgramCacheKey();
   material.onBeforeCompile = (shader, renderer) => {

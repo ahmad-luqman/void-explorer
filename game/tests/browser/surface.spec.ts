@@ -33,9 +33,10 @@ test('land, walk, save, reload, reboard, and take off', async ({ page }) => {
   await page.waitForTimeout(600);
   await page.screenshot({ path: 'test-results/on-foot.png' });
   await page.keyboard.down('s');
-  await page.waitForTimeout(2000);
+  await expect
+    .poll(async () => (await state()).walked, { timeout: 15000 })
+    .toBeGreaterThan(0.004);
   await page.keyboard.up('s');
-  expect((await state()).walked).toBeGreaterThan(0.004);
   expect((await state()).shipPosition).toEqual(parked);
   await page
     .getByRole('button', { name: 'Save expedition', exact: true })

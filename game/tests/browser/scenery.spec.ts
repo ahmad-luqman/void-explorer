@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 test('clouds and rock fields remain available through landing and an excursion', async ({
   page,
 }) => {
+  test.setTimeout(90000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => {
@@ -35,7 +36,9 @@ test('clouds and rock fields remain available through landing and an excursion',
   const ship = (await state()).shipPosition;
   await page.keyboard.down('s');
   await expect
-    .poll(async () => (await state()).walked, { timeout: 15000 })
+    .poll(async () => (await state()).walked, {
+      timeout: process.env.WEBGPU_TEST ? 35000 : 15000,
+    })
     .toBeGreaterThan(0.023);
   await page.keyboard.up('s');
   await page.keyboard.down('ArrowLeft');

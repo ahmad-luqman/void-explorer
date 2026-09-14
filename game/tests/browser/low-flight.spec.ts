@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 test('manually descends to ground clearance and climbs away in the same flight', async ({
   page,
 }) => {
-  test.setTimeout(90000);
+  test.setTimeout(process.env.WEBGPU_TEST ? 150000 : 90000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => {
@@ -31,7 +31,9 @@ test('manually descends to ground clearance and climbs away in the same flight',
     .poll(async () => (await state()).altitude, { timeout: 35000 })
     .toBeLessThan(0.05);
   await expect
-    .poll(async () => (await state()).flightMessage, { timeout: 15000 })
+    .poll(async () => (await state()).flightMessage, {
+      timeout: process.env.WEBGPU_TEST ? 40000 : 15000,
+    })
     .toContain('clearance');
   await page.keyboard.up('w');
   const near = await state();

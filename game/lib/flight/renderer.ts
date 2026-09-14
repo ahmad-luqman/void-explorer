@@ -1,4 +1,6 @@
 import * as T from 'three';
+import type { WebGPURenderer } from 'three/webgpu';
+import type { GpuBackend } from './gpu/backend';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -39,9 +41,9 @@ type PlanetView = {
 };
 const daylightWhite = new T.Color('#fff3e8');
 const atmosphereVertex = `varying vec3 vNormal; varying vec3 vPosition; void main(){vNormal=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vPosition=p.xyz;gl_Position=projectionMatrix*p;}`;
-const atmosphereFragment = `varying vec3 vNormal;varying vec3 vPosition;uniform vec3 color; void main(){float rim=pow(1.-abs(dot(normalize(vNormal),normalize(-vPosition))),3.);gl_FragColor=vec4(color,rim*.52);}`;
+const atmosphereFragment = `varying vec3 vNormal;varying vec3 vPosition;uniform vec3 color; void main(){float rim=pow(max(0.,1.-abs(dot(normalize(vNormal),normalize(-vPosition)))),3.);gl_FragColor=vec4(color,rim*.52);}`;
 const planetAtmosphereVertex = `varying vec3 vRadial;varying vec3 vNormal;varying vec3 vPosition;void main(){vRadial=normalize(position);vNormal=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vPosition=p.xyz;gl_Position=projectionMatrix*p;}`;
-const planetAtmosphereFragment = `varying vec3 vRadial;varying vec3 vNormal;varying vec3 vPosition;uniform vec3 color;uniform vec3 keyDirection;uniform vec3 secondaryDirection;void main(){float sunlight=max(dot(normalize(vRadial),keyDirection),dot(normalize(vRadial),secondaryDirection));float day=smoothstep(-.18,.35,sunlight);float rim=pow(1.-abs(dot(normalize(vNormal),normalize(-vPosition))),3.);vec3 tint=mix(vec3(.22,.045,.3),color,day);gl_FragColor=vec4(tint,rim*(.08+day*.6));}`;
+const planetAtmosphereFragment = `varying vec3 vRadial;varying vec3 vNormal;varying vec3 vPosition;uniform vec3 color;uniform vec3 keyDirection;uniform vec3 secondaryDirection;void main(){float sunlight=max(dot(normalize(vRadial),keyDirection),dot(normalize(vRadial),secondaryDirection));float day=smoothstep(-.18,.35,sunlight);float rim=pow(max(0.,1.-abs(dot(normalize(vNormal),normalize(-vPosition)))),3.);vec3 tint=mix(vec3(.22,.045,.3),color,day);gl_FragColor=vec4(tint,rim*(.08+day*.6));}`;
 const ringFragment = `varying vec2 vUv;void main(){float r=vUv.x;float bands=pow(.5+.5*sin(r*280.),5.)*.3+pow(.5+.5*sin(r*97.),12.)*.55+.06;float fade=smoothstep(0.,.08,r)*(1.-smoothstep(.9,1.,r));vec3 col=mix(vec3(.23,.015,.2),vec3(.95,.055,.54),bands);gl_FragColor=vec4(col*1.4,bands*fade*.8);}`;
 function applyTerrainMask(
   material: T.MeshStandardMaterial,
@@ -51,6 +53,9 @@ function applyTerrainMask(
   contactCenter = { value: new T.Vector3() },
   contactRadius = { value: 0 },
 ) {
+  material.userData.flightTerrain = {
+    mask: { contactCenter, contactRadius, center, cos, patch },
+  };
   material.onBeforeCompile = (shader) => {
     shader.uniforms.clipCenter = center;
     shader.uniforms.clipCos = cos;
@@ -90,11 +95,14 @@ function disposeObject(group: T.Object3D) {
 }
 
 export class FlightRenderer {
-  renderer: T.WebGLRenderer;
+  renderer: T.WebGLRenderer | WebGPURenderer;
+  get backend() {
+    return this.gpu ? 'WEBGPU' : 'WEBGL';
+  }
   scene = new T.Scene();
   camera = new T.PerspectiveCamera(58, 1, 0.0001, 2000000);
-  composer: EffectComposer;
-  bloom: UnrealBloomPass;
+  composer?: EffectComposer;
+  bloom?: UnrealBloomPass;
   craft = createShip();
   planets: PlanetView[] = [];
   system = -1;
@@ -108,6 +116,7 @@ export class FlightRenderer {
   height = 1;
   quality = 'high';
   disposed = false;
+  suspended = false;
   frame = 0;
   worker: Worker;
   patchPending = false;
@@ -149,13 +158,16 @@ export class FlightRenderer {
   constructor(
     public canvas: HTMLCanvasElement,
     public sim: FlightSimulation,
+    private gpu?: GpuBackend,
   ) {
-    this.renderer = new T.WebGLRenderer({
-      canvas,
-      antialias: true,
-      powerPreference: 'high-performance',
-      logarithmicDepthBuffer: true,
-    });
+    this.renderer =
+      gpu?.renderer ??
+      new T.WebGLRenderer({
+        canvas,
+        antialias: true,
+        powerPreference: 'high-performance',
+        logarithmicDepthBuffer: true,
+      });
     this.renderer.info.autoReset = false;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = T.PCFShadowMap;
@@ -179,11 +191,13 @@ export class FlightRenderer {
     this.keyLight.shadow.camera.updateProjectionMatrix();
     this.keyLight.shadow.bias = -0.0002;
     this.keyLight.shadow.normalBias = 0.00004;
-    this.composer = new EffectComposer(this.renderer);
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new T.Vector2(1, 1), 0.32, 0.45, 1.05);
-    this.composer.addPass(this.bloom);
-    this.composer.addPass(new OutputPass());
+    if (!gpu) {
+      this.composer = new EffectComposer(this.renderer as T.WebGLRenderer);
+      this.composer.addPass(new RenderPass(this.scene, this.camera));
+      this.bloom = new UnrealBloomPass(new T.Vector2(1, 1), 0.32, 0.45, 1.05);
+      this.composer.addPass(this.bloom);
+      this.composer.addPass(new OutputPass());
+    }
     this.scene.add(this.craft.ship);
     const visibleStars = sim.systems.flatMap((s) => [
       s.star,
@@ -226,7 +240,7 @@ export class FlightRenderer {
         'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: `varying vec3 v;uniform float air;uniform vec3 surfaceUp;uniform vec3 horizonColor;uniform vec3 zenithColor;uniform vec3 sunDirection;uniform float daylight;
       float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}float n(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
-      void main(){vec3 p=normalize(v);float cloud=n(p*8.)*.6+n(p*19.)*.27+n(p*48.)*.13;float band=exp(-pow((p.y+p.x*.46+sin(p.z*4.)*.16)*5.,2.));float mist=pow(cloud,3.)*band;vec3 col=mix(vec3(.09,.013,.16),vec3(.04,.22,.31),smoothstep(.4,.75,cloud));vec3 space=vec3(.001,.002,.008)+col*mist*1.5;float horizon=pow(1.-abs(dot(p,surfaceUp)),3.);float glow=pow(max(0.,dot(p,sunDirection)),12.)*daylight;vec3 sky=mix(zenithColor,horizonColor,horizon)+vec3(.18,.08,.045)*glow;gl_FragColor=vec4(mix(space,sky,air),1.);}`,
+      void main(){vec3 p=normalize(v);float cloud=n(p*8.)*.6+n(p*19.)*.27+n(p*48.)*.13;float bandCoordinate=(p.y+p.x*.46+sin(p.z*4.)*.16)*5.;float band=exp(-bandCoordinate*bandCoordinate);float mist=pow(cloud,3.)*band;vec3 col=mix(vec3(.09,.013,.16),vec3(.04,.22,.31),smoothstep(.4,.75,cloud));vec3 space=vec3(.001,.002,.008)+col*mist*1.5;float horizon=pow(max(0.,1.-abs(dot(p,surfaceUp))),3.);float glow=pow(max(0.,dot(p,sunDirection)),12.)*daylight;vec3 sky=mix(zenithColor,horizonColor,horizon)+vec3(.18,.08,.045)*glow;gl_FragColor=vec4(mix(space,sky,air),1.);}`,
     });
     this.nebula = new T.Mesh(
       new T.SphereGeometry(1500000, 24, 16),
@@ -392,6 +406,9 @@ export class FlightRenderer {
         roughness: 0.94,
         side: T.FrontSide,
       });
+      material.userData.flightTerrain = {
+        contact: { up: patch.up, radius: CONTACT_RADIUS },
+      };
       // The replacement and flight mesh share a circular boundary; publish
       // collision only after the matching render mesh exists.
       material.onBeforeCompile = (shader) => {
@@ -671,13 +688,13 @@ export class FlightRenderer {
     );
     this.renderer.setPixelRatio(ratio);
     this.renderer.setSize(this.width, this.height, false);
-    this.composer.setPixelRatio(ratio);
-    this.composer.setSize(this.width, this.height);
+    this.composer?.setPixelRatio(ratio);
+    this.composer?.setSize(this.width, this.height);
     this.camera.aspect = this.width / this.height;
     this.camera.updateProjectionMatrix();
   }
   draw(title: boolean, dt: number) {
-    if (this.disposed) return;
+    if (this.disposed || this.suspended) return;
     this.renderer.info.reset();
     this.loadSystem();
     this.enableLogDepth();
@@ -898,7 +915,15 @@ export class FlightRenderer {
       !!surface.patch &&
       environment.keyHeight > 0.06 &&
       (this.sim.altitude < 0.1 || surface.phase === 'walking');
-    this.keyLight.castShadow = shadowActive;
+    // Keep WebGPU's cached shadow graph alive across High/Low and altitude
+    // changes. Toggling castShadow disposes a node still used by the bloom pass.
+    this.keyLight.castShadow = this.gpu ? true : shadowActive;
+    this.keyLight.shadow.intensity = shadowActive ? 1 : 0;
+    this.keyLight.shadow.autoUpdate = shadowActive;
+    // Initialize the depth target before it can be sampled by inactive shadows;
+    // attaching an already sampled texture later invalidates cached GPU bindings.
+    this.keyLight.shadow.needsUpdate =
+      shadowActive || !this.keyLight.shadow.map;
     this.lighting = { daylight, density, shadows: shadowActive };
     (this.stars.material as T.PointsMaterial).opacity = environment.starOpacity;
     const sky = this.nebula.material as T.ShaderMaterial;
@@ -931,7 +956,9 @@ export class FlightRenderer {
       b.toArray(this.dustPositions, i * 6 + 3);
     }
     this.dust.geometry.attributes.position.needsUpdate = true;
-    if (this.quality === 'high') this.composer.render();
+    if (this.gpu)
+      this.gpu.render(this.scene, this.camera, this.quality === 'high');
+    else if (this.quality === 'high') this.composer!.render();
     else this.renderer.render(this.scene, this.camera);
   }
   targetScreen() {
@@ -969,14 +996,16 @@ export class FlightRenderer {
     return best;
   }
   dispose() {
+    if (this.disposed) return;
     this.disposed = true;
     this.craft.dispose();
     this.worker.terminate();
     this.contactWorker.terminate();
     disposeObject(this.scene);
-    this.composer.passes.forEach((pass) => pass.dispose());
-    this.composer.dispose();
+    this.composer?.passes.forEach((pass) => pass.dispose());
+    this.composer?.dispose();
+    this.gpu?.dispose();
     this.keyLight.shadow.dispose();
-    this.renderer.dispose();
+    void this.renderer.dispose();
   }
 }

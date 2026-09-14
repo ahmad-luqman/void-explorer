@@ -17,7 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { FlightSimulation, emptyControls } from '@/lib/flight/simulation';
-import { FlightRenderer } from '@/lib/flight/renderer';
+import type { FlightRenderer } from '@/lib/flight/renderer';
+import { createFlightRenderer } from '@/lib/flight/renderer-factory';
 import { registerFlightTools } from '@/lib/flight/webmcp';
 import { distanceLabel, elevation, SYSTEM_COUNT } from '@/lib/flight/universe';
 import { StarChart } from '@/components/star-chart';
@@ -67,12 +68,14 @@ declare global {
 }
 
 export default function Home() {
-  const canvas = useRef<HTMLCanvasElement>(null),
+  const canvas = useRef<HTMLDivElement>(null),
     runtime = useRef<Runtime | null>(null),
     keys = useRef(new Set<string>()),
     mouse = useRef({ x: 0, y: 0, down: false });
   const [ready, setReady] = useState(false),
     [error, setError] = useState(''),
+    [backend, setBackend] = useState('INITIALIZING'),
+    [rendererPreference, setRendererPreference] = useState('auto'),
     [started, setStarted] = useState(false),
     [paused, setPaused] = useState(false),
     [settings, setSettings] = useState(false),
@@ -133,6 +136,17 @@ export default function Home() {
       return false;
     }
   }
+  function switchRenderer(preference: string, recovering = false) {
+    if (started && !recovering && !saveExpedition()) return;
+    try {
+      localStorage.setItem('void-renderer', preference);
+    } catch {
+      /* URL works without storage. */
+    }
+    const url = new URL(location.href);
+    url.searchParams.set('renderer', preference);
+    location.assign(url);
+  }
   function resumeExpedition() {
     if (!saved || !runtime.current) return;
     if (!restoreExpedition(runtime.current.sim, saved)) {
@@ -161,250 +175,315 @@ export default function Home() {
       stopped = false;
     let view: FlightRenderer | undefined;
     let unregisterTools = () => {};
-    try {
-      const sim = new FlightSimulation();
-      view = new FlightRenderer(canvas.current, sim);
-      runtime.current = { sim, view };
-      unregisterTools = registerFlightTools(sim);
-      setReady(true);
+    const host = canvas.current;
+    const abort = new AbortController();
+    const boot = async () => {
       try {
-        setSaved(parseExpedition(localStorage.getItem(EXPEDITION_KEY)));
-        const prefs = JSON.parse(
-          localStorage.getItem('void-preferences') || '{}',
+        const sim = new FlightSimulation();
+        let preferWebGL = false;
+        try {
+          preferWebGL = localStorage.getItem('void-renderer') === 'webgl';
+        } catch {}
+        const requested = new URL(location.href).searchParams.get('renderer');
+        if (requested === 'webgl' || requested === 'auto')
+          preferWebGL = requested === 'webgl';
+        setRendererPreference(preferWebGL ? 'webgl' : 'auto');
+        view = await createFlightRenderer(
+          host,
+          sim,
+          preferWebGL ? 'webgl' : 'auto',
+          abort.signal,
         );
-        if (['high', 'low'].includes(prefs.quality)) setQuality(prefs.quality);
-        if (['authentic', 'clean'].includes(prefs.finish))
-          setFinish(prefs.finish);
-        if (Number.isFinite(prefs.sound))
-          setSound(Math.max(0, Math.min(100, prefs.sound)));
-      } catch {
-        /* Invalid preferences use defaults. */
-      }
-      let last = performance.now(),
-        hudTime = 0,
-        lastSave = performance.now(),
-        lastPhase = sim.surface.phase;
-      const animate = (now: number) => {
-        if (stopped || !view) return;
-        const dt = Math.min((now - last) / 1000, 0.05);
-        last = now;
-        const f = flags.current,
-          active = f.started && !f.paused && !f.settings && !f.chart && !f.help;
-        if (active) {
-          const c = emptyControls(),
-            k = keys.current;
-          c.pitch =
-            Number(k.has('ArrowUp')) -
-            Number(k.has('ArrowDown')) -
-            mouse.current.y;
-          c.yaw =
-            Number(k.has('ArrowLeft')) -
-            Number(k.has('ArrowRight')) -
-            mouse.current.x;
-          c.roll = Number(k.has('KeyQ')) - Number(k.has('KeyE'));
-          c.strafe = Number(k.has('KeyD')) - Number(k.has('KeyA'));
-          c.accelerate = k.has('KeyW');
-          c.decelerate = k.has('KeyS');
-          c.brake = k.has('KeyX') || k.has('Space');
-          c.boost = k.has('ShiftLeft') || k.has('ShiftRight');
-          sim.step(dt, c);
-          if (
-            (now - lastSave > 15000 || lastPhase !== sim.surface.phase) &&
-            ['flight', 'landed', 'walking'].includes(sim.surface.phase)
-          ) {
-            const record = captureExpedition(sim);
-            if (record)
-              try {
-                localStorage.setItem(EXPEDITION_KEY, JSON.stringify(record));
-                setSaved(record);
-                lastSave = now;
-              } catch {
-                /* Manual save reports storage failure. */
-              }
-          }
-          lastPhase = sim.surface.phase;
+        if (stopped) {
+          view.dispose();
+          return;
         }
-        if (audio.current) {
-          audio.current.engine.frequency.setTargetAtTime(
-            38 + Math.min(110, sim.speed / 8),
-            audio.current.ctx.currentTime,
-            0.2,
-          );
-          if (!active)
+        setBackend(view.backend);
+        const haltRenderer = (message: string) => {
+          if (stopped) return;
+          view!.suspended = true;
+          setReady(false);
+          setPaused(false);
+          setSettings(false);
+          setChart(false);
+          setHelp(false);
+          keys.current.clear();
+          if (audio.current)
             audio.current.gain.gain.setTargetAtTime(
               0,
               audio.current.ctx.currentTime,
               0.1,
             );
+          const record = captureExpedition(sim);
+          if (record)
+            try {
+              localStorage.setItem(EXPEDITION_KEY, JSON.stringify(record));
+            } catch {}
+          setError(message);
+        };
+        if ('onDeviceLost' in view.renderer)
+          view.renderer.onDeviceLost = () =>
+            haltRenderer(
+              'The graphics device was disconnected. Your latest stable expedition was saved when available.',
+            );
+        runtime.current = { sim, view };
+        unregisterTools = registerFlightTools(sim);
+        setReady(true);
+        try {
+          setSaved(parseExpedition(localStorage.getItem(EXPEDITION_KEY)));
+          const prefs = JSON.parse(
+            localStorage.getItem('void-preferences') || '{}',
+          );
+          if (['high', 'low'].includes(prefs.quality))
+            setQuality(prefs.quality);
+          if (['authentic', 'clean'].includes(prefs.finish))
+            setFinish(prefs.finish);
+          if (Number.isFinite(prefs.sound))
+            setSound(Math.max(0, Math.min(100, prefs.sound)));
+        } catch {
+          /* Invalid preferences use defaults. */
         }
-        view.draw(!f.started, dt);
-        if (now - hudTime > 100) {
-          hudTime = now;
-          const marker = view.targetScreen();
-          const nav = navigationReadout(sim);
-          setData({
-            guidance: nav.guidance,
-            eta: nav.eta,
-            closingSpeed: nav.closingSpeed,
-            speed: sim.speed,
-            altitude: sim.altitude,
-            mode: sim.status,
-            system: sim.activeSystem.name,
-            target: sim.target.name,
-            kind: sim.target.star ? 'star' : sim.target.kind,
-            range: nav.range,
-            visited: sim.visited.size,
-            auto: sim.autopilot,
-            throttle: sim.throttle,
-            pulse: sim.pulse,
-            phase: sim.surface.phase,
-            surfaceMessage:
-              (sim.surface.phase === 'flight' && sim.flightMessage) ||
-              sim.surface.message,
-            shipDistance: sim.surface.shipDistance,
-            walked: sim.surface.walked,
-            contactReady: !!sim.surface.patch,
-            ...marker,
-          });
-        }
+        let last = performance.now(),
+          hudTime = 0,
+          lastSave = performance.now(),
+          lastPhase = sim.surface.phase;
+        const animate = (now: number) => {
+          if (stopped || !view || view.suspended) return;
+          const dt = Math.min((now - last) / 1000, 0.05);
+          last = now;
+          const f = flags.current,
+            active =
+              f.started && !f.paused && !f.settings && !f.chart && !f.help;
+          if (active) {
+            const c = emptyControls(),
+              k = keys.current;
+            c.pitch =
+              Number(k.has('ArrowUp')) -
+              Number(k.has('ArrowDown')) -
+              mouse.current.y;
+            c.yaw =
+              Number(k.has('ArrowLeft')) -
+              Number(k.has('ArrowRight')) -
+              mouse.current.x;
+            c.roll = Number(k.has('KeyQ')) - Number(k.has('KeyE'));
+            c.strafe = Number(k.has('KeyD')) - Number(k.has('KeyA'));
+            c.accelerate = k.has('KeyW');
+            c.decelerate = k.has('KeyS');
+            c.brake = k.has('KeyX') || k.has('Space');
+            c.boost = k.has('ShiftLeft') || k.has('ShiftRight');
+            sim.step(dt, c);
+            if (
+              (now - lastSave > 15000 || lastPhase !== sim.surface.phase) &&
+              ['flight', 'landed', 'walking'].includes(sim.surface.phase)
+            ) {
+              const record = captureExpedition(sim);
+              if (record)
+                try {
+                  localStorage.setItem(EXPEDITION_KEY, JSON.stringify(record));
+                  setSaved(record);
+                  lastSave = now;
+                } catch {
+                  /* Manual save reports storage failure. */
+                }
+            }
+            lastPhase = sim.surface.phase;
+          }
+          if (audio.current) {
+            audio.current.engine.frequency.setTargetAtTime(
+              38 + Math.min(110, sim.speed / 8),
+              audio.current.ctx.currentTime,
+              0.2,
+            );
+            if (!active)
+              audio.current.gain.gain.setTargetAtTime(
+                0,
+                audio.current.ctx.currentTime,
+                0.1,
+              );
+          }
+          try {
+            view.draw(!f.started, dt);
+          } catch (e) {
+            haltRenderer(
+              e instanceof Error ? e.message : 'Rendering interrupted.',
+            );
+            return;
+          }
+          if (now - hudTime > 100) {
+            hudTime = now;
+            const marker = view.targetScreen();
+            const nav = navigationReadout(sim);
+            setData({
+              guidance: nav.guidance,
+              eta: nav.eta,
+              closingSpeed: nav.closingSpeed,
+              speed: sim.speed,
+              altitude: sim.altitude,
+              mode: sim.status,
+              system: sim.activeSystem.name,
+              target: sim.target.name,
+              kind: sim.target.star ? 'star' : sim.target.kind,
+              range: nav.range,
+              visited: sim.visited.size,
+              auto: sim.autopilot,
+              throttle: sim.throttle,
+              pulse: sim.pulse,
+              phase: sim.surface.phase,
+              surfaceMessage:
+                (sim.surface.phase === 'flight' && sim.flightMessage) ||
+                sim.surface.message,
+              shipDistance: sim.surface.shipDistance,
+              walked: sim.surface.walked,
+              contactReady: !!sim.surface.patch,
+              ...marker,
+            });
+          }
+          frame = requestAnimationFrame(animate);
+        };
         frame = requestAnimationFrame(animate);
-      };
-      frame = requestAnimationFrame(animate);
-      // Named development scenes aid regression tests; the production UI always uses real flight.
-      if (import.meta.env.DEV) {
-        window.__VOID_EXPLORER__ = {
-          state: () => ({
-            ...sim.snapshot(),
-            drawCalls: view?.renderer.info.render.calls,
-            triangles: view?.renderer.info.render.triangles,
-            terrainReady: !!view?.planets.find(
-              (p) => p.body.id === sim.nearest.id,
-            )?.patch,
-            terrainPending: view?.patchPending,
-            terrainStats: view?.terrainStats,
-            contactStats: view?.contactStats,
-            shipModel: view?.craft.modelSource,
-            lighting: view?.lighting,
-            sceneryCount: sim.surface.scenery.length,
-            cloudLayers: view?.planets.length,
-          }),
-          select: (id) => sim.select(id),
-          scene: (name) => {
-            sim.reset();
-            if (name === 'descent') {
-              sim.position.set(0, 0, sim.target.radius + 190);
-              sim.face(sim.target.position);
-            }
-            if (name === 'landing') {
-              sim.position.set(0, 0, sim.target.radius + 35);
-              sim.face(sim.target.position);
-            }
-            if (name === 'low-flight') {
-              const up = new Vector3(0, 0, 1);
-              sim.position
-                .copy(sim.target.position)
-                .addScaledVector(
-                  up,
-                  sim.target.radius +
-                    Math.max(0, elevation(up, sim.target)) +
-                    0.3,
-                );
-              sim.orientation.setFromRotationMatrix(
-                new Matrix4().lookAt(
-                  sim.position,
-                  sim.position.clone().add(new Vector3(1, 0, -0.6)),
-                  up,
-                ),
-              );
-            }
-            if (name === 'surface-traverse') {
-              const up = new Vector3(0, 0, 1);
-              sim.position
-                .copy(sim.target.position)
-                .addScaledVector(
-                  up,
-                  sim.target.radius +
-                    Math.max(0, elevation(up, sim.target)) +
-                    0.5,
-                );
-              sim.orientation.setFromRotationMatrix(
-                new Matrix4().lookAt(
-                  sim.position,
-                  sim.position.clone().add(new Vector3(1, 0, 0)),
-                  up,
-                ),
-              );
-            }
-            if (name === 'terrain-traverse') {
-              sim.position.set(0, 0, sim.target.radius + 25);
-              sim.face(sim.position.clone().add(new Vector3(20, 0, 1)));
-            }
-            if (name === 'night') {
-              const up = new Vector3(-1, 0, 0);
-              sim.position
-                .copy(sim.target.position)
-                .addScaledVector(
-                  up,
-                  sim.target.radius +
-                    Math.max(0, elevation(up, sim.target)) +
-                    25,
-                );
-              sim.orientation.setFromRotationMatrix(
-                new Matrix4().lookAt(
-                  sim.position,
-                  sim.position.clone().add(new Vector3(0.2, 0, 1)),
-                  up,
-                ),
-              );
-            }
-            if (name === 'water') {
-              // A repeatable ocean view selected from the same elevation function.
-              for (let i = 1; i < 200; i++) {
-                const up = new Vector3(
-                  Math.cos(i * 2.4),
-                  Math.sin(i * 2.4),
-                  (i / 200) * 2 - 1,
-                ).normalize();
-                if (elevation(up, sim.target) >= -1 || up.z < 0.2) continue;
+        // Named development scenes aid regression tests; the production UI always uses real flight.
+        if (import.meta.env.DEV) {
+          window.__VOID_EXPLORER__ = {
+            state: () => ({
+              ...sim.snapshot(),
+              rendererBackend: view?.backend,
+              drawCalls:
+                view && 'drawCalls' in view.renderer.info.render
+                  ? view.renderer.info.render.drawCalls
+                  : view?.renderer.info.render.calls,
+              triangles: view?.renderer.info.render.triangles,
+              terrainReady: !!view?.planets.find(
+                (p) => p.body.id === sim.nearest.id,
+              )?.patch,
+              terrainPending: view?.patchPending,
+              terrainStats: view?.terrainStats,
+              contactStats: view?.contactStats,
+              shipModel: view?.craft.modelSource,
+              lighting: view?.lighting,
+              sceneryCount: sim.surface.scenery.length,
+              cloudLayers: view?.planets.length,
+            }),
+            select: (id) => sim.select(id),
+            scene: (name) => {
+              sim.reset();
+              if (name === 'descent') {
+                sim.position.set(0, 0, sim.target.radius + 190);
+                sim.face(sim.target.position);
+              }
+              if (name === 'landing') {
+                sim.position.set(0, 0, sim.target.radius + 35);
+                sim.face(sim.target.position);
+              }
+              if (name === 'low-flight') {
+                const up = new Vector3(0, 0, 1);
                 sim.position
                   .copy(sim.target.position)
-                  .addScaledVector(up, sim.target.radius + 6);
-                const sun = sim.activeSystem.companion ?? sim.activeSystem.star;
-                const forward = sun.position
-                  .clone()
-                  .sub(sim.position)
-                  .normalize();
-                forward
-                  .addScaledVector(up, -forward.dot(up))
-                  .normalize()
-                  .addScaledVector(up, -0.24);
+                  .addScaledVector(
+                    up,
+                    sim.target.radius +
+                      Math.max(0, elevation(up, sim.target)) +
+                      0.3,
+                  );
                 sim.orientation.setFromRotationMatrix(
                   new Matrix4().lookAt(
                     sim.position,
-                    sim.position.clone().add(forward),
+                    sim.position.clone().add(new Vector3(1, 0, -0.6)),
                     up,
                   ),
                 );
-                break;
               }
-            }
-            if (name === 'pulse') {
-              sim.position.set(0, 400, 12000);
-              sim.face(sim.target.position);
-              sim.pulse = true;
-            }
-            setStarted(true);
-            setPaused(false);
-          },
-        };
+              if (name === 'surface-traverse') {
+                const up = new Vector3(0, 0, 1);
+                sim.position
+                  .copy(sim.target.position)
+                  .addScaledVector(
+                    up,
+                    sim.target.radius +
+                      Math.max(0, elevation(up, sim.target)) +
+                      0.5,
+                  );
+                sim.orientation.setFromRotationMatrix(
+                  new Matrix4().lookAt(
+                    sim.position,
+                    sim.position.clone().add(new Vector3(1, 0, 0)),
+                    up,
+                  ),
+                );
+              }
+              if (name === 'terrain-traverse') {
+                sim.position.set(0, 0, sim.target.radius + 25);
+                sim.face(sim.position.clone().add(new Vector3(20, 0, 1)));
+              }
+              if (name === 'night') {
+                const up = new Vector3(-1, 0, 0);
+                sim.position
+                  .copy(sim.target.position)
+                  .addScaledVector(
+                    up,
+                    sim.target.radius +
+                      Math.max(0, elevation(up, sim.target)) +
+                      25,
+                  );
+                sim.orientation.setFromRotationMatrix(
+                  new Matrix4().lookAt(
+                    sim.position,
+                    sim.position.clone().add(new Vector3(0.2, 0, 1)),
+                    up,
+                  ),
+                );
+              }
+              if (name === 'water') {
+                // A repeatable ocean view selected from the same elevation function.
+                for (let i = 1; i < 200; i++) {
+                  const up = new Vector3(
+                    Math.cos(i * 2.4),
+                    Math.sin(i * 2.4),
+                    (i / 200) * 2 - 1,
+                  ).normalize();
+                  if (elevation(up, sim.target) >= -1 || up.z < 0.2) continue;
+                  sim.position
+                    .copy(sim.target.position)
+                    .addScaledVector(up, sim.target.radius + 6);
+                  const sun =
+                    sim.activeSystem.companion ?? sim.activeSystem.star;
+                  const forward = sun.position
+                    .clone()
+                    .sub(sim.position)
+                    .normalize();
+                  forward
+                    .addScaledVector(up, -forward.dot(up))
+                    .normalize()
+                    .addScaledVector(up, -0.24);
+                  sim.orientation.setFromRotationMatrix(
+                    new Matrix4().lookAt(
+                      sim.position,
+                      sim.position.clone().add(forward),
+                      up,
+                    ),
+                  );
+                  break;
+                }
+              }
+              if (name === 'pulse') {
+                sim.position.set(0, 400, 12000);
+                sim.face(sim.target.position);
+                sim.pulse = true;
+              }
+              setStarted(true);
+              setPaused(false);
+            },
+          };
+        }
+      } catch (e) {
+        if (stopped) return;
+        setError(
+          e instanceof Error
+            ? e.message
+            : 'Unable to initialize the flight renderer.',
+        );
       }
-    } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : 'Unable to initialize the flight renderer.',
-      );
-    }
+    };
+    void boot();
     const resize = () => view?.resize();
     window.addEventListener('resize', resize);
     const blur = () => {
@@ -415,6 +494,7 @@ export default function Home() {
     window.addEventListener('blur', blur);
     return () => {
       stopped = true;
+      abort.abort();
       unregisterTools();
       cancelAnimationFrame(frame);
       window.removeEventListener('resize', resize);
@@ -536,7 +616,7 @@ export default function Home() {
     <main
       className={`universe ${finish} ${started ? 'in-flight' : 'at-title'}`}
     >
-      <canvas
+      <div
         ref={canvas}
         className="space-canvas"
         aria-label="Explorable three-dimensional universe"
@@ -580,7 +660,7 @@ export default function Home() {
               <i className="live-dot" /> DEEP RANGE SURVEY PROGRAM
             </span>
             <span>
-              FLIGHT SYSTEM <b>ONLINE</b>
+              FLIGHT SYSTEM <b>{backend}</b>
             </span>
           </header>
           <section className="title-content">
@@ -925,11 +1005,13 @@ export default function Home() {
         <div role="alert" className="error-panel">
           <h2>Flight renderer unavailable</h2>
           <p>
-            This expedition needs a browser with WebGL 2 and hardware
-            acceleration enabled.
+            Retry graphics initialization or use the compatible WebGL renderer.
           </p>
           <small>{error}</small>
           <button onClick={() => location.reload()}>Retry</button>
+          <button onClick={() => switchRenderer('webgl', true)}>
+            Use WebGL
+          </button>
         </div>
       )}
       <Dialog open={settings} onOpenChange={setSettings}>
@@ -939,6 +1021,27 @@ export default function Home() {
           <DialogDescription>
             Adjust presentation and sound for your expedition.
           </DialogDescription>
+          <p className="muted">
+            Active renderer: <b>{backend}</b>
+          </p>
+          <label className="sound-label">
+            <span>Renderer</span>
+            <select
+              aria-label="Renderer preference"
+              value={rendererPreference}
+              onChange={(e) => switchRenderer(e.target.value)}
+            >
+              <option value="auto">Automatic (WebGPU when available)</option>
+              <option value="webgl">WebGL compatibility</option>
+            </select>
+          </label>
+          <p className="muted">
+            Changing renderer reloads the game. Active expeditions must save
+            successfully first.
+          </p>
+          <p className="muted" role="status">
+            {saveMessage}
+          </p>
           <fieldset>
             <legend>GRAPHICS QUALITY</legend>
             {[

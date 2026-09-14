@@ -7,7 +7,11 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
     viewport: { width: 1440, height: 960 },
     launchOptions: {
-      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+      args: [
+        '--use-angle=swiftshader',
+        '--enable-unsafe-swiftshader',
+        ...(process.env.WEBGPU_TEST ? ['--enable-unsafe-webgpu'] : []),
+      ],
     },
   },
   reporter: 'list',
