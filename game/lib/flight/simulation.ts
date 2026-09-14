@@ -1,6 +1,6 @@
 import { Matrix4, Quaternion, Vector3 } from 'three';
 import { SurfaceExpedition } from './surface';
-import { GEAR_HEIGHT } from './contact';
+import { flightClearance } from './flight-clearance';
 import {
   type Body,
   type System,
@@ -46,6 +46,8 @@ export class FlightSimulation {
   altitude = 0;
   visited = new Set([0]);
   status = 'CRUISE';
+  flightMessage = '';
+  groundClearance = 0;
   surface = new SurfaceExpedition(this);
   constructor() {
     this.face(this.target.position);
@@ -87,6 +89,7 @@ export class FlightSimulation {
   }
   reset() {
     this.surface.reset();
+    this.flightMessage = '';
     this.position.set(0, 420, 2680);
     this.speed = 0;
     this.throttle = 0;
@@ -161,7 +164,17 @@ export class FlightSimulation {
           (Number(input.accelerate) - Number(input.decelerate)) * dt * 0.5,
       ),
     );
-    const clearance = Math.max(0, this.altitude);
+    const localClearance = flightClearance(
+      this.position,
+      this.nearest,
+      this.surface.patch,
+      this.surface.scenery,
+    );
+    this.groundClearance = localClearance.distance;
+    const clearance = Math.max(
+      0,
+      Math.min(this.altitude, localClearance.distance),
+    );
     // Cap travel by clearance; no loading or teleportation at atmosphere boundaries.
     const maxSpeed = Math.min(
       this.pulse ? 24000 : input.boost ? 1400 : 280,
@@ -245,38 +258,68 @@ export class FlightSimulation {
     }
     this.speed +=
       (desired - this.speed) * (1 - Math.exp(-dt * (input.brake ? 9 : 2.5)));
-    // Substep travel to prevent tunneling at high speed, including bodies beside the route.
-    const steps = Math.max(1, Math.ceil((this.speed * dt) / 20));
-    const move = FORWARD.clone()
-      .applyQuaternion(this.orientation)
-      .multiplyScalar((this.speed * dt) / steps);
+    const direction = FORWARD.clone().applyQuaternion(this.orientation);
     const solids = [
       this.activeSystem.star,
       ...this.activeSystem.planets,
       ...(this.activeSystem.companion ? [this.activeSystem.companion] : []),
     ];
-    for (let i = 0; i < steps; i++) {
-      this.position.add(move);
-      for (const b of solids) {
-        const radial = this.position.clone().sub(b.position),
-          d = radial.length();
-        radial.normalize();
-        const contact =
-          this.surface.patch?.body.id === b.id
-            ? this.surface.patch.sample(this.position)
-            : null;
-        const floor = contact
-          ? contact.point.distanceTo(b.position) + GEAR_HEIGHT
-          : surfaceRadius(radial, b) + (b.star ? 180 : 5);
-        if (d < floor) {
-          this.position.copy(b.position).addScaledVector(radial, floor);
-          this.speed = 0;
-          this.throttle = 0;
-          this.autopilot = false;
-          break;
-        }
+    const clearanceAt = (point: Vector3) => {
+      let closest = { distance: Infinity, reason: '' };
+      for (const body of solids) {
+        const result = flightClearance(
+          point,
+          body,
+          this.surface.patch,
+          this.surface.scenery,
+        );
+        if (result.distance < closest.distance) closest = result;
       }
+      return closest;
+    };
+    let remaining = this.speed * dt;
+    let current = clearanceAt(this.position);
+    while (remaining > 1e-9) {
+      // Shrink from 20 km in space to 5 m near obstacles. Never continue the
+      // old travel vector after a collision, even with residual pulse speed.
+      const travel = Math.min(
+        remaining,
+        20,
+        Math.max(0.005, current.distance * 0.25),
+      );
+      const next = this.position.clone().addScaledVector(direction, travel);
+      const candidate = clearanceAt(next);
+      if (candidate.distance < 0 && candidate.distance <= current.distance) {
+        // Keep the final position on the safe side without snapping the ship
+        // up a slope. Old low-flight saves may escape an envelope they start inside.
+        if (current.distance >= 0) {
+          let lo = 0,
+            hi = travel;
+          for (let j = 0; j < 16; j++) {
+            const mid = (lo + hi) / 2;
+            if (
+              clearanceAt(this.position.clone().addScaledVector(direction, mid))
+                .distance >= 0
+            )
+              lo = mid;
+            else hi = mid;
+          }
+          this.position.addScaledVector(direction, lo);
+        }
+        this.speed = 0;
+        this.throttle = 0;
+        this.autopilot = false;
+        this.descending = false;
+        this.pulse = false;
+        this.flightMessage = candidate.reason;
+        break;
+      }
+      this.position.copy(next);
+      current = candidate;
+      remaining -= travel;
+      this.flightMessage = '';
     }
+    this.groundClearance = clearanceAt(this.position).distance;
     this.updateEnvironment();
     this.status =
       this.altitude < 130 && !this.nearest.star
@@ -307,6 +350,8 @@ export class FlightSimulation {
       walked: this.surface.walked,
       contactReady: !!this.surface.patch,
       surfaceMessage: this.surface.message,
+      flightMessage: this.flightMessage,
+      groundClearance: this.groundClearance,
     };
   }
 }

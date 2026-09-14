@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { Box3, Vector3, Mesh } from 'three';
+import { FLIGHT_RADIUS } from '../lib/flight/flight-clearance';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 async function load() {
   const bytes = readFileSync(
@@ -24,6 +25,18 @@ describe('authored spacecraft contract', () => {
     expect(size.z).toBeLessThan(20);
     expect(box.min.z).toBeLessThan(-9);
     expect(box.min.y).toBeCloseTo(-3, 4);
+    scene.updateMatrixWorld(true);
+    scene.traverse((object) => {
+      if (!(object as Mesh).isMesh) return;
+      const mesh = object as Mesh,
+        vertices = mesh.geometry.attributes.position;
+      for (let i = 0; i < vertices.count; i++) {
+        const vertex = new Vector3()
+          .fromBufferAttribute(vertices, i)
+          .applyMatrix4(mesh.matrixWorld);
+        expect(vertex.length() / 1000).toBeLessThan(FLIGHT_RADIUS);
+      }
+    });
   });
   it('keeps deployable gear and two rear emission cores addressable', async () => {
     const { scene } = await load();

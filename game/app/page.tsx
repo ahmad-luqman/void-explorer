@@ -258,7 +258,9 @@ export default function Home() {
             throttle: sim.throttle,
             pulse: sim.pulse,
             phase: sim.surface.phase,
-            surfaceMessage: sim.surface.message,
+            surfaceMessage:
+              (sim.surface.phase === 'flight' && sim.flightMessage) ||
+              sim.surface.message,
             shipDistance: sim.surface.shipDistance,
             walked: sim.surface.walked,
             contactReady: !!sim.surface.patch,
@@ -295,6 +297,24 @@ export default function Home() {
             if (name === 'landing') {
               sim.position.set(0, 0, sim.target.radius + 35);
               sim.face(sim.target.position);
+            }
+            if (name === 'low-flight') {
+              const up = new Vector3(0, 0, 1);
+              sim.position
+                .copy(sim.target.position)
+                .addScaledVector(
+                  up,
+                  sim.target.radius +
+                    Math.max(0, elevation(up, sim.target)) +
+                    0.3,
+                );
+              sim.orientation.setFromRotationMatrix(
+                new Matrix4().lookAt(
+                  sim.position,
+                  sim.position.clone().add(new Vector3(1, 0, -0.6)),
+                  up,
+                ),
+              );
             }
             if (name === 'terrain-traverse') {
               sim.position.set(0, 0, sim.target.radius + 25);
@@ -780,11 +800,8 @@ export default function Home() {
               <div>
                 <span>VELOCITY</span>
                 <b>
-                  {(data.phase === 'walking'
-                    ? data.speed * 1000
-                    : data.speed
-                  ).toFixed(1)}{' '}
-                  <small>{data.phase === 'walking' ? 'm/s' : 'km/s'}</small>
+                  {(data.speed < 1 ? data.speed * 1000 : data.speed).toFixed(1)}{' '}
+                  <small>{data.speed < 1 ? 'm/s' : 'km/s'}</small>
                 </b>
               </div>
               <div>
