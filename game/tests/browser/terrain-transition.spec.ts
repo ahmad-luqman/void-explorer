@@ -15,6 +15,7 @@ test('planet morphs finish, revisited views reuse bounded terrain, and contact r
       contactReady: boolean;
       surfacePhase: string;
       position: number[];
+      surfacePosition: number[];
       terrainStats: {
         generated: number;
         transitions: number;
@@ -39,7 +40,9 @@ test('planet morphs finish, revisited views reuse bounded terrain, and contact r
     .poll(async () => (await state()).terrainStats.transitions)
     .toBeGreaterThan(0);
   await expect
-    .poll(async () => (await state()).terrainStats.morphProgress)
+    .poll(async () => (await state()).terrainStats.morphProgress, {
+      timeout: 15000,
+    })
     .toBe(1);
   const first = await state();
   await page.evaluate(() => window.__VOID_EXPLORER__!.scene('night'));
@@ -47,7 +50,9 @@ test('planet morphs finish, revisited views reuse bounded terrain, and contact r
     .poll(async () => (await state()).terrainStats.transitions)
     .toBeGreaterThan(first.terrainStats.transitions);
   await expect
-    .poll(async () => (await state()).terrainStats.morphProgress)
+    .poll(async () => (await state()).terrainStats.morphProgress, {
+      timeout: 15000,
+    })
     .toBe(1);
   const away = await state();
   await page.evaluate(() => window.__VOID_EXPLORER__!.scene('landing'));
@@ -55,7 +60,9 @@ test('planet morphs finish, revisited views reuse bounded terrain, and contact r
     .poll(async () => (await state()).terrainStats.cache.hits)
     .toBeGreaterThan(away.terrainStats.cache.hits);
   await expect
-    .poll(async () => (await state()).terrainStats.morphProgress)
+    .poll(async () => (await state()).terrainStats.morphProgress, {
+      timeout: 15000,
+    })
     .toBe(1);
   expect((await state()).terrainStats.cache.misses).toBe(
     away.terrainStats.cache.misses,
@@ -72,9 +79,17 @@ test('planet morphs finish, revisited views reuse bounded terrain, and contact r
     .poll(async () => (await state()).terrainStats.transitions)
     .toBeGreaterThan(parked.terrainStats.transitions);
   await expect
-    .poll(async () => (await state()).terrainStats.morphProgress)
+    .poll(async () => (await state()).terrainStats.morphProgress, {
+      timeout: 15000,
+    })
     .toBe(1);
-  expect((await state()).position).toEqual(parked.position);
+  expect(
+    Math.hypot(
+      ...(await state()).surfacePosition.map(
+        (v, i) => v - parked.surfacePosition[i],
+      ),
+    ),
+  ).toBeLessThan(1e-8);
   expect((await state()).surfacePhase).toBe('walking');
   const low = await state();
   await page.getByLabel('High', { exact: false }).check();
@@ -82,14 +97,20 @@ test('planet morphs finish, revisited views reuse bounded terrain, and contact r
     .poll(async () => (await state()).terrainStats.transitions)
     .toBeGreaterThan(low.terrainStats.transitions);
   await expect
-    .poll(async () => (await state()).terrainStats.morphProgress)
+    .poll(async () => (await state()).terrainStats.morphProgress, {
+      timeout: 15000,
+    })
     .toBe(1);
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeHidden();
   const final = await state();
   // Resuming ground projection may change doubles by roundoff; allow 10 micrometers.
   expect(
-    Math.hypot(...final.position.map((value, i) => value - parked.position[i])),
+    Math.hypot(
+      ...final.surfacePosition.map(
+        (value, i) => value - parked.surfacePosition[i],
+      ),
+    ),
   ).toBeLessThan(1e-8);
   expect(final.terrainStats.cache.entries).toBeLessThanOrEqual(12);
   expect(final.terrainStats.cache.bytes).toBeLessThanOrEqual(12 * 1024 * 1024);

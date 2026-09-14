@@ -11,6 +11,11 @@ test('land, walk, save, reload, reboard, and take off', async ({ page }) => {
       surfacePhase: string;
       contactReady: boolean;
       shipPosition: number[];
+      surfaceShipPosition: number[];
+      rotationTime: number;
+      planetRotation: number[];
+      planetMeshRotation: number[];
+      contactMeshRotation: number[];
       position: number[];
       walked: number;
       shipDistance: number;
@@ -19,13 +24,25 @@ test('land, walk, save, reload, reboard, and take off', async ({ page }) => {
   await expect(
     page.getByRole('button', { name: 'START EXPEDITION' }),
   ).toBeEnabled({ timeout: 45000 });
-  await page.evaluate(() => window.__VOID_EXPLORER__!.scene('landing'));
+  await page.evaluate(() =>
+    window.__VOID_EXPLORER__!.scene('rotating-landing'),
+  );
   await expect.poll(async () => (await state()).contactReady).toBe(true);
   await page.getByRole('button', { name: /Land here/ }).click();
   await expect
     .poll(async () => (await state()).surfacePhase, { timeout: 25000 })
     .toBe('landed');
-  const parked = (await state()).shipPosition;
+  const landed = await state();
+  const parked = landed.surfaceShipPosition;
+  const stableShip = async () => {
+    const current = await state();
+    expect(
+      Math.hypot(...current.surfaceShipPosition.map((v, i) => v - parked[i])),
+    ).toBeLessThan(1e-7);
+    expect(current.planetMeshRotation).toEqual(current.planetRotation);
+    expect(current.contactMeshRotation).toEqual(current.planetRotation);
+    return current;
+  };
   await page.screenshot({ path: 'test-results/landed.png' });
   await page.getByRole('button', { name: /Leave ship/ }).click();
   await expect.poll(async () => (await state()).surfacePhase).toBe('walking');
@@ -37,7 +54,14 @@ test('land, walk, save, reload, reboard, and take off', async ({ page }) => {
     .poll(async () => (await state()).walked, { timeout: 15000 })
     .toBeGreaterThan(0.004);
   await page.keyboard.up('s');
-  expect((await state()).shipPosition).toEqual(parked);
+  await stableShip();
+  const turning = await stableShip();
+  expect(turning.rotationTime).toBeGreaterThan(landed.rotationTime);
+  expect(
+    Math.hypot(
+      ...turning.shipPosition.map((v, i) => v - landed.shipPosition[i]),
+    ),
+  ).toBeGreaterThan(0.1);
   await page
     .getByRole('button', { name: 'Save expedition', exact: true })
     .click();
@@ -50,8 +74,11 @@ test('land, walk, save, reload, reboard, and take off', async ({ page }) => {
   await expect
     .poll(async () => (await state()).surfacePhase, { timeout: 15000 })
     .toBe('walking');
-  expect((await state()).shipPosition).toEqual(parked);
+  await stableShip();
   expect(Math.abs((await state()).walked - saved.walked)).toBeLessThan(0.001);
+  // Ground publishes before the next UI/render frame; capture the resumed view.
+  await expect(page.locator('.surface-navigation')).toBeVisible();
+  await page.waitForTimeout(800);
   await page.screenshot({ path: 'test-results/restored-excursion.png' });
   await page.getByRole('button', { name: /Board ship/ }).click();
   await expect.poll(async () => (await state()).surfacePhase).toBe('landed');

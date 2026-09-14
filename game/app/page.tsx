@@ -16,6 +16,11 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import {
+  fromPlanet,
+  planetRotation,
+  rotationPeriod,
+} from '@/lib/flight/rotation';
 import { FlightSimulation, emptyControls } from '@/lib/flight/simulation';
 import type { FlightRenderer } from '@/lib/flight/renderer';
 import { createFlightRenderer } from '@/lib/flight/renderer-factory';
@@ -347,6 +352,10 @@ export default function Home() {
             state: () => ({
               ...sim.snapshot(),
               rendererBackend: view?.backend,
+              planetMeshRotation: view?.planets
+                .find((p) => p.body.id === sim.nearest.id)
+                ?.group.quaternion.toArray(),
+              contactMeshRotation: view?.contactMesh?.quaternion.toArray(),
               drawCalls:
                 view && 'drawCalls' in view.renderer.info.render
                   ? view.renderer.info.render.drawCalls
@@ -370,7 +379,7 @@ export default function Home() {
                 sim.position.set(0, 0, sim.target.radius + 190);
                 sim.face(sim.target.position);
               }
-              if (name === 'landing') {
+              if (name === 'landing' || name === 'rotating-landing') {
                 sim.position.set(0, 0, sim.target.radius + 35);
                 sim.face(sim.target.position);
               }
@@ -469,6 +478,13 @@ export default function Home() {
                 sim.face(sim.target.position);
                 sim.pulse = true;
               }
+              if (name === 'rotating-landing') {
+                sim.rotationClock.time = rotationPeriod(sim.target) / 4;
+                sim.elapsed = sim.rotationClock.time;
+                sim.position.copy(fromPlanet(sim.position, sim.target));
+                sim.orientation.premultiply(planetRotation(sim.target));
+              }
+              sim.updateEnvironment();
               setStarted(true);
               setPaused(false);
             },

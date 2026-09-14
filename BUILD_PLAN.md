@@ -13,7 +13,7 @@ The [official showcase](https://developers.openai.com/showcase/void-explorer) su
 5. Refine the spacecraft concept — dedicated turnaround sheet created, with a documented geometry contract.
 6. Build and integrate AURORA — authored Blender model and compact GLB integrated; animation and further visual polish remain.
 7. Make exploration physical — landing, walking, reboarding, takeoff, and local expedition saves implemented.
-8. Keep the world coherent — shared terrain, water shading, cloud layers, persistent rock fields, obstacle-aware landing, and saved exploration implemented; adaptive cube-sphere flight terrain, predictive ground streaming, mesh morphing, and bounded terrain reuse are now implemented; moving worlds and further refinement remain.
+8. Keep the world coherent — shared terrain, water shading, cloud layers, persistent rock fields, obstacle-aware landing, and saved exploration implemented; adaptive cube-sphere flight terrain, predictive ground streaming, mesh morphing, and bounded terrain reuse are now implemented; rotating worlds and surface attachment are now implemented; further refinement remains.
 
 ## Incremental commits
 
@@ -43,7 +43,7 @@ Use one terrain sampling function for planet shape, water, biome colors, and gro
 
 Current progress: manual flight now checks the ship envelope against rendered ground and rock volumes, stops residual high-speed travel at contact, and holds at the edge of detailed coverage until replacement terrain arrives. Worker-generated terrain now grades from dense walking cells to a 48 km horizon radius, with a buried outer seam closure and shared rendered/collision triangles. Coast depth colors and procedural ground materials add detail. A drifting cloud shell now follows the terrain, and seeded rock/mineral fields provide local geometry with walking collisions. A worker-generated cube-sphere quadtree now adapts the full planet to observer distance with shared edges and bounded detail; ground generation predicts travel ahead of the ship. Planetary mesh morphing and a bounded in-memory cache of complete meshes are now implemented. Persistent per-tile storage, vegetation, and authored points of interest remain.
 
-## 6. Add landing and surface exploration — implemented for stationary worlds
+## 6. Add landing and surface exploration — implemented with rotating-world attachment
 
 Require visible ground and collision data to agree before landing. Check slope and ship clearance. Add walking, boarding, takeoff, and persistent expedition state. Keep landed craft attached to rotating terrain. Verify complete journeys and reload behavior rather than relying solely on prepared screenshots.
 
@@ -65,13 +65,13 @@ The article's separate ocean and 2D game experiments are reference material, not
 
 ## Stage boundary
 
-The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, and saved progress. This is not the finished reference game. Further terrain streaming refinement, richer surface scenery, rotating worlds, integer-cell interstellar addressing, and further spacecraft animation/polish remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
+The user authorized game implementation after the concept milestone. A playable expedition is now present in `game/`, including worker-generated terrain, continuous descent, triangle-based safe landing, walking, reboarding, takeoff, and saved progress. This is not the finished reference game. Further terrain streaming refinement, richer surface scenery, integer-cell interstellar addressing, and further spacecraft animation/polish remain later stages. See `game/IMPLEMENTATION.md` for the current architecture and limits.
 
 ## Next implementation milestone
 
-Introduce rotating planets with surface-relative attachment for landed ships and walking players, including compatible expedition saves. Planetary mesh transitions and bounded in-memory reuse are now implemented. Larger-scale addressing, persistent tile storage, richer biomes, and ship animation remain later work.
+Expand universe scale with precision-safe coordinates and persistent terrain reuse across sessions. Rotating planets, surface-relative attachment, compatible expedition saves, planetary mesh transitions and bounded in-memory reuse are now implemented. Richer biomes, coastal landing concepts, landmarks and ship animation follow.
 
-### Rotating-world implementation plan
+### Completed rotating-world implementation plan
 
 1. Add deterministic axial rotation driven by saved simulation time. Keep generated geometry, cache keys, terrain sampling and scenery identities in the native planet frame; transform world-space queries at the boundary.
 2. Transport landed craft, walkers, landing destinations and takeoff with that frame. Use surface-relative atmospheric flight, tapering rotation coupling between 130 and 260 km; retain inertial flight above it. Pause rotation during ground restoration.

@@ -524,6 +524,10 @@ export class FlightRenderer {
         disposeObject(this.contactMesh);
       }
       this.contactMesh = new T.Mesh(geometry, material);
+      // Publish a fully transformed mesh before restoring ground contact. A
+      // worker reply may arrive between draw calls, especially during GPU setup.
+      this.contactMesh.quaternion.copy(patch.rotation);
+      this.contactMesh.position.copy(patch.origin).sub(this.sim.position);
       this.contactMesh.receiveShadow = true;
       const seam = createTerrainSkirt(patch),
         seamGeometry = new T.BufferGeometry();
