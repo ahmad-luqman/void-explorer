@@ -154,6 +154,7 @@ export class SurfaceExpedition {
   }
   land() {
     if (this.phase !== 'flight') return false;
+    this.sim.flightMessage = '';
     this.sim.updateEnvironment();
     if (this.sim.nearest.star || this.sim.altitude > 30) {
       this.message = 'Descend below 30 km to begin landing.';

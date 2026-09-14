@@ -47,7 +47,7 @@ describe('surface contact and expedition', () => {
   it('flies down, lands, walks, boards, and takes off without moving the parked ship', () => {
     const { sim, patch } = prepare();
     expect(sim.surface.land()).toBe(true);
-    let previous = sim.position.clone();
+    const previous = sim.position.clone();
     for (let i = 0; i < 60 * 15; i++) {
       sim.step(1 / 60, emptyControls());
       expect(sim.position.distanceTo(previous)).toBeLessThan(0.7);
@@ -82,7 +82,9 @@ describe('surface contact and expedition', () => {
   });
   it('rejects landing before terrain is ready and in unsafe flight conditions', () => {
     const s = new FlightSimulation();
+    s.flightMessage = 'Ground clearance — engines stopped.';
     expect(s.surface.land()).toBe(false);
+    expect(s.flightMessage).toBe('');
     s.descend();
     advance(s, 40);
     expect(s.surface.land()).toBe(false);
