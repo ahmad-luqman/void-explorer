@@ -8,6 +8,12 @@ import { createShader as atmosphere } from './atmosphere.js';
 import { createShader as ring } from './ring.js';
 import { createShader as cloud } from './cloud.js';
 import type { Body } from '../universe';
+import {
+  waterTexture,
+  waterTextureAnchor,
+  WATER_DETAIL_SCALE,
+  WATER_SWELL_SCALE,
+} from '../water-texture';
 
 type Value<T> = { value: T };
 export type TerrainRecipe = {
@@ -223,79 +229,66 @@ export function convertMaterial(source: T.Material): T.Material {
     const { body, anchor, time } = spec.water;
     const p = local.add(N.uniform(anchor.clone()));
     // Preserve the vertex water mask: interpolated sphere chords sit below sea level.
-    const wet = N.varying(
-      N.smoothstep(0.0002, 0.001, p.length().sub(body.radius)).oneMinus(),
-    ).clamp();
+    const wet = N.smoothstep(
+      0.35,
+      0.85,
+      N.varying(
+        N.smoothstep(0.0002, 0.001, p.length().sub(body.radius)).oneMinus(),
+      ).clamp(),
+    );
     const t = N.reference('value', 'float', time),
       radial = p.normalize();
-    const bands = p
-      .dot(N.vec3(183, 57, 129))
-      .add(t.mul(0.85))
-      .add(p.dot(N.vec3(51, -73, 91)).sin())
-      .sin()
-      .mul(0.5)
-      .add(0.5);
+    const sampleWaves = N.Fn(
+      ([point, up, flow]: [Node<'vec3'>, Node<'vec3'>, Node<'vec2'>]) => {
+        const weight = up.abs().div(up.abs().x.add(up.abs().y).add(up.abs().z));
+        const x = N.texture(waterTexture(), point.yz.add(flow)).rgb,
+          y = N.texture(waterTexture(), point.xz.add(flow.yx)).rgb,
+          z = N.texture(waterTexture(), point.xy.sub(flow)).rgb;
+        const slope = N.vec3(0, x.r.mul(2).sub(1), x.g.mul(2).sub(1))
+          .mul(weight.x)
+          .add(N.vec3(y.r.mul(2).sub(1), 0, y.g.mul(2).sub(1)).mul(weight.y))
+          .add(N.vec3(z.r.mul(2).sub(1), z.g.mul(2).sub(1), 0).mul(weight.z));
+        return N.vec4(slope, N.vec3(x.b, y.b, z.b).dot(weight));
+      },
+    );
+    const ripples = sampleWaves(
+      local
+        .mul(WATER_DETAIL_SCALE)
+        .add(N.uniform(waterTextureAnchor(anchor, WATER_DETAIL_SCALE))),
+      radial,
+      N.vec2(t.mul(0.009), t.mul(-0.006)),
+    );
+    const swell = sampleWaves(
+      local
+        .mul(WATER_SWELL_SCALE)
+        .add(N.uniform(waterTextureAnchor(anchor, WATER_SWELL_SCALE))),
+      radial,
+      N.vec2(t.mul(0.0007), t.mul(0.0004)),
+    );
     const shore = wet
       .mul(wet.oneMinus())
-      .mul(2)
-      .mul(N.smoothstep(0.35, 0.85, bands))
-      .mul(N.smoothstep(0.0002, 0.001, p.length().sub(body.radius)).oneMinus());
+      .mul(4)
+      .mul(ripples.w.mul(0.2).add(0.25));
     const baseColor =
       (material.colorNode as Node<'vec3'> | null) ?? N.materialColor;
     material.colorNode = N.mix(
-      baseColor.mul(N.mix(1, bands.mul(0.12).add(0.94), wet)),
-      N.vec3(0.62, 0.83, 0.79),
+      baseColor.mul(N.mix(1, ripples.w.mul(0.06).add(0.97), wet)),
+      N.vec3(0.075, 0.34, 0.3),
       shore,
     );
-    const wave = N.vec3(
-      p
-        .dot(N.vec3(943, 417, 729))
-        .add(t.mul(0.65))
-        .cos(),
-      p
-        .dot(N.vec3(-721, 1037, 513))
-        .sub(t.mul(0.48))
-        .cos(),
-      p
-        .dot(N.vec3(619, -831, 941))
-        .add(t.mul(0.53))
-        .sin(),
-    );
+    const wave = ripples.xyz.mul(0.1).add(swell.xyz.mul(0.018));
     const tangent = wave.sub(radial.mul(wave.dot(radial)));
-    const footprint = N.dFdx(p).length().max(N.dFdy(p).length()).mul(1500);
-    const detail = N.smoothstep(1, 12, N.positionView.length())
-      .oneMinus()
-      .mul(N.smoothstep(0.3, 2, footprint).oneMinus());
-    const swell = N.vec3(
-      p
-        .dot(N.vec3(17, 7, 13))
-        .add(t.mul(0.18))
-        .sin(),
-      p
-        .dot(N.vec3(-11, 19, 9))
-        .sub(t.mul(0.13))
-        .cos(),
-      p
-        .dot(N.vec3(13, -17, 21))
-        .add(t.mul(0.16))
-        .sin(),
-    );
-    const swellTangent = swell.sub(radial.mul(swell.dot(radial)));
-    const swellDetail = N.smoothstep(
-      0.3,
-      2,
-      N.dFdx(p).length().max(N.dFdy(p).length()).mul(35),
-    ).oneMinus();
     const normal = N.modelViewMatrix
-      .mul(
-        N.vec4(
-          radial
-            .add(swellTangent.mul(0.025).mul(swellDetail))
-            .add(tangent.mul(0.045).mul(detail)),
-          0,
-        ),
-      )
+      .mul(N.vec4(radial.add(tangent), 0))
       .xyz.normalize();
+    const previousSpecular = material.setupSpecular.bind(material);
+    material.setupSpecular = () => {
+      previousSpecular();
+      const strength = N.mix(1, 0.28, wet);
+      N.specularColor.assign(N.specularColor.mul(strength));
+      N.specularColorBlended.assign(N.specularColorBlended.mul(strength));
+      N.specularF90.mulAssign(N.mix(1, 0.45, wet));
+    };
     material.normalNode = N.mix(
       (material.normalNode as Node<'vec3'> | null) ?? N.normalViewGeometry,
       normal,
@@ -313,7 +306,7 @@ export function convertMaterial(source: T.Material): T.Material {
     };
     material.roughnessNode = N.mix(
       (material.roughnessNode as Node<'float'> | null) ?? N.materialRoughness,
-      bands.mul(0.08).add(0.32),
+      swell.w.mul(0.06).add(0.26),
       wet,
     );
   }

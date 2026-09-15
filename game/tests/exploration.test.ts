@@ -53,17 +53,26 @@ describe('richer surface exploration', () => {
   });
   it('encloses every plant and landmark vertex in the shared collision envelope with a small geometry budget', () => {
     for (const shape of ['fan', 'succulent', 'landmark', 'rock'] as const) {
-      const geometry = explorationGeometry(shape),
-        position = geometry.getAttribute('position');
-      expect(position.count / 3).toBeLessThan(shape === 'landmark' ? 300 : 200);
-      for (let i = 0; i < position.count; i++) {
-        expect(
-          Math.hypot(position.getX(i), position.getZ(i)),
-        ).toBeLessThanOrEqual(1.000001);
-        expect(position.getY(i)).toBeGreaterThanOrEqual(-1e-7);
-        expect(position.getY(i)).toBeLessThanOrEqual(1.000001);
+      for (const variant of [0, 1, 2]) {
+        const geometry = explorationGeometry(shape, variant),
+          position = geometry.getAttribute('position');
+        expect(position.count / 3).toBeLessThan(
+          shape === 'landmark' ? 300 : 200,
+        );
+        for (let i = 0; i < position.count; i++) {
+          expect(
+            Math.hypot(position.getX(i), position.getZ(i)),
+          ).toBeLessThanOrEqual(1.000001);
+          expect(position.getY(i)).toBeGreaterThanOrEqual(-1e-7);
+          expect(position.getY(i)).toBeLessThanOrEqual(1.000001);
+        }
+        const normal = geometry.getAttribute('normal');
+        for (let i = 0; i < normal.count; i++)
+          expect(
+            Math.hypot(normal.getX(i), normal.getY(i), normal.getZ(i)),
+          ).toBeCloseTo(1, 5);
+        geometry.dispose();
       }
-      geometry.dispose();
     }
   });
   it('lands and walks on a vegetated coast, preserves the nearest landmark through reload, and takes off', () => {

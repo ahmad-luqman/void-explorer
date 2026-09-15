@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 // therefore encloses crowns, stems and columns on either rendering backend.
 export function explorationGeometry(
   shape: 'fan' | 'succulent' | 'landmark' | 'rock',
+  variant = 0,
 ) {
   const pieces: T.BufferGeometry[] = [];
   const column = (
@@ -30,12 +31,17 @@ export function explorationGeometry(
     const vertices: number[] = [];
     const point = (ring: number, side: number) => {
       const a = ((side % sides) * Math.PI * 2) / sides;
+      const phase = seed + variant * 1.8;
       const t = ring / (rings - 1);
-      const width = [1, 0.78, 0.83, 0.52][ring];
-      const irregular = 0.83 + 0.14 * Math.sin(a * 3 + seed);
+      const width = [
+        [1, 0.78, 0.83, 0.52],
+        [1, 0.92, 0.61, 0.58],
+        [1, 0.63, 0.72, 0.35],
+      ][variant % 3][ring];
+      const irregular = 0.83 + 0.14 * Math.sin(a * 3 + phase);
       return [
         x + Math.cos(a) * r * width * irregular + t * r * 0.17,
-        h * t * (0.89 + 0.1 * Math.sin(a * 2 + seed)),
+        h * t * (0.89 + 0.1 * Math.sin(a * 2 + phase)),
         z + Math.sin(a) * r * width * irregular - t * r * 0.12,
       ];
     };
@@ -65,8 +71,8 @@ export function explorationGeometry(
   if (shape === 'landmark') {
     // Long fissures between offset buttresses, chipped crowns and basal scree.
     fracture(-0.15, 0, 0.32, 1, 0.3);
-    fracture(0.42, 0.08, 0.24, 0.69, 1.7);
-    fracture(-0.46, 0.3, 0.22, 0.44, 3.2);
+    fracture(0.42, 0.08, 0.24, [0.69, 0.91, 0.52][variant % 3], 1.7);
+    fracture(-0.46, 0.3, 0.22, [0.44, 0.35, 0.71][variant % 3], 3.2);
     for (let i = 0; i < 6; i++) {
       const a = i * 2.4;
       const rock = new T.IcosahedronGeometry(1, 0);
@@ -148,19 +154,34 @@ export function explorationGeometry(
   [...pieces, ...flat].forEach((g) => g.dispose());
   const p = merged.attributes.position;
   const colors = new Float32Array(p.count * 3);
-  for (let i = 0; i < p.count; i++) {
-    const leaf = Math.floor(i / 12);
-    const c =
-      shape === 'fan'
+  const stone = shape === 'rock' || shape === 'landmark';
+  for (let face = 0; face < p.count; face += 3) {
+    const x = (p.getX(face) + p.getX(face + 1) + p.getX(face + 2)) / 3,
+      y = (p.getY(face) + p.getY(face + 1) + p.getY(face + 2)) / 3,
+      z = (p.getZ(face) + p.getZ(face + 1) + p.getZ(face + 2)) / 3;
+    const mineral =
+      Math.sin(x * 8 + z * 5 + variant * 1.7) * Math.sin(y * 9 - z * 4);
+    // Coherent patches on the stone, warm exposed crowns and shaded bases.
+    // Flat face colors retain facets without the former repeating triangle stripes.
+    const c = stone
+      ? new T.Color()
+          .setRGB(
+            0.9 + mineral * 0.07,
+            0.85 + mineral * 0.04,
+            0.94 - mineral * 0.03,
+          )
+          .multiplyScalar(0.7 + 0.3 * Math.sqrt(Math.max(0, y)))
+      : shape === 'fan'
         ? new T.Color(
             ['#59918c', '#86ada0', '#bc8092', '#456e75'][
-              Math.floor(leaf / 5) % 4
+              Math.floor(Math.floor(face / 12) / 5) % 4
             ],
           )
         : new T.Color('#ffffff');
-    c.multiplyScalar(
-      0.72 + 0.23 * p.getY(i) + (Math.floor(i / 3) % 5) * 0.028,
-    ).toArray(colors, i * 3);
+    if (!stone)
+      c.multiplyScalar(0.72 + 0.23 * y + (Math.floor(face / 3) % 5) * 0.028);
+    for (let corner = 0; corner < 3; corner++)
+      c.toArray(colors, (face + corner) * 3);
   }
   merged.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
   merged.computeVertexNormals();
