@@ -44,3 +44,29 @@ The second terrain pass adds side summits, cut ridges and shallow shelves to new
 The nearby ridge contours are more broken and their surfaces less uniform than the first recovery pass. The bands remain stylized; the landing clearing is still too smooth, the spires are simple, and the distant landscape is sparse. This is an incremental terrain improvement, not acceptance against the concept. Keep the visual recovery milestone open. Next prioritize cloud depth, less uniform lighting, terrain self-shadowing and more natural water reflections, followed by foreground art placement and ship finish. The original screenshots above remain available for comparison; the newer approach capture waits longer for the normal chase camera to settle.
 
 Validation: 80 unit tests, type checking, scoped lint and the static build passed. Both full production journeys (orbital approach and coastal entry) passed on WebGL and WebGPU, including saved excursions and mobile layouts, with no page or console errors. The development coastal landmark journey also passed. Screenshots use software rendering, so actual-device performance remains unverified.
+
+
+## Coastal lighting review — 15 September 2026
+
+This pass keeps the previous geography and improves atmospheric separation: smaller cloud shapes have directional density shading, the blue sky is clearer, and lower fill/haze separates sunlit faces from shaded terrain. High-quality nearby terrain now casts sunlight shadows. Water combines gentle broad swell normals and short ripples with variable roughness, reducing the uniform glare while retaining the existing shoreline and collision surface.
+
+The wider shadow covers 3.6 km using a single 1536-square map. A measured software WebGPU coastal frame reported 42 draw calls and 507,815 triangles, including the shadow pass. This is a scene-cost observation, not a hardware performance benchmark. Fine ship/prop shadows are softer than the former narrow map. The cloud approximation uses four noise samples per pixel on High, three on Low; it still lacks actual cloud volume. An early stronger swell produced obvious repeated highlight stripes and was reduced before production validation.
+
+The software WebGPU walk needed about 29 seconds of wall time to advance the same roughly 28 m, with the simulation's existing capped time step. Its browser wait budget is now 40 seconds; the required distance and completed excursion assertions are unchanged. Terrain profiles, saved geography and collision poses are unchanged.
+
+Final runtime views:
+
+- [Approach, WebGL](milestones/lighting-approach-webgl.png)
+- [Bay, WebGL](milestones/lighting-bay-webgl.png)
+- [Parked ship, WebGL](milestones/lighting-ship-webgl.png)
+- [Approach, WebGPU](milestones/lighting-approach-webgpu.png)
+- [Bay, WebGPU](milestones/lighting-bay-webgpu.png)
+- [Parked ship, WebGPU](milestones/lighting-ship-webgpu.png)
+- [Mobile, WebGPU](milestones/lighting-mobile-webgpu.png)
+- [Local shadows](milestones/lighting-shadows-webgl.png)
+- [Night](milestones/lighting-night-webgl.png)
+
+The game remains well below the concept's art density and finish. The flat clearing, regular geological bands, sparse distant landmarks, simple spires and basic hull materials remain prominent. Clouds are still a thin shell and water does not reflect the scene. The next bounded pass should improve foreground rock/plant placement and ship material readability, then mechanical gear animation. Preserve the open walking route and existing collision envelopes.
+
+
+Validation: the final production coastal excursion passed on WebGL (50 seconds) and WebGPU (about 72 seconds), including landing, walking, save/reload, boarding, takeoff and mobile layouts. Day/night and High/Low shadow transitions passed on both backends; the final water refinement was covered again in the WebGL scene test and both production journeys. All 80 unit tests, type checking, scoped lint and the static build pass, with no page/console errors in the passing journeys. The WebGPU approach screenshot still catches the chase camera settling under software rendering, so the bay/parked views are the better direct comparisons. Waves remain visibly procedural, especially on WebGPU; this pass does not close the water-quality gap.

@@ -114,7 +114,7 @@ First recovery pass implemented: versioned Lumen Coast geography, production ent
 
 Terrain pass delivered and reviewed on both rendering backends: profile-3 ridge detail, denser nearby contact terrain, geological material variation and filtered fine normals, with old geography preserved. All 80 unit tests, type checking, scoped lint, the static build and both complete production journeys pass. Actual comparison images and remaining gaps are in [the runtime review](art/COASTAL_RUNTIME_REVIEW.md). This closes the bounded terrain pass; the wider visual recovery milestone remains active.
 
-### Coastal lighting, clouds and water — active
+### Coastal lighting, clouds and water — completed
 
 1. Improve cloud shape/depth and directional lighting; maintain readable sky, warm sunlight and cool shaded ground at the repeatable Lumen Coast viewpoints.
 2. Add terrain shading/self-shadowing within a measured cost budget; avoid flat uniform mountain faces and preserve both renderer paths.
@@ -122,4 +122,14 @@ Terrain pass delivered and reviewed on both rendering backends: profile-3 ridge 
 4. Review the actual approach, bay and parked-ship views and complete saved excursions on both backends. Then continue foreground art placement and spacecraft material/gear polish. Real-device profiling and broader release validation remain open.
 
 
-Implementation scope: keep the existing cloud shell and add directional billow shading with bounded noise samples; widen the High-quality sun shadow to cover nearby relief using one 2048-square map; add filtered multi-scale water normals and varying roughness to break the broad glare. Preserve terrain profiles and all saved poses. Compare production coastal views and test day/night plus High/Low transitions on both backends. These are stylized approximations; volumetric weather and scene-reflection water remain later work.
+Implementation scope: keep the existing cloud shell and add directional billow shading with bounded noise samples; widen the High-quality sun shadow to cover nearby relief using one 1536-square map; add filtered multi-scale water normals and varying roughness to break the broad glare. Preserve terrain profiles and all saved poses. Compare production coastal views and test day/night plus High/Low transitions on both backends. These are stylized approximations; volumetric weather and scene-reflection water remain later work.
+
+
+Delivered the bounded lighting pass: directional cloud billows, clearer sky/haze, nearby terrain self-shadowing and filtered water swell/roughness. The final production coastal saved excursion passes on WebGL and WebGPU; day/night and High/Low shadow transitions also pass. All 80 unit tests, type checking, scoped lint and the static build pass. The software WebGPU walking wait was extended to 40 seconds after observing continued movement reaching the same roughly 28 m in about 29 seconds; no journey assertion was removed. See the runtime review for final images, measured scene cost and remaining visual limits.
+
+### Next: foreground and spacecraft finish
+
+1. Break up the visually empty coastal clearing with clustered rubble and broad fan foliage around the protected ship/exit/walking lanes. Keep obstacle envelopes and older saved clearings safe.
+2. Refine large nearby rock silhouettes and reduce repetitive geological banding; prioritize the on-foot bay and parked-ship views.
+3. Improve ivory hull, dark mechanical parts, canopy and engine material readability. Preserve the authored model's size and contact contract; mechanical gear animation follows the material pass.
+4. Verify old/new saved excursions and compare actual desktop/mobile runtime images on both backends. Full concept parity, volumetric weather, scene-reflection water, camera settling polish and real-device profiling remain open.
