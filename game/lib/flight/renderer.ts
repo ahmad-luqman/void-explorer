@@ -114,6 +114,7 @@ export class FlightRenderer {
   }
   scene = new T.Scene();
   camera = new T.PerspectiveCamera(58, 1, 0.0001, 2000000);
+  private wasTitle = true;
   composer?: EffectComposer;
   bloom?: UnrealBloomPass;
   craft = createShip();
@@ -1030,10 +1031,15 @@ export class FlightRenderer {
       desired.multiply(
         new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), 0.36),
       );
-    this.camera.quaternion.slerp(
-      desired,
-      1 - Math.exp(-dt * (surface.phase === 'walking' ? 18 : 5)),
-    );
+    // Starting/continuing an expedition changes frames instantly. Do not carry
+    // the title's orbit camera through that transition, especially on slow GPUs.
+    if (this.wasTitle && !title) this.camera.quaternion.copy(desired);
+    else
+      this.camera.quaternion.slerp(
+        desired,
+        1 - Math.exp(-dt * (surface.phase === 'walking' ? 18 : 5)),
+      );
+    this.wasTitle = title;
     const fov = (title ? 58 : 60) + Math.min(17, this.sim.speed / 550);
     if (Math.abs(this.camera.fov - fov) > 0.01) {
       this.camera.fov += (fov - this.camera.fov) * 0.06;
