@@ -127,7 +127,17 @@ Implementation scope: keep the existing cloud shell and add directional billow s
 
 Delivered the bounded lighting pass: directional cloud billows, clearer sky/haze, nearby terrain self-shadowing and filtered water swell/roughness. The final production coastal saved excursion passes on WebGL and WebGPU; day/night and High/Low shadow transitions also pass. All 80 unit tests, type checking, scoped lint and the static build pass. The software WebGPU walking wait was extended to 40 seconds after observing continued movement reaching the same roughly 28 m in about 29 seconds; no journey assertion was removed. See the runtime review for final images, measured scene cost and remaining visual limits.
 
-### Next: foreground and spacecraft finish
+### Coastal scene reconstruction — active
+
+User authorized planning and implementation against the coastal concept on 15 September 2026. The latest bay screenshot shows that foreground decoration alone cannot close the gap: near islands and towers block the vista, the clearing is empty, and regular material bands dominate the rocks.
+
+1. Introduce terrain profile 4 for new expeditions. Keep profiles 1–3 byte-for-byte compatible in height sampling, and retain the safe landing/exit shelf. Open the central bay, distribute broken island silhouettes across middle distance, and add layered distant ridges. All land remains part of the rotating, traversable collision heightfield.
+2. Build a reusable faceted rock/plant geometry kit with fractured crowns, basal rubble and broad folded leaves. Compose foreground clusters around the ship and overlook, protect both exit routes, and retain bounded instancing and collision envelopes. Existing terrain profiles keep their scenery positions and dimensions.
+3. Replace regular geological stripes with localized, irregular stone variation and filtered cracks on both renderers. Refine ship material separation without changing the authored geometry/contact contract. Evaluate sky/water against the new composition and make bounded corrections where needed.
+4. Validate terrain-profile migration, ground/prop collision bounds, open walking lanes, rotation, and complete saved excursions. Compare actual approach, parked-ship, on-foot bay and mobile images on WebGL and WebGPU. Keep actual captures and an honest visual review in the repository.
+5. Commit coherent implementation and validation milestones and publish the verified private build. Acceptance for this pass is a visibly richer, open playable coastal vista; full concept parity remains unproven. Gear animation, global biome art, volumetric weather, scene reflections and real-device profiling follow.
+
+### Subsequent foreground and spacecraft finish
 
 1. Break up the visually empty coastal clearing with clustered rubble and broad fan foliage around the protected ship/exit/walking lanes. Keep obstacle envelopes and older saved clearings safe.
 2. Refine large nearby rock silhouettes and reduce repetitive geological banding; prioritize the on-foot bay and parked-ship views.
