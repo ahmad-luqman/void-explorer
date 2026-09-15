@@ -10,7 +10,7 @@ Ground materials replace prominent repetitive stripes with weaker, localized war
 
 The new coastal sky includes eight banks of nine solid ellipsoidal cloud lobes, totaling 12,096 triangles in one instanced draw. These are fixed native-frame stylized shapes, with no cloud collision or cloud shadows; they are not volumetric weather. The surrounding shell fades out over this region and remains the normal drifting cloud treatment elsewhere. Water retains the previous animated shading and depth colors; scene reflections, foam and wave geometry remain open work.
 
-Final validation and actual screenshots are recorded in `art/COASTAL_RUNTIME_REVIEW.md`. Historical implementation notes below describe earlier milestones and their then-current limits.
+All 83 unit tests, type checking, scoped lint and the static build pass. Complete production saved excursions, including old coastal restoration, pass on both renderers. Renderer lint excludes its pre-existing Vite worker `import/default` resolution false positives. The final camera correction snaps from the title view when starting or continuing an expedition. Actual screenshots and validation details are recorded in `art/COASTAL_RUNTIME_REVIEW.md`. Historical implementation notes below describe earlier milestones and their then-current limits.
 
 ---
 

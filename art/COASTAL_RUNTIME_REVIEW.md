@@ -70,3 +70,36 @@ The game remains well below the concept's art density and finish. The flat clear
 
 
 Validation: the final production coastal excursion passed on WebGL (50 seconds) and WebGPU (about 72 seconds), including landing, walking, save/reload, boarding, takeoff and mobile layouts. Day/night and High/Low shadow transitions passed on both backends; the final water refinement was covered again in the WebGL scene test and both production journeys. All 80 unit tests, type checking, scoped lint and the static build pass, with no page/console errors in the passing journeys. The WebGPU approach screenshot still catches the chase camera settling under software rendering, so the bay/parked views are the better direct comparisons. Waves remain visibly procedural, especially on WebGPU; this pass does not close the water-quality gap.
+
+## Coastal scene reconstruction — 15 September 2026
+
+The new profile opens a water corridor, moves the main sentinel formation offshore, and places successive ridges behind staggered island groups. The approach and bay remain part of the same rotating planet. Older terrain profiles retain their original heights and contact grids.
+
+The foreground now has real low shelf relief, fractured boulders, rubble and broad folded fans beside the protected walking lanes. Deliberately placed clusters reserve space in the 700-instance budget; small gravel cannot displace all the larger forms. Geological stripes are weaker and less uniform. Fine gravel and faint stone fissures fade with pixel size. Early drafts with oversized contour-like cracks and large rounded cloud lobes were rejected during runtime review; the delivered version reduces both. Coastal cloud banks are small solid shapes in the native planet frame, not volumetric weather.
+
+AURORA's ivory, graphite, trim and canopy materials have clearer separation, with the original GLB and collision dimensions retained. Starting or continuing an expedition now immediately adopts its camera orientation instead of interpolating from the title's unrelated orbit view.
+
+Final production views:
+
+- [Approach, WebGL](milestones/reconstruction-approach-webgl.png)
+- [Bay, WebGL](milestones/reconstruction-bay-webgl.png)
+- [Parked ship, WebGL](milestones/reconstruction-ship-webgl.png)
+- [Mobile, WebGL](milestones/reconstruction-mobile-webgl.png)
+- [Approach, WebGPU](milestones/reconstruction-approach-webgpu.png)
+- [Bay, WebGPU](milestones/reconstruction-bay-webgpu.png)
+- [Parked ship, WebGPU](milestones/reconstruction-ship-webgpu.png)
+- [Mobile, WebGPU](milestones/reconstruction-mobile-webgpu.png)
+- [Older coastal profile restored, WebGL](milestones/reconstruction-legacy-webgl.png)
+- [Older coastal profile restored, WebGPU](milestones/reconstruction-legacy-webgpu.png)
+
+### Remaining differences
+
+The vista is more open and the right foreground has recognizable plant/rock groups, but it remains substantially simpler than the concept. The central walking clearing is still visually broad, ground facets remain large, distant mountains lack sculpted erosion, and the skyline has coarse silhouettes. The rock/plant kit is reusable but still visibly repeated. Water has procedural highlight bands, particularly on WebGPU, with no shore foam or scene reflections. Clouds are sparse stylized lobes, and the hull still needs authored panel/recess detail. This pass does not establish concept parity or complete the wider art milestone.
+
+The next art work should focus on bespoke cliff/boulder surfaces, stronger foreground composition from several walking positions, shoreline water, and spacecraft geometry detail. Full volumetric weather and broader planet art remain later work.
+
+### Validation
+
+The contact grid uses 99,225 vertices and 197,192 triangles, within the unchanged 100,000/200,000 bounds. Landmarks use 288 triangles, fractured rocks 76; all geometry stays inside the existing collision envelopes. Coastal cloud banks use 12,096 triangles in one instanced mesh. A software WebGL development bay frame reported 44 draw calls and 558,956 triangles including shadow rendering; its roughly 29 m walk took about 19 seconds. These are scene-cost observations, not real-device performance measurements.
+
+All 83 unit tests, type checking, scoped lint and the static build pass. Scoped renderer lint excludes the existing `import/default` false positives for Vite worker imports; other edited files pass their normal scoped lint. Production journeys from orbit and from the coast passed on WebGL and WebGPU, including the authored model/workers, walking, new-profile save/reload, old-profile restoration, boarding, takeoff and mobile layouts. After the final camera transition fix, both WebGL journeys passed again (58/67 seconds), and the full new/legacy coastal WebGPU journey passed again (about 96 seconds). No page or console errors were reported. The unit suite also covers rotating-world attachment, prior terrain signatures/heights, clear walking lanes and prop geometry bounds. Hardware and broader browser validation remain open.

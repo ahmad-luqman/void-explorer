@@ -127,7 +127,7 @@ Implementation scope: keep the existing cloud shell and add directional billow s
 
 Delivered the bounded lighting pass: directional cloud billows, clearer sky/haze, nearby terrain self-shadowing and filtered water swell/roughness. The final production coastal saved excursion passes on WebGL and WebGPU; day/night and High/Low shadow transitions also pass. All 80 unit tests, type checking, scoped lint and the static build pass. The software WebGPU walking wait was extended to 40 seconds after observing continued movement reaching the same roughly 28 m in about 29 seconds; no journey assertion was removed. See the runtime review for final images, measured scene cost and remaining visual limits.
 
-### Coastal scene reconstruction — active
+### Coastal scene reconstruction — first pass delivered
 
 User authorized planning and implementation against the coastal concept on 15 September 2026. The latest bay screenshot shows that foreground decoration alone cannot close the gap: near islands and towers block the vista, the clearing is empty, and regular material bands dominate the rocks.
 
@@ -137,9 +137,11 @@ User authorized planning and implementation against the coastal concept on 15 Se
 4. Validate terrain-profile migration, ground/prop collision bounds, open walking lanes, rotation, and complete saved excursions. Compare actual approach, parked-ship, on-foot bay and mobile images on WebGL and WebGPU. Keep actual captures and an honest visual review in the repository.
 5. Commit coherent implementation and validation milestones and publish the verified private build. Acceptance for this pass is a visibly richer, open playable coastal vista; full concept parity remains unproven. Gear animation, global biome art, volumetric weather, scene reflections and real-device profiling follow.
 
-### Subsequent foreground and spacecraft finish
+Delivered: profile-4 bay/island composition, protected foreground shelf relief, a bounded fractured-rock/fan kit, composed scenery with gravel reservations, quieter geological materials, coastal cloud banks, AURORA material adjustments and immediate expedition camera alignment. All 83 unit tests, type checking, scoped lint and the static build pass; production saved excursions and older coastal restoration pass on both backends. See the runtime review for actual images and measured cost. This closes the bounded reconstruction pass, not the wider visual-recovery milestone or concept-parity work.
 
-1. Break up the visually empty coastal clearing with clustered rubble and broad fan foliage around the protected ship/exit/walking lanes. Keep obstacle envelopes and older saved clearings safe.
-2. Refine large nearby rock silhouettes and reduce repetitive geological banding; prioritize the on-foot bay and parked-ship views.
-3. Improve ivory hull, dark mechanical parts, canopy and engine material readability. Preserve the authored model's size and contact contract; mechanical gear animation follows the material pass.
-4. Verify old/new saved excursions and compare actual desktop/mobile runtime images on both backends. Full concept parity, volumetric weather, scene-reflection water, camera settling polish and real-device profiling remain open.
+### Next art and presentation work
+
+1. Improve bespoke cliff/boulder shapes and surfaces, and foreground composition from several walking positions. The safe central clearing and distant ridges still look simple.
+2. Address procedural water highlights and shoreline transitions. Cloud banks remain sparse solid approximations; volumetric weather and scene reflections are separate later work.
+3. Add authored spacecraft panel/recess detail, then mechanical gear animation. The material pass and entry-camera correction are delivered; broader flight/camera feel remains open.
+4. Continue old/new saved-expedition checks and desktop/mobile image comparisons on both backends. Profile real devices before raising geometry/shader budgets or claiming release readiness.
