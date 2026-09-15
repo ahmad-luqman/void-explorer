@@ -204,18 +204,18 @@ export class FlightRenderer {
     this.fillLight.position.set(-8, 1, -7);
     this.scene.add(this.keyLight, this.fillLight);
     this.scene.add(this.keyLight.target, this.fillLight.target);
-    this.keyLight.shadow.mapSize.set(1024, 1024);
+    this.keyLight.shadow.mapSize.set(1536, 1536);
     Object.assign(this.keyLight.shadow.camera, {
-      left: -0.16,
-      right: 0.16,
-      top: 0.16,
-      bottom: -0.16,
+      left: -1.8,
+      right: 1.8,
+      top: 1.8,
+      bottom: -1.8,
       near: 0.001,
-      far: 0.9,
+      far: 14,
     });
     this.keyLight.shadow.camera.updateProjectionMatrix();
-    this.keyLight.shadow.bias = -0.0002;
-    this.keyLight.shadow.normalBias = 0.00004;
+    this.keyLight.shadow.bias = -0.00003;
+    this.keyLight.shadow.normalBias = 0.0004;
     if (!gpu) {
       this.composer = new EffectComposer(this.renderer as T.WebGLRenderer);
       this.composer.addPass(new RenderPass(this.scene, this.camera));
@@ -567,6 +567,7 @@ export class FlightRenderer {
       this.contactMesh.quaternion.copy(patch.rotation);
       this.contactMesh.position.copy(patch.origin).sub(this.sim.position);
       this.contactMesh.receiveShadow = true;
+      this.contactMesh.castShadow = true;
       const seam = createTerrainSkirt(patch),
         seamGeometry = new T.BufferGeometry();
       seamGeometry.setAttribute(
@@ -1107,7 +1108,7 @@ export class FlightRenderer {
     this.keyLight.target.position.copy(this.craft.ship.position);
     this.keyLight.position
       .copy(this.keyLight.target.position)
-      .addScaledVector(environment.keyDirection, 0.42);
+      .addScaledVector(environment.keyDirection, 6);
     this.keyLight.color
       .set(
         this.sim.activeSystem.companion?.color ??
@@ -1126,13 +1127,13 @@ export class FlightRenderer {
     this.ambient.intensity = 0.38 - density * 0.2;
     this.skyLight.position.copy(environment.up);
     this.skyLight.color.set('#b7c8ea');
-    this.skyLight.intensity = density * (0.35 + daylight * 0.55);
+    this.skyLight.intensity = density * (0.25 + daylight * 0.4);
     const shadowActive =
       !title &&
       this.quality === 'high' &&
       !!surface.patch &&
       environment.keyHeight > 0.06 &&
-      (this.sim.altitude < 0.1 || surface.phase === 'walking');
+      (this.sim.altitude < 0.5 || surface.phase === 'walking');
     // Keep WebGPU's cached shadow graph alive across High/Low and altitude
     // changes. Toggling castShadow disposes a node still used by the bloom pass.
     this.keyLight.castShadow = this.gpu ? true : shadowActive;

@@ -223,8 +223,35 @@ export function convertMaterial(source: T.Material): T.Material {
     const detail = N.smoothstep(1, 12, N.positionView.length())
       .oneMinus()
       .mul(N.smoothstep(0.3, 2, footprint).oneMinus());
+    const swell = N.vec3(
+      p
+        .dot(N.vec3(17, 7, 13))
+        .add(t.mul(0.18))
+        .sin(),
+      p
+        .dot(N.vec3(-11, 19, 9))
+        .sub(t.mul(0.13))
+        .cos(),
+      p
+        .dot(N.vec3(13, -17, 21))
+        .add(t.mul(0.16))
+        .sin(),
+    );
+    const swellTangent = swell.sub(radial.mul(swell.dot(radial)));
+    const swellDetail = N.smoothstep(
+      0.3,
+      2,
+      N.dFdx(p).length().max(N.dFdy(p).length()).mul(35),
+    ).oneMinus();
     const normal = N.modelViewMatrix
-      .mul(N.vec4(radial.add(tangent.mul(0.07).mul(detail)), 0))
+      .mul(
+        N.vec4(
+          radial
+            .add(swellTangent.mul(0.025).mul(swellDetail))
+            .add(tangent.mul(0.045).mul(detail)),
+          0,
+        ),
+      )
       .xyz.normalize();
     material.normalNode = N.mix(
       (material.normalNode as Node<'vec3'> | null) ?? N.normalViewGeometry,
@@ -243,7 +270,7 @@ export function convertMaterial(source: T.Material): T.Material {
     };
     material.roughnessNode = N.mix(
       (material.roughnessNode as Node<'float'> | null) ?? N.materialRoughness,
-      0.38,
+      bands.mul(0.08).add(0.32),
       wet,
     );
   }

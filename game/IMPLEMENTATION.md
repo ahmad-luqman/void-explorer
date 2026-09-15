@@ -14,6 +14,14 @@ Profile 3 adds warped cross-cut ridges, side summits and shallow geological shel
 
 Both backends add irregular, pixel-filtered geological color bands and fine rock normals. The high-frequency noise anchor is reduced on the CPU and hashed periodically, keeping sub-meter shading stable without large-coordinate precision speckling. Normal detail fades below pixel resolution. This does not add physical bumps or change saved stance heights. The foreground clearing and large landmark meshes still need further artistic refinement.
 
+## Coastal light and water pass
+
+Cloud coverage is reduced and the shell uses smaller billows with directional density shading: three noise octaves at the current position (two on Low) plus one coarse sample toward the suns. This keeps the existing bounded shell and close-passage fade; it is not volumetric ray marching. The WebGPU cloud function is regenerated from the same GLSL source.
+
+High-quality sunlight now covers a 3.6 km square around the ship with one 1536-square shadow map (2.36 million depth texels, up from 1.05 million). The contact terrain casts as well as receives shadows, allowing nearby ridges to shade lower ground and the craft. Shadows activate below 500 m or while walking and retain the existing night/Low disable behavior and stable WebGPU shadow graph. Wider coverage trades fine prop-shadow resolution for landscape shading; it does not cover distant mountains or implement cascades. Sky fill and haze are reduced, with a clearer blue ocean-world sky.
+
+Water combines filtered short ripples with slower broad swell normals and spatially varying roughness. Both scales fade when their footprint falls below pixel resolution; solar highlights remain compressed before fog/bloom. Coastlines and collision heights are unchanged. The effect breaks up glare but is not a scene reflection or displaced wave surface. Terrain profiles and expedition formats are unchanged.
+
 ## Saved geography
 
 Expedition format 5 records terrain profiles 1, 2 or 3. New expeditions use profile 3; saved profile-2 coastal expeditions retain their exact original heightfield and contact grid; version-2/3/4 expeditions restore profile 1 and retain that original terrain through subsequent saves. Attached poses are validated against the saved profile before live state changes. Terrain cache revision 6 and both worker signatures distinguish the profiles. The renderer reloads native meshes when the profile changes, even within the same system. Scenery revision 2 continues to protect earlier saved poses; coastal props appear in profiles 2 and 3.

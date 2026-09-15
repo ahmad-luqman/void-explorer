@@ -22,6 +22,8 @@ test('coastal biome, vegetation and landmark survive a complete saved excursion'
       };
       surfaceShipPosition: number[];
       rendererBackend: string;
+      drawCalls: number;
+      triangles: number;
     }>;
   await page.goto('/');
   await expect(
@@ -39,14 +41,27 @@ test('coastal biome, vegetation and landmark survive a complete saved excursion'
   await page.waitForTimeout(800);
   await page.screenshot({ path: 'test-results/coastal-ship.png' });
   await page.getByRole('button', { name: 'Look over Lumen Bay' }).click();
+  const walkStarted = Date.now();
   await page.keyboard.down('w');
   await expect
-    .poll(async () => (await state()).walked, { timeout: 25000 })
+    .poll(async () => (await state()).walked, {
+      // Software WebGPU advances the capped simulation more slowly than wall time.
+      timeout: process.env.WEBGPU_TEST ? 40000 : 25000,
+    })
     .toBeGreaterThan(0.028);
   await page.keyboard.up('w');
   await page.waitForTimeout(800);
   await page.screenshot({ path: 'test-results/coastal-bay.png' });
   const before = await state();
+  console.log(
+    'coastal render cost',
+    JSON.stringify({
+      backend: before.rendererBackend,
+      drawCalls: before.drawCalls,
+      triangles: before.triangles,
+      walkWallMs: Date.now() - walkStarted,
+    }),
+  );
   expect(before.rendererBackend).toBe(
     process.env.WEBGPU_TEST ? 'WEBGPU' : 'WEBGL',
   );

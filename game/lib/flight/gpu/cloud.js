@@ -14,6 +14,7 @@ import {
   smoothstep,
   max,
   add,
+  clamp,
   length,
   vec4,
 } from 'three/tsl';
@@ -81,25 +82,32 @@ export function createShader(uniforms) {
 
   const shade = /*@__PURE__*/ Fn(([cloudDirection, cloudView]) => {
     const radial = normalize(cloudDirection);
-    const p = radial.mul(145).add(vec3(time.mul(0.0006), 0, time.mul(0.00022)));
-    const field = cloudNoise(p)
+    const p = radial.mul(210).add(vec3(time.mul(0.0006), 0, time.mul(0.00022)));
+    const base = cloudNoise(p);
+    const field = base
       .mul(0.62)
-      .add(cloudNoise(p.mul(2.7)).mul(0.26));
-    field.addAssign(
-      select(detail.greaterThan(0.5), cloudNoise(p.mul(7)).mul(0.12), 0.06),
-    );
-    const mass = smoothstep(coverage, coverage.add(0.14), field);
+      .add(cloudNoise(p.mul(2.7)).mul(0.26))
+      .add(
+        select(detail.greaterThan(0.5), cloudNoise(p.mul(7)).mul(0.12), 0.06),
+      );
+    const mass = smoothstep(coverage, coverage.add(0.12), field);
     const light = smoothstep(
       -0.18,
       0.5,
       max(dot(radial, keyDirection), dot(radial, secondaryDirection)),
     );
-    const color = mix(vec3(0.025, 0.025, 0.06), tint, light).mul(
-      add(0.75, field.mul(0.35)),
+    const sun = normalize(keyDirection.add(secondaryDirection.mul(0.25)));
+    const towardSun = cloudNoise(p.add(sun.mul(0.65)));
+    const relief = clamp(add(0.5, base.sub(towardSun).mul(2.3)), 0, 1);
+    const thickness = smoothstep(coverage, coverage.add(0.24), field);
+    const shade = mix(vec3(0.32, 0.4, 0.56), tint, relief.mul(0.75).add(0.2));
+    const color = mix(vec3(0.025, 0.03, 0.065), shade, light);
+    color.addAssign(
+      vec3(0.28, 0.19, 0.09).mul(light).mul(sub(1, thickness)).mul(mass),
     );
     const closeFade = smoothstep(0.15, 1.5, length(cloudView));
 
-    return vec4(color, mass.mul(0.83).mul(closeFade));
+    return vec4(color, mass.mul(0.94).mul(closeFade));
   });
 
   return shade;

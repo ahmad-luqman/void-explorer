@@ -32,7 +32,8 @@ export function createCloudLayer(
       seed: { value: body.seed % 991 },
       detail: { value: 1 },
       coverage: {
-        value: body.kind === 'desert' ? 0.61 : body.kind === 'ice' ? 0.48 : 0.5,
+        value:
+          body.kind === 'desert' ? 0.61 : body.kind === 'ice' ? 0.52 : 0.54,
       },
       tint: {
         value: new T.Color(body.kind === 'desert' ? '#e3b6b5' : '#f4e5e8'),
@@ -53,14 +54,20 @@ export function createCloudLayer(
         return mix(mix(mix(cloudHash(i),cloudHash(i+vec3(1,0,0)),f.x),mix(cloudHash(i+vec3(0,1,0)),cloudHash(i+vec3(1,1,0)),f.x),f.y),
         mix(mix(cloudHash(i+vec3(0,0,1)),cloudHash(i+vec3(1,0,1)),f.x),mix(cloudHash(i+vec3(0,1,1)),cloudHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
       void main(){vec3 radial=normalize(cloudDirection);
-        vec3 p=radial*145.+vec3(time*.0006,0.,time*.00022);
-        float field=cloudNoise(p)*.62+cloudNoise(p*2.7)*.26;
-        field+=detail>.5?cloudNoise(p*7.)*.12:.06;
-        float mass=smoothstep(coverage,coverage+.14,field);
+        vec3 p=radial*210.+vec3(time*.0006,0.,time*.00022);
+        float base=cloudNoise(p);
+        float field=base*.62+cloudNoise(p*2.7)*.26+(detail>.5?cloudNoise(p*7.)*.12:.06);
+        float mass=smoothstep(coverage,coverage+.12,field);
         float light=smoothstep(-.18,.5,max(dot(radial,keyDirection),dot(radial,secondaryDirection)));
-        vec3 color=mix(vec3(.025,.025,.06),tint,light)*(.75+field*.35);
+        vec3 sun=normalize(keyDirection+secondaryDirection*.25);
+        float towardSun=cloudNoise(p+sun*.65);
+        float relief=clamp(.5+(base-towardSun)*2.3,0.,1.);
+        float thickness=smoothstep(coverage,coverage+.24,field);
+        vec3 shade=mix(vec3(.32,.4,.56),tint,relief*.75+.2);
+        vec3 color=mix(vec3(.025,.03,.065),shade,light);
+        color+=vec3(.28,.19,.09)*light*(1.-thickness)*mass;
         float closeFade=smoothstep(.15,1.5,length(cloudView));
-        gl_FragColor=vec4(color,mass*.83*closeFade);
+        gl_FragColor=vec4(color,mass*.94*closeFade);
         #include <fog_fragment>
       }`,
   });

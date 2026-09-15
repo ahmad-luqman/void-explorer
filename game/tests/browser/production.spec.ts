@@ -112,6 +112,8 @@ test('production Lumen Coast entry supports a saved coastal excursion without in
     });
   }).toPass({ timeout: 30000, intervals: [1000] });
   await page.getByRole('button', { name: /Leave ship/ }).click();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: 'test-results/production-coast-ship.png' });
   await page.getByRole('button', { name: 'Look over Lumen Bay' }).click();
   await page.keyboard.down('w');
   await expect
@@ -120,7 +122,7 @@ test('production Lumen Coast entry supports a saved coastal excursion without in
         Number.parseInt(
           await page.locator('.surface-navigation .arrival b').innerText(),
         ),
-      { timeout: 25000 },
+      { timeout: process.env.WEBGPU_TEST ? 40000 : 25000 },
     )
     .toBeGreaterThanOrEqual(28);
   await page.keyboard.up('w');

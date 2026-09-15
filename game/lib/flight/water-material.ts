@@ -46,7 +46,7 @@ export function addWaterMaterial(
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
-       roughnessFactor=mix(roughnessFactor,.38,clamp(vWaterMask,0.,1.));`,
+       roughnessFactor=mix(roughnessFactor,.32+bands*.08,clamp(vWaterMask,0.,1.));`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
@@ -58,7 +58,12 @@ export function addWaterMaterial(
        wave-=radial*dot(wave,radial);
        float footprint=max(length(dFdx(vWaterPosition)),length(dFdy(vWaterPosition)))*1500.;
        float waveDetail=(1.-smoothstep(1.,12.,length(vViewPosition)))*(1.-smoothstep(.3,2.,footprint));
-       vec3 waterNormal=normalize((vWaterFrame*(radial+wave*.07*waveDetail)));
+       vec3 swell=vec3(sin(dot(vWaterPosition,vec3(17.,7.,13.))+waterTime*.18),
+         cos(dot(vWaterPosition,vec3(-11.,19.,9.))-waterTime*.13),
+         sin(dot(vWaterPosition,vec3(13.,-17.,21.))+waterTime*.16));
+       swell-=radial*dot(swell,radial);
+       float swellDetail=1.-smoothstep(.3,2.,max(length(dFdx(vWaterPosition)),length(dFdy(vWaterPosition)))*35.);
+       vec3 waterNormal=normalize((vWaterFrame*(radial+swell*.025*swellDetail+wave*.045*waveDetail)));
        normal=normalize(mix(normal,waterNormal,clamp(vWaterMask,0.,1.)));`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
@@ -68,5 +73,5 @@ export function addWaterMaterial(
        #include <opaque_fragment>`,
     );
   };
-  material.customProgramCacheKey = () => cacheKey + '-water-v3';
+  material.customProgramCacheKey = () => cacheKey + '-water-v4';
 }
