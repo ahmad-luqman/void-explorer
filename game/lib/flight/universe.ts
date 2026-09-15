@@ -1,5 +1,5 @@
 import { Vector3 } from 'three';
-import { coastalElevation } from './coast';
+import { coastalElevation, coastalVistaElevation } from './coast';
 import {
   address,
   translate,
@@ -23,7 +23,7 @@ export type Body = {
   ring: boolean;
   system: number;
   star?: boolean;
-  terrainVersion?: 1 | 2 | 3;
+  terrainVersion?: 1 | 2 | 3 | 4;
   rotationClock?: { time: number };
   color?: string;
 };
@@ -223,7 +223,7 @@ export function elevation(direction: Vector3, body: Body): number {
     Math.max(0, ridges - 0.48) * body.radius * 0.085 +
     (detail - 0.5) * body.radius * 0.009;
   return body.id === 'p0-0' && (body.terrainVersion ?? 1) >= 2
-    ? coastalElevation(
+    ? (body.terrainVersion === 4 ? coastalVistaElevation : coastalElevation)(
         direction,
         body.radius,
         original,

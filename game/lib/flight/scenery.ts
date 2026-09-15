@@ -103,6 +103,22 @@ export function generateScenery(
     (p) => p.shape === 'landmark' && visible(p),
   );
   props.push(...additions.filter((p) => p.shape !== 'landmark'));
+  if (body.terrainVersion === 4 && body.id === 'p0-0') {
+    const sorted = props
+      .filter(visible)
+      .sort(
+        (a, b) =>
+          a.point.distanceToSquared(center) - b.point.distanceToSquared(center),
+      );
+    const hero = sorted.filter((p) => p.id.includes(':vista:hero:'));
+    const gravel = sorted
+      .filter((p) => p.id.includes(':vista:near:'))
+      .slice(0, 120);
+    const other = sorted.filter(
+      (p) => !p.id.includes(':vista:hero:') && !p.id.includes(':vista:near:'),
+    );
+    return [...landmarks, ...hero, ...gravel, ...other].slice(0, SCENERY_LIMIT);
+  }
   // Reserve landmark coverage; retain nearby small obstacles within the total cap.
   return landmarks.concat(
     props

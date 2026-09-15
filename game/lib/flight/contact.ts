@@ -18,10 +18,15 @@ export const CONTACT_RADIUS = 48;
 export const CONTACT_CORE = 1.2;
 
 // Shared vertices join the dense walking grid to progressively wider terrain cells.
-export function contactAxis(detailed = false) {
+export function contactAxis(detailed = false, foreground = false) {
   if (detailed) {
     const positive = [0];
-    for (let i = 1; i <= 32; i++) positive.push(i * 0.009375);
+    if (foreground) {
+      for (let i = 1; i <= 12; i++) positive.push(i * 0.0046875);
+      for (let i = 1; i <= 26; i++) positive.push(0.05625 + i * 0.009375);
+    } else {
+      for (let i = 1; i <= 32; i++) positive.push(i * 0.009375);
+    }
     for (let i = 1; i <= 48; i++) positive.push(0.3 + i * 0.01875);
     let step = 0.01875;
     while (positive[positive.length - 1] < 64) {
@@ -96,8 +101,9 @@ export function generateContact(body: Body, center: Vector3): ContactData {
   const origin = up.clone().multiplyScalar(surfaceRadius(up, body));
   const axis = contactAxis(
       body.id === 'p0-0' &&
-        body.terrainVersion === 3 &&
+        (body.terrainVersion ?? 1) >= 3 &&
         up.dot(COAST_UP) > 0.99998,
+      body.terrainVersion === 4,
     ),
     extent = axis[axis.length - 1],
     resolution = axis.length - 1,

@@ -3,7 +3,9 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Every added shape fits radius 1 and height [0, 1]. The shared prop capsule
 // therefore encloses crowns, stems and columns on either rendering backend.
-export function explorationGeometry(shape: 'fan' | 'succulent' | 'landmark') {
+export function explorationGeometry(
+  shape: 'fan' | 'succulent' | 'landmark' | 'rock',
+) {
   const pieces: T.BufferGeometry[] = [];
   const column = (
     r: number,
@@ -16,67 +18,108 @@ export function explorationGeometry(shape: 'fan' | 'succulent' | 'landmark') {
     geo.translate(x, h / 2, z);
     pieces.push(geo);
   };
-  if (shape === 'landmark') {
-    // Three staggered fractured spires; ring offsets and uneven crowns break
-    // the straight cylinder silhouette while remaining inside the capsule.
-    for (let n = 0; n < 3; n++) {
-      const r = [0.38, 0.3, 0.24][n],
-        h = [1, 0.72, 0.46][n];
-      const x = [0, 0.52, -0.49][n],
-        z = [0, 0.06, 0.32][n];
-      const g = new T.CylinderGeometry(r * 0.62, r, h, 6, 3);
-      const p = g.attributes.position;
-      for (let i = 0; i < p.count; i++) {
-        const y = p.getY(i) + h / 2;
-        const t = y / h;
-        const angle = Math.atan2(p.getZ(i), p.getX(i));
-        const jagged = 0.83 + 0.17 * Math.sin(angle * 3 + t * 8 + n);
-        p.setXYZ(
-          i,
-          x + p.getX(i) * jagged + Math.sin(t * 3 + n) * 0.08 * t,
-          y * (0.93 + 0.07 * Math.sin(angle * 2 + n)),
-          z + p.getZ(i) * jagged - t * 0.08,
-        );
+  const fracture = (
+    x: number,
+    z: number,
+    r: number,
+    h: number,
+    seed: number,
+  ) => {
+    const sides = 7,
+      rings = 4;
+    const vertices: number[] = [];
+    const point = (ring: number, side: number) => {
+      const a = ((side % sides) * Math.PI * 2) / sides;
+      const t = ring / (rings - 1);
+      const width = [1, 0.78, 0.83, 0.52][ring];
+      const irregular = 0.83 + 0.14 * Math.sin(a * 3 + seed);
+      return [
+        x + Math.cos(a) * r * width * irregular + t * r * 0.17,
+        h * t * (0.89 + 0.1 * Math.sin(a * 2 + seed)),
+        z + Math.sin(a) * r * width * irregular - t * r * 0.12,
+      ];
+    };
+    for (let ring = 0; ring < rings - 1; ring++)
+      for (let side = 0; side < sides; side++) {
+        const a = point(ring, side),
+          b = point(ring, side + 1),
+          c = point(ring + 1, side),
+          d = point(ring + 1, side + 1);
+        vertices.push(...a, ...c, ...b, ...b, ...c, ...d);
       }
-      g.computeVertexNormals();
-      pieces.push(g);
+    for (let side = 0; side < sides; side++) {
+      vertices.push(...point(0, side), ...point(0, side + 1), x, 0, z);
+      vertices.push(
+        ...point(rings - 1, side + 1),
+        ...point(rings - 1, side),
+        x + r * 0.17,
+        h * 0.87,
+        z - r * 0.12,
+      );
     }
-    for (const x of [-0.5, 0.45]) {
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(vertices, 3));
+    g.computeVertexNormals();
+    pieces.push(g);
+  };
+  if (shape === 'landmark') {
+    // Long fissures between offset buttresses, chipped crowns and basal scree.
+    fracture(-0.15, 0, 0.32, 1, 0.3);
+    fracture(0.42, 0.08, 0.24, 0.69, 1.7);
+    fracture(-0.46, 0.3, 0.22, 0.44, 3.2);
+    for (let i = 0; i < 6; i++) {
+      const a = i * 2.4;
       const rock = new T.IcosahedronGeometry(1, 0);
-      rock.scale(0.33, 0.11, 0.3);
-      rock.translate(x, 0.11, -0.35);
+      rock.scale(0.2, 0.07 + (i % 3) * 0.025, 0.18);
+      rock.translate(
+        Math.cos(a) * 0.65,
+        0.07 + (i % 3) * 0.025,
+        Math.sin(a) * 0.65,
+      );
       pieces.push(rock);
     }
+  } else if (shape === 'rock') {
+    fracture(0, 0, 0.91, 1, 2.6);
+    const buttress = new T.IcosahedronGeometry(1, 0);
+    buttress.scale(0.3, 0.24, 0.28);
+    buttress.translate(-0.47, 0.24, 0.33);
+    pieces.push(buttress);
   } else if (shape === 'fan') {
-    column(0.12, 0.25, 0, 0, 0.08);
-    // Broad folded diamond leaves form an alien fan crown, not a conifer.
+    column(0.08, 0.23, 0, 0, 0.04);
     const vertices: number[] = [];
-    for (let i = 0; i < 9; i++) {
-      const a = (i * Math.PI * 2) / 9;
-      const point = (angle: number, r: number, y: number) => [
-        Math.cos(angle) * r,
+    // Three broad pleated fans have an upright silhouette and visible leaf faces.
+    for (let crown = 0; crown < 3; crown++) {
+      const yaw = crown * 2.4;
+      const point = (x: number, y: number, z: number) => [
+        Math.cos(yaw) * x - Math.sin(yaw) * z,
         y,
-        Math.sin(angle) * r,
+        Math.sin(yaw) * x + Math.cos(yaw) * z,
       ];
-      const base = [0, 0.03, 0],
-        tip = point(a, 0.92, 0.78 + (i % 3) * 0.1);
-      const left = point(a - 0.35, 0.66, 0.52),
-        right = point(a + 0.35, 0.66, 0.52);
-      const ridge = point(a, 0.46, 0.82);
-      vertices.push(
-        ...base,
-        ...left,
-        ...ridge,
-        ...left,
-        ...tip,
-        ...ridge,
-        ...tip,
-        ...right,
-        ...ridge,
-        ...right,
-        ...base,
-        ...ridge,
-      );
+      for (let leaf = 0; leaf < 5; leaf++) {
+        const angle = (leaf - 2) * 0.32;
+        const radius = 0.78 - crown * 0.07;
+        const x = Math.sin(angle) * radius,
+          y = 0.15 + Math.cos(angle) * radius;
+        const base = point(0, 0.035, 0),
+          left = point(x - 0.14, y - 0.06, 0.18 + crown * 0.08),
+          tip = point(x, y, 0.22 + crown * 0.08),
+          right = point(x + 0.14, y - 0.06, 0.18 + crown * 0.08),
+          fold = point(x * 0.5, y * 0.57, 0.08);
+        vertices.push(
+          ...base,
+          ...left,
+          ...fold,
+          ...left,
+          ...tip,
+          ...fold,
+          ...tip,
+          ...right,
+          ...fold,
+          ...right,
+          ...base,
+          ...fold,
+        );
+      }
     }
     const geo = new T.BufferGeometry();
     geo.setAttribute('position', new T.Float32BufferAttribute(vertices, 3));
@@ -109,10 +152,14 @@ export function explorationGeometry(shape: 'fan' | 'succulent' | 'landmark') {
     const leaf = Math.floor(i / 12);
     const c =
       shape === 'fan'
-        ? new T.Color(['#497e7c', '#73a39a', '#ab768e', '#3c626a'][leaf % 4])
+        ? new T.Color(
+            ['#59918c', '#86ada0', '#bc8092', '#456e75'][
+              Math.floor(leaf / 5) % 4
+            ],
+          )
         : new T.Color('#ffffff');
     c.multiplyScalar(
-      0.76 + 0.24 * p.getY(i) + (Math.floor(i / 3) % 3) * 0.045,
+      0.72 + 0.23 * p.getY(i) + (Math.floor(i / 3) % 5) * 0.028,
     ).toArray(colors, i * 3);
   }
   merged.setAttribute('color', new T.Float32BufferAttribute(colors, 3));

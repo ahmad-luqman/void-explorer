@@ -50,7 +50,13 @@ Browser tests expect the development server at `http://localhost:3000`. Override
 
 ## Current limits
 
-This is the first playable slice, not the finished reference game. Interstellar distances are compressed; the ship and walking use meter-scale dimensions. Planets remain stationary. Close terrain uses a worker-generated graded mesh extending 48 km from the pilot, with a dense central walking grid and closed outer seams, within a surrounding adaptive cube-sphere planet. The surrounding mesh blends over 0.8 seconds; a 68 km local region retains final geometry. Up to 12 planetary meshes (12 MiB of buffers) are cached in memory, clearing on reload. Landing and walking use the exact triangles of that detailed terrain. Coast depth colors and procedural gravel/mineral materials provide surface detail. Seeded boulders and mineral spires now provide local obstacles, with safe clearings and walking collision. Clouds use a thin drifting shell; volumetric weather, vegetation, authored landmarks, and rotating worlds remain later milestones. WebGPU and WebGL 2 share the expedition and graphics options. Both have software-rendered browser coverage; hardware performance profiling remains. The ship now loads from an authored GLB with a procedural fallback; mechanical gear animation remains future polish. Sound is a synthesized engine tone, with no soundtrack.
+This is a playable expedition prototype with ongoing visual refinement. Systems span roughly 15 light-years; local planet dimensions and orbital spacing remain compressed game kilometers. Planets rotate, and landed craft, walkers and saved scenery follow their native frames. Orbital motion is not simulated.
+
+Close terrain uses the exact rendered triangles for landing and walking, within a surrounding adaptive cube-sphere planet. Bounded memory and cross-session disk caches reuse native terrain meshes; independent per-tile refinement remains future work. Seeded rocks, biome vegetation and landmarks provide collidable scenery.
+
+**Explore Lumen Coast** starts the newest coastal terrain profile, with an open bay, layered islands, composed foreground plants/rocks and an offshore landmark. Continue preserves an older expedition's original terrain profile. The scene remains below the concept art's density and finish. Clouds use a drifting shell plus stylized solid coastal billows; water has animated shading but no scene reflections or physical waves.
+
+WebGPU and WebGL 2 share the expedition and graphics options. Software-rendered browser tests cover both; real-device performance and broader browser coverage remain unverified. AURORA loads from an authored GLB with a procedural fallback. Mechanical gear animation remains future polish. Sound is a synthesized engine tone, with no soundtrack.
 
 ## Project references
 

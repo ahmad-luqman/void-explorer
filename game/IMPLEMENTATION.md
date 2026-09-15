@@ -1,3 +1,19 @@
+# Coastal scene reconstruction — terrain profile 4
+
+New expeditions use terrain profile 4. Lumen Coast now has an open bay corridor, staggered islands, an offshore sentinel platform, and successive background ridges. A low coastal region blends back to the original planet between 40 and 100 km, avoiding a steep procedural wall immediately behind the vista. Profiles 1–3 retain their height functions and contact grids. The 39 m landing exclusion stays level; outside it, up to 2 m of real foreground shelf relief tapers around both walking routes. The same heightfield drives planet meshes, rendered ground and collision.
+
+Profile-4 coastal ground has 4.6875 m cells in the central 56.25 m, then 9.375 m cells through 300 m, retaining the prior graded outer spacing. This uses 99,225 vertices and 197,192 triangles, within the existing 100,000/200,000 storage limits. Saves keep expedition format 5 with terrain profiles 1–4, distinguished by both terrain-cache signatures. New geography never replaces an older saved profile.
+
+The shared geometry kit contains fractured rocks (76 triangles), three-part landmarks with basal rubble (288 triangles), and broad pleated fans. All vertices stay in the prior unit radius/height collision envelopes. Profile-4 coastal props use fixed native clusters around the overlook and ship, five-meter-wide walking corridors and an offshore landmark range of 3 km. Composed clusters and at most 120 foreground gravel instances reserve space in the unchanged 700-prop budget. Older profiles retain their placement and dimensions while receiving the bounded geometry/material refinements.
+
+Ground materials replace prominent repetitive stripes with weaker, localized warped strata, filtered stone variation and faint irregular fissures. Both WebGL and WebGPU filter fine gravel/cracks by pixel footprint; normal detail remains shading only. AURORA's runtime material finish separates ivory armor, graphite structure, trim and canopy without changing the GLB or its physical contract.
+
+The new coastal sky includes eight banks of nine solid ellipsoidal cloud lobes, totaling 12,096 triangles in one instanced draw. These are fixed native-frame stylized shapes, with no cloud collision or cloud shadows; they are not volumetric weather. The surrounding shell fades out over this region and remains the normal drifting cloud treatment elsewhere. Water retains the previous animated shading and depth colors; scene reflections, foam and wave geometry remain open work.
+
+Final validation and actual screenshots are recorded in `art/COASTAL_RUNTIME_REVIEW.md`. Historical implementation notes below describe earlier milestones and their then-current limits.
+
+---
+
 # Coastal visual quality recovery
 
 ## Playable Lumen Coast

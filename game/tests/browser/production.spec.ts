@@ -91,7 +91,7 @@ test('production export loads terrain workers and supports a complete approach',
 test('production Lumen Coast entry supports a saved coastal excursion without inspection tools', async ({
   page,
 }) => {
-  test.setTimeout(120000);
+  test.setTimeout(160000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => {
@@ -138,7 +138,7 @@ test('production Lumen Coast entry supports a saved coastal excursion without in
     JSON.parse(localStorage.getItem('void-expedition-v2')!),
   );
   expect(saved.version).toBe(5);
-  expect(saved.terrainVersion).toBe(3);
+  expect(saved.terrainVersion).toBe(4);
   await page.reload();
   await page
     .getByRole('button', { name: /Continue expedition/ })
@@ -152,6 +152,43 @@ test('production Lumen Coast entry supports a saved coastal excursion without in
   ).toBeInViewport();
   await page.screenshot({ path: 'test-results/production-coast-mobile.png' });
   await page.setViewportSize({ width: 1440, height: 960 });
+  await page.getByRole('button', { name: /Board ship/ }).click();
+  await page.getByRole('button', { name: /Take off/ }).click();
+  await expect(page.getByRole('button', { name: /Land here/ })).toBeVisible({
+    timeout: 15000,
+  });
+  // This walking pose lies on the protected route shared with profile 3.
+  // Restore the older geography through the production save parser, without
+  // using the development inspection API, then finish its expedition too.
+  await page.evaluate((record) => {
+    localStorage.setItem(
+      'void-expedition-v2',
+      JSON.stringify({ ...record, terrainVersion: 3 }),
+    );
+  }, saved);
+  await page.reload();
+  await page
+    .getByRole('button', { name: /Continue expedition/ })
+    .click({ timeout: 45000 });
+  await expect(
+    page.getByRole('button', { name: 'Look over Lumen Bay' }),
+  ).toBeVisible({ timeout: 20000 });
+  await page
+    .getByRole('button', { name: 'Save expedition', exact: true })
+    .click();
+  const legacy = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('void-expedition-v2')!),
+  );
+  expect(legacy.terrainVersion).toBe(3);
+  expect(legacy.surface.phase).toBe('walking');
+  expect(
+    Math.hypot(
+      ...legacy.surface.shipPosition.map(
+        (v: number, i: number) => v - saved.surface.shipPosition[i],
+      ),
+    ),
+  ).toBeLessThan(1e-7);
+  await page.screenshot({ path: 'test-results/production-coast-legacy.png' });
   await page.getByRole('button', { name: /Board ship/ }).click();
   await page.getByRole('button', { name: /Take off/ }).click();
   await expect(page.getByRole('button', { name: /Land here/ })).toBeVisible({

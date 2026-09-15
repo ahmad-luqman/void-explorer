@@ -1,5 +1,62 @@
 import * as T from 'three';
 import { type Body, surfaceRadius } from './universe';
+import { coastDirection, COAST_UP } from './coast';
+
+// A bounded set of three-dimensional billows gives the coastal horizon depth.
+// These are stylized solid lobes, not a volumetric weather simulation.
+export function createCoastalCloudBanks(body: Body) {
+  const geometry = new T.SphereGeometry(1, 12, 8);
+  const positions = geometry.attributes.position;
+  const colors = new Float32Array(positions.count * 3);
+  for (let i = 0; i < positions.count; i++) {
+    const t = T.MathUtils.smoothstep(positions.getY(i), -0.8, 0.5);
+    new T.Color('#8798b4')
+      .lerp(new T.Color('#fff1da'), t)
+      .toArray(colors, i * 3);
+  }
+  geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
+  const centers = [
+    [-7, 8],
+    [2, 9],
+    [7, 12],
+    [-5, 17],
+    [13, 14],
+    [1, 22],
+    [12, 24],
+    [-15, 20],
+  ];
+  const mesh = new T.InstancedMesh(
+    geometry,
+    new T.MeshStandardMaterial({
+      color: '#ffffff',
+      roughness: 1,
+      vertexColors: true,
+    }),
+    centers.length * 9,
+  );
+  const dummy = new T.Object3D();
+  let index = 0;
+  centers.forEach(([x, z], n) => {
+    for (let lobe = 0; lobe < 9; lobe++) {
+      const a = lobe * 2.4 + n;
+      const d = coastDirection(
+        x * 2 + Math.cos(a) * 0.45,
+        z * 2 + Math.sin(a) * 0.25,
+        body.radius,
+      );
+      const crown = lobe % 3 === 0;
+      dummy.position
+        .copy(d)
+        .multiplyScalar(surfaceRadius(d, body) + 2.5 + (crown ? 0.2 : 0));
+      dummy.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d);
+      dummy.scale.set(crown ? 0.25 : 0.4, crown ? 0.3 : 0.13, 0.28);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(index++, dummy.matrix);
+    }
+  });
+  mesh.computeBoundingSphere();
+  return mesh;
+}
 
 // A thin weather layer follows the same terrain heightfield, 18 km above it.
 // The shell is shared by orbital and below-cloud views; no sky-only replacement.
@@ -31,6 +88,8 @@ export function createCloudLayer(
       secondaryDirection,
       seed: { value: body.seed % 991 },
       detail: { value: 1 },
+      coast: { value: body.id === 'p0-0' && body.terrainVersion === 4 ? 1 : 0 },
+      coastUp: { value: COAST_UP.clone() },
       coverage: {
         value:
           body.kind === 'desert' ? 0.61 : body.kind === 'ice' ? 0.52 : 0.54,
@@ -46,7 +105,8 @@ export function createCloudLayer(
         #include <fog_vertex>
       }`,
     fragmentShader: `varying vec3 cloudDirection;varying vec3 cloudView;
-      uniform float time;uniform float seed;uniform float coverage;uniform float detail;
+      uniform float time;uniform float seed;uniform float coverage;uniform float detail;uniform float coast;
+      uniform vec3 coastUp;
       uniform vec3 tint;uniform vec3 keyDirection;uniform vec3 secondaryDirection;
       #include <fog_pars_fragment>
       float cloudHash(vec3 p){p=fract(p*.1031+seed*.003);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
@@ -58,6 +118,7 @@ export function createCloudLayer(
         float base=cloudNoise(p);
         float field=base*.62+cloudNoise(p*2.7)*.26+(detail>.5?cloudNoise(p*7.)*.12:.06);
         float mass=smoothstep(coverage,coverage+.12,field);
+        mass*=1.-coast*smoothstep(.98,.995,dot(radial,coastUp));
         float light=smoothstep(-.18,.5,max(dot(radial,keyDirection),dot(radial,secondaryDirection)));
         vec3 sun=normalize(keyDirection+secondaryDirection*.25);
         float towardSun=cloudNoise(p+sun*.65);
@@ -72,5 +133,7 @@ export function createCloudLayer(
       }`,
   });
   const mesh = new T.Mesh(geometry, material);
+  if (body.id === 'p0-0' && body.terrainVersion === 4)
+    mesh.add(createCoastalCloudBanks(body));
   return mesh;
 }

@@ -17,6 +17,13 @@ import {
 import { terrainColor } from '../lib/flight/terrain';
 import { sampleBiome } from '../lib/flight/biomes';
 import { terrainSignature } from '../lib/flight/terrain-cache';
+import {
+  generateScenery,
+  sceneryBlocks,
+  SCENERY_LIMIT,
+} from '../lib/flight/scenery';
+import { fromPlanet } from '../lib/flight/rotation';
+import { surfaceRadius } from '../lib/flight/universe';
 
 describe('playable coastal visual slice', () => {
   it('has a safe landing shelf, connected coves, offshore relief and distant ridges in the collision heightfield', () => {
@@ -41,7 +48,7 @@ describe('playable coastal visual slice', () => {
     expect(center.water).toBe(false);
     expect(center.slope).toBeLessThan(1);
     expect(elevation(coastDirection(0, 0.5), body)).toBeLessThan(0);
-    expect(elevation(coastDirection(1.7, 1.8), body)).toBeGreaterThan(0.45);
+    expect(elevation(coastDirection(-0.87, 1.24), body)).toBeGreaterThan(0.2);
     expect(elevation(coastDirection(1, -4.8), body)).toBeGreaterThan(2);
     const sea = coastDirection(0, 0.5)
       .multiplyScalar(body.radius)
@@ -101,10 +108,10 @@ describe('playable coastal visual slice', () => {
     expect(migrated.version).toBe(5);
     expect(migrated.terrainVersion).toBe(1);
     expect(
-      parseExpedition(JSON.stringify({ ...migrated, terrainVersion: 4 })),
+      parseExpedition(JSON.stringify({ ...migrated, terrainVersion: 5 })),
     ).toBeNull();
     restored.startCoast();
-    expect(restored.terrainVersion).toBe(3);
+    expect(restored.terrainVersion).toBe(4);
     expect(elevation(COAST_UP, restored.nearest)).toBeCloseTo(0.062, 8);
   });
   it('retains profile-2 saved coast geometry while new expeditions gain distinct ridges', () => {
@@ -175,10 +182,70 @@ describe('playable coastal visual slice', () => {
     const options = { pixels: 2, projection: 800, maxLeaves: 3000 };
     expect(
       new Set(
-        ([1, 2, 3] as const).map((terrainVersion) =>
+        ([1, 2, 3, 4] as const).map((terrainVersion) =>
           terrainSignature({ ...body, terrainVersion }, 'high', options),
         ),
       ).size,
-    ).toBe(3);
+    ).toBe(4);
+  });
+  it('opens a water corridor, preserves the old landing shelf and keeps profile-3 heights through reload', () => {
+    const source = new FlightSimulation();
+    source.startCoast();
+    const latest = { ...source.target };
+    source.setTerrainVersion(3);
+    const original = { ...source.target, terrainVersion: 1 as const };
+    const saved = captureExpedition(source)!;
+    const restored = new FlightSimulation();
+    expect(restoreExpedition(restored, saved)).toBe(true);
+    expect(restored.terrainVersion).toBe(3);
+    for (const [x, z] of [
+      [0, 0],
+      [0.02, 0.02],
+      [0.07, 0.05],
+      [0.45, 0.65],
+      [1.7, 1.8],
+      [1, -4.8],
+    ]) {
+      const d = coastDirection(x, z);
+      expect(elevation(d, restored.target)).toBe(
+        coastalElevation(d, original.radius, elevation(d, original), true),
+      );
+      if (Math.hypot(x, z) < 0.039)
+        expect(elevation(d, latest)).toBe(elevation(d, restored.target));
+    }
+    for (const z of [0.4, 0.7, 1, 2, 3]) {
+      expect(elevation(coastDirection(z * 0.35, z), latest)).toBeLessThan(0);
+    }
+  });
+  it('composes close scenery within budget while leaving both walking lanes and the ship footprint clear', () => {
+    const sim = new FlightSimulation();
+    sim.startCoast();
+    const body = sim.target;
+    const patch = new ContactSurface(
+      generateContact(
+        body,
+        COAST_UP.clone().applyQuaternion(planetRotation(body)),
+      ),
+      body,
+    );
+    const props = generateScenery(patch, patch.origin);
+    expect(props.length).toBeLessThanOrEqual(SCENERY_LIMIT);
+    expect(
+      props.filter((p) => p.point.distanceTo(patch.origin) < 0.15).length,
+    ).toBeGreaterThan(50);
+    expect(props.some((p) => p.id.endsWith('vista:sentinels'))).toBe(true);
+    expect(sceneryBlocks(props, patch.origin, patch.up, 0.035)).toBe(false);
+    for (const side of [-1, 1])
+      for (let z = 0; z <= 0.075; z += 0.005) {
+        const d = coastDirection(side * 0.027 + z * 0.65, z, body.radius);
+        const point = fromPlanet(
+          d.clone().multiplyScalar(surfaceRadius(d, body)),
+          body,
+        );
+        expect(sceneryBlocks(props, point, patch.up, 0.0007)).toBe(false);
+      }
+    expect(generateScenery(patch, patch.origin).map((p) => p.id)).toEqual(
+      props.map((p) => p.id),
+    );
   });
 });

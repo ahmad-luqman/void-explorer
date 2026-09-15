@@ -1,6 +1,9 @@
 import { expect, it } from 'vitest';
-import { Vector3 } from 'three';
-import { createCloudLayer } from '../lib/flight/clouds';
+import { Matrix4, Vector3 } from 'three';
+import {
+  createCloudLayer,
+  createCoastalCloudBanks,
+} from '../lib/flight/clouds';
 import { createUniverse, surfaceRadius } from '../lib/flight/universe';
 it('keeps a bounded cloud shell above the shared planetary terrain', () => {
   const body = createUniverse()[0].planets[0];
@@ -22,4 +25,25 @@ it('keeps a bounded cloud shell above the shared planetary terrain', () => {
   }
   mesh.geometry.dispose();
   mesh.material.dispose();
+});
+it('keeps coastal billows bounded and well above the rotating native terrain', () => {
+  const body = {
+    ...createUniverse()[0].planets[0],
+    terrainVersion: 4 as const,
+  };
+  const mesh = createCoastalCloudBanks(body);
+  expect(mesh.count).toBe(72);
+  expect((mesh.geometry.index!.count / 3) * mesh.count).toBeLessThan(13000);
+  const matrix = new Matrix4(),
+    point = new Vector3();
+  for (let i = 0; i < mesh.count; i++) {
+    mesh.getMatrixAt(i, matrix);
+    point.setFromMatrixPosition(matrix);
+    const radius = point.length();
+    expect(radius - surfaceRadius(point.normalize(), body)).toBeGreaterThan(2);
+  }
+  mesh.geometry.dispose();
+  (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach(
+    (m) => m.dispose(),
+  );
 });

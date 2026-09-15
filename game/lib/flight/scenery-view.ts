@@ -27,30 +27,17 @@ export function createSceneryView(
       (p) => (p.shape ?? (p.mineral ? 'mineral' : 'rock')) === shape,
     );
     if (!items.length) continue;
-    const geometry = extra
-      ? explorationGeometry(shape)
-      : mineral
-        ? new T.ConeGeometry(1, 1, 5)
-        : new T.IcosahedronGeometry(1, 1);
-    if (!extra && mineral) geometry.translate(0, 0.4, 0);
-    if (shape === 'rock') {
-      const p = geometry.attributes.position;
-      for (let i = 0; i < p.count; i++) {
-        const x = p.getX(i),
-          y = p.getY(i),
-          z = p.getZ(i);
-        const r = 0.78 + 0.18 * Math.sin(x * 8 + z * 3 + y * 7) ** 2;
-        p.setXYZ(i, x * r, (y + 1) * 0.5 * r, z * r);
-      }
-      geometry.computeVertexNormals();
-    }
+    const geometry = mineral
+      ? new T.ConeGeometry(1, 1, 5)
+      : explorationGeometry(shape);
+    if (mineral) geometry.translate(0, 0.4, 0);
     const material = new T.MeshStandardMaterial({
       color: '#ffffff',
       side: shape === 'fan' ? T.DoubleSide : T.FrontSide,
       roughness: mineral ? 0.48 : 0.95,
       metalness: mineral ? 0.12 : 0,
       flatShading: true,
-      vertexColors: extra,
+      vertexColors: !mineral,
     });
     const mesh = new T.InstancedMesh(geometry, material, items.length),
       dummy = new T.Object3D();

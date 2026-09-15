@@ -45,10 +45,47 @@ export function createShip(): ShipRig {
       }
       const gear = gltf.scene.getObjectByName('LandingGear'),
         cores: T.Mesh[] = [];
+      const finished = new Set<T.Material>();
       gltf.scene.traverse((o) => {
         if ((o as T.Mesh).isMesh) {
           o.castShadow = true;
           o.receiveShadow = true;
+          const mesh = o as T.Mesh;
+          for (const material of Array.isArray(mesh.material)
+            ? mesh.material
+            : [mesh.material]) {
+            if (
+              !(material instanceof T.MeshStandardMaterial) ||
+              finished.has(material)
+            )
+              continue;
+            finished.add(material);
+            // The scene has directional lighting but no environment probe. Low
+            // armor metalness keeps the ivory readable instead of near-black.
+            if (
+              material.name === 'Ivory armor' ||
+              material.name === 'Pale armor'
+            ) {
+              material.color.set(
+                material.name === 'Ivory armor' ? '#d8d0bc' : '#eee5d1',
+              );
+              material.metalness = 0.08;
+              material.roughness = 0.48;
+            } else if (material.name === 'Graphite structure') {
+              material.color.set('#28313d');
+              material.metalness = 0.28;
+              material.roughness = 0.64;
+            } else if (material.name === 'Titanium trim') {
+              material.color.set('#697780');
+              material.metalness = 0.38;
+              material.roughness = 0.36;
+            } else if (material.name === 'Teal canopy') {
+              material.color.set('#126577');
+              material.metalness = 0.18;
+              material.roughness = 0.14;
+              material.emissiveIntensity = 0.06;
+            }
+          }
         }
         if (o.name.startsWith('EngineCore_') && (o as T.Mesh).isMesh)
           cores.push(o as T.Mesh);

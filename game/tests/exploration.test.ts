@@ -52,10 +52,10 @@ describe('richer surface exploration', () => {
     }
   });
   it('encloses every plant and landmark vertex in the shared collision envelope with a small geometry budget', () => {
-    for (const shape of ['fan', 'succulent', 'landmark'] as const) {
+    for (const shape of ['fan', 'succulent', 'landmark', 'rock'] as const) {
       const geometry = explorationGeometry(shape),
         position = geometry.getAttribute('position');
-      expect(position.count / 3).toBeLessThan(200);
+      expect(position.count / 3).toBeLessThan(shape === 'landmark' ? 300 : 200);
       for (let i = 0; i < position.count; i++) {
         expect(
           Math.hypot(position.getX(i), position.getZ(i)),

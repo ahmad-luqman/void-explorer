@@ -24,6 +24,12 @@ export function createShader(uniforms) {
   const seed = reference('value', 'float', uniforms['seed']);
   const coverage = reference('value', 'float', uniforms['coverage']);
   const detail = reference('value', 'float', uniforms['detail']);
+  const coast = reference('value', 'float', uniforms['coast']);
+  const coastUp = reference(
+    'value',
+    uniforms['coastUp'].value.isColor ? 'color' : 'vec3',
+    uniforms['coastUp'],
+  );
   const tint = reference(
     'value',
     uniforms['tint'].value.isColor ? 'color' : 'vec3',
@@ -91,6 +97,9 @@ export function createShader(uniforms) {
         select(detail.greaterThan(0.5), cloudNoise(p.mul(7)).mul(0.12), 0.06),
       );
     const mass = smoothstep(coverage, coverage.add(0.12), field);
+    mass.mulAssign(
+      sub(1, coast.mul(smoothstep(0.98, 0.995, dot(radial, coastUp)))),
+    );
     const light = smoothstep(
       -0.18,
       0.5,

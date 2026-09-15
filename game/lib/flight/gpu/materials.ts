@@ -48,6 +48,25 @@ const noise = N.Fn(([point, seed]: [Node<'vec3'>, Node<'float'>]) => {
     f.z,
   );
 });
+const stoneEdges = N.Fn(([point, seed]: [Node<'vec2'>, Node<'float'>]) => {
+  const cell = point.floor(),
+    f = point.fract();
+  const first = N.float(10).toVar(),
+    second = N.float(10).toVar();
+  for (let y = -1; y <= 1; y++)
+    for (let x = -1; x <= 1; x++) {
+      const o = N.vec2(x, y),
+        h = hash(N.vec3(cell.add(o), 17), seed);
+      const delta = o
+        .add(N.vec2(h.mul(17.13).fract(), h.mul(31.71).fract()).mul(0.7))
+        .add(0.15)
+        .sub(f);
+      const distance = delta.dot(delta);
+      second.assign(N.min(second, N.max(first, distance)));
+      first.assign(N.min(first, distance));
+    }
+  return second.sqrt().sub(first.sqrt());
+});
 export function convertMaterial(source: T.Material): T.Material {
   if (source instanceof T.ShaderMaterial) {
     const material = new MeshBasicNodeMaterial().copy(source);
@@ -109,7 +128,12 @@ export function convertMaterial(source: T.Material): T.Material {
       N.smoothstep(0.0002, 0.001, height).oneMinus(),
     );
     const seed = N.float(body.seed % 997);
-    const gravel = hash(p.mul(7200).floor(), seed),
+    const pixelWorld = N.dFdx(local).length().max(N.dFdy(local).length());
+    const gravel = N.mix(
+        0.5,
+        hash(p.mul(7200).floor(), seed),
+        N.smoothstep(0.2, 1.2, pixelWorld.mul(7200)).oneMinus(),
+      ),
       stone = noise(
         local
           .mul(440)
@@ -125,11 +149,30 @@ export function convertMaterial(source: T.Material): T.Material {
         seed,
       );
     const strata = height.mul(600).add(stone.mul(0.6)).sin().mul(0.5).add(0.5);
+    const crackFilter = N.smoothstep(0.4, 1.8, pixelWorld.mul(1100)).oneMinus();
+    const stoneLocal = local.xz
+      .mul(440)
+      .add(
+        N.uniform(
+          new T.Vector2(
+            (((anchor.x * 440) % 4096) + 4096) % 4096,
+            (((anchor.z * 440) % 4096) + 4096) % 4096,
+          ),
+        ),
+      )
+      .mul(2.5);
+    const edge = stoneEdges(stoneLocal, seed);
+    const cracks = N.mix(
+      1,
+      N.smoothstep(0.01, N.fwidth(edge).mul(1.5).add(0.03), edge),
+      crackFilter.mul(N.smoothstep(0.3, 0.65, stone)),
+    );
     const rawTone = stone
-      .mul(0.16)
-      .add(gravel.mul(0.07))
-      .add(strata.mul(0.07))
-      .add(0.78);
+      .mul(0.14)
+      .add(gravel.mul(0.04))
+      .add(strata.mul(0.025))
+      .add(0.83)
+      .mul(N.mix(0.94, 1, cracks));
     const tone = N.mix(
       rawTone,
       0.94,
@@ -137,16 +180,16 @@ export function convertMaterial(source: T.Material): T.Material {
     );
     const mass = noise(p.mul(9), seed);
     const bedPhase = height
-      .mul(240)
-      .add(noise(p.mul(5), seed).mul(18))
-      .add(noise(p.mul(23), seed).mul(3));
+      .mul(38)
+      .add(noise(p.mul(5), seed).mul(32))
+      .add(noise(p.mul(23), seed).mul(6));
     const bedFilter = N.smoothstep(0.4, 2, N.fwidth(bedPhase)).oneMinus();
     const beds = bedPhase.sin().mul(bedFilter).mul(0.5).add(0.5);
     const geology = N.mix(
-      N.vec3(0.84, 0.79, 0.91),
-      N.vec3(1.08, 1.04, 1),
-      beds,
-    ).mul(N.mix(0.8, 1.16, mass));
+      N.vec3(0.91, 0.88, 0.96),
+      N.vec3(1.03, 1.01, 0.98),
+      N.mix(0.5, beds, N.smoothstep(0.4, 0.75, mass)),
+    ).mul(N.mix(0.79, 1.14, mass));
     const grainFilter = N.smoothstep(
       0.3,
       1.5,
