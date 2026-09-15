@@ -46,7 +46,7 @@ WEBGPU_TEST=1 npm run test:browser
 npm run build
 ```
 
-Browser tests expect the development server at `http://localhost:3000`. Override with `PLAYWRIGHT_BASE_URL`. If necessary, install the test browser with `npx playwright install chromium`. The WebGPU test mode explicitly requests a SwiftShader WebGPU adapter and asserts the active backend. It does not measure hardware performance. The production build exports static assets under `game/dist/client/` and includes both terrain workers.
+Browser tests expect the development server at `http://localhost:3000`. Override with `PLAYWRIGHT_BASE_URL`. If necessary, install the test browser with `npx playwright install chromium`. The WebGPU test mode explicitly requests a SwiftShader WebGPU adapter and asserts the active backend. It does not measure hardware performance. On macOS, set `HARDWARE_TEST=1` to use ANGLE Metal instead of SwiftShader; combine with `WEBGPU_TEST=1` for WebGPU. Coastal and rendering tests explicitly select the game backend in either mode. Hardware-mode results describe only the tested machine, not general device compatibility. The production build exports static assets under `game/dist/client/` and includes both terrain workers.
 
 ## Current limits
 

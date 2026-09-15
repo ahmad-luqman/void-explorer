@@ -103,3 +103,37 @@ The next art work should focus on bespoke cliff/boulder surfaces, stronger foreg
 The contact grid uses 99,225 vertices and 197,192 triangles, within the unchanged 100,000/200,000 bounds. Landmarks use 288 triangles, fractured rocks 76; all geometry stays inside the existing collision envelopes. Coastal cloud banks use 12,096 triangles in one instanced mesh. A software WebGL development bay frame reported 44 draw calls and 558,956 triangles including shadow rendering; its roughly 29 m walk took about 19 seconds. These are scene-cost observations, not real-device performance measurements.
 
 All 83 unit tests, type checking, scoped lint and the static build pass. Scoped renderer lint excludes the existing `import/default` false positives for Vite worker imports; other edited files pass their normal scoped lint. Production journeys from orbit and from the coast passed on WebGL and WebGPU, including the authored model/workers, walking, new-profile save/reload, old-profile restoration, boarding, takeoff and mobile layouts. After the final camera transition fix, both WebGL journeys passed again (58/67 seconds), and the full new/legacy coastal WebGPU journey passed again (about 96 seconds). No page or console errors were reported. The unit suite also covers rotating-world attachment, prior terrain signatures/heights, clear walking lanes and prop geometry bounds. Hardware and broader browser validation remain open.
+
+## Water and nearby stone finish — 15 September 2026
+
+The strongest repeated ocean bands in the reconstruction screenshots are removed. Both renderers now sample the same small periodic height/slope texture at two native-coordinate scales, with mipmaps filtering distant detail. The repeated trigonometric highlight pattern has been replaced with subtle irregular ripples. Reduced water specular strength and a narrower, teal shoreline blend limit glare spilling onto the shore. Broad solar reflection and some pale mixed coastal triangles remain; this is still a shaded heightfield without scene reflections, displaced waves or foam.
+
+Boulders and sentinel formations now have three deterministic silhouettes, selected from stable prop identities. Different fractured shoulders, crown widths and subsidiary column heights reduce obvious repetition. Stone faces use spatial mineral-color patches and darker bases instead of cycling triangle colors. All variants retain the previous 76-triangle boulder and 288-triangle landmark budgets and fit the existing radius/height collision envelopes. Prop placements, dimensions, terrain profiles and save formats remain unchanged.
+
+The geometry variants add up to four instanced meshes, or eight draw calls when every group is visible in both the main and shadow passes. A software WebGPU bay frame recorded 47 draw calls and 558,955 triangles, including shadows; the roughly 29 m walk took about 36 seconds. This is a scene-cost observation rather than real-device profiling. The shared 128-square RGBA texture occupies 64 KiB before mipmaps and needs six filtered samples per ocean-terrain fragment, including dry triangles using that material. Real-device profiling is required before increasing shader work further.
+
+### Visual limits and next work
+
+The bay reads more calmly, and the nearby stone silhouettes vary more, but the improvement is bounded. The central clearing remains broad, distant terrain has coarse facets, cloud banks look like simple solid lobes, and the ship needs authored panel/recess detail. Additional cliff shapes and closer foreground compositions, followed by spacecraft surface detail and mechanical gear work, remain the next priorities. The wider concept-quality milestone remains open.
+
+### Final runtime views
+
+- [Bay, WebGL](milestones/water-stone-bay-webgl.png)
+- [Bay, WebGPU](milestones/water-stone-bay-webgpu.png)
+- [Parked ship, WebGL](milestones/water-stone-ship-webgl.png)
+- [Parked ship, WebGPU](milestones/water-stone-ship-webgpu.png)
+- [Mobile, WebGL](milestones/water-stone-mobile-webgl.png)
+- [Mobile, WebGPU](milestones/water-stone-mobile-webgpu.png)
+- [Older coast restored, WebGL](milestones/water-stone-legacy-webgl.png)
+- [Older coast restored, WebGPU](milestones/water-stone-legacy-webgpu.png)
+- [Sentinel view, software WebGPU](milestones/water-stone-sentinels-webgpu.png)
+- [Early approach, WebGL](milestones/water-stone-approach-webgl.png)
+- [Approach, WebGPU](milestones/water-stone-approach-webgpu.png)
+
+The final production images use ANGLE Metal on an Apple M4 Max. The early WebGL approach capture precedes detailed terrain arrival and still shows coarse geography and broad glare; the landed bay images are the better comparison of this pass. The sentinel capture uses software WebGPU. Neither the hardware journey duration nor the software scene-cost measurement is a controlled FPS benchmark.
+
+### Validation
+
+All 85 unit tests, type checking, scoped lint and the static build pass. The unit checks include every rock variant's geometry/collision envelope, finite unit normals, continuous native wave phases across terrain anchors and repeating-texture edge continuity. Complete production coastal journeys passed on Apple M4 Max/ANGLE Metal with WebGL (49.6 seconds) and WebGPU (41.9 seconds), including new-profile save/reload, profile-3 restoration, boarding, both takeoffs and mobile layouts. Day/night and High/Low transitions passed on software WebGL (38.9 seconds) and hardware WebGPU (26.5 seconds); the latter explicitly asserts the active backend. Passing journeys reported no page or console errors.
+
+Initial software runs encountered a stopped development server, a long system pause and increasingly variable landing/walking timeouts under the machine's current load. Temporary timeout increases were reverted. Hardware testing then exposed a separate test assumption: the extra forward walk could exceed the game's existing 55 m boarding range. The coastal journey now walks back within 45 m before boarding, retaining the original game limits and test deadlines. `HARDWARE_TEST=1` enables the macOS Metal test path; renderer selection is explicit. These checks cover this Mac and Chromium, not broad hardware/browser performance or release readiness.

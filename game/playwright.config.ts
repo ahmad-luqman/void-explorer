@@ -8,8 +8,9 @@ export default defineConfig({
     viewport: { width: 1440, height: 960 },
     launchOptions: {
       args: [
-        '--use-angle=swiftshader',
-        '--enable-unsafe-swiftshader',
+        ...(process.env.HARDWARE_TEST
+          ? ['--use-angle=metal']
+          : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']),
         ...(process.env.WEBGPU_TEST ? ['--enable-unsafe-webgpu'] : []),
       ],
     },

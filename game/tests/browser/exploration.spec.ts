@@ -1,5 +1,15 @@
 import { test, expect } from '@playwright/test';
 
+// Select the same game backend whether Chromium uses software or the host GPU.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(
+    (preference) => {
+      localStorage.setItem('void-renderer', preference);
+    },
+    process.env.WEBGPU_TEST ? 'auto' : 'webgl',
+  );
+});
+
 test('coastal biome, vegetation and landmark survive a complete saved excursion', async ({
   page,
 }) => {

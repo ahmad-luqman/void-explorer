@@ -1,5 +1,15 @@
 import { test, expect } from '@playwright/test';
 
+// Select the same game backend whether Chromium uses software or the host GPU.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(
+    (preference) => {
+      localStorage.setItem('void-renderer', preference);
+    },
+    process.env.WEBGPU_TEST ? 'auto' : 'webgl',
+  );
+});
+
 test('sunlit ground shadows, night sky, and water render without shader errors', async ({
   page,
 }) => {
@@ -13,11 +23,15 @@ test('sunlit ground shadows, night sky, and water render without shader errors',
       lighting: { daylight: number; density: number; shadows: boolean };
       contactReady: boolean;
       altitude: number;
+      rendererBackend: string;
     }>;
   await page.goto('/');
   await expect(
     page.getByRole('button', { name: 'START EXPEDITION' }),
   ).toBeEnabled({ timeout: 45000 });
+  expect((await state()).rendererBackend).toBe(
+    process.env.WEBGPU_TEST ? 'WEBGPU' : 'WEBGL',
+  );
   await page.evaluate(() => window.__VOID_EXPLORER__!.scene('landing'));
   await expect.poll(async () => (await state()).contactReady).toBe(true);
   await page.getByRole('button', { name: /Land here/ }).click();

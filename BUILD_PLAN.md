@@ -146,9 +146,14 @@ Delivered: profile-4 bay/island composition, protected foreground shelf relief, 
 3. Add authored spacecraft panel/recess detail, then mechanical gear animation. The material pass and entry-camera correction are delivered; broader flight/camera feel remains open.
 4. Continue old/new saved-expedition checks and desktop/mobile image comparisons on both backends. Profile real devices before raising geometry/shader budgets or claiming release readiness.
 
-### Water and nearby stone finish — active
+### Water and nearby stone finish — delivered
 
 1. Replace the visibly periodic ocean swell/highlight bands with a small deterministic, mipmapped wave texture shared by both backends. Keep phases in native planet coordinates, separate fine and broad scales, and reduce solar glare at the lighting stage. Preserve ocean heights, shore geometry and expedition formats.
 2. Refine shoreline color transitions so mixed coastal triangles do not become broad white rims. Actual foam, scene reflections and displaced water remain separate work.
 3. Add deterministic boulder/landmark shape variants and face-level mineral/crevice color detail within the existing prop collision envelopes. Retain placements, walking lanes and the 700-instance limit; record any draw-call cost.
 4. Inspect approach, bay, parked-ship and landmark viewpoints; verify full new/legacy saved coastal journeys and day/night plus High/Low rendering on WebGL and WebGPU. Commit implementation and the actual screenshot review, then update the private build.
+
+
+Delivered: shared filtered ocean wave detail, reduced specular glare, a narrower teal shore blend, and three bounded rock/landmark variants with spatial face colors. The original geometry and save contracts are preserved. All 85 unit tests, type checking, scoped lint and the static build pass. Full new/legacy coastal journeys pass on both renderers using Apple M4 Max/Metal; day/night and High/Low checks also pass. Actual captures, software-rendering limitations and the corrected return-to-ship test are recorded in [the runtime review](art/COASTAL_RUNTIME_REVIEW.md).
+
+Next prioritize more sculpted cliff/foreground forms and authored spacecraft panels/recesses, then mechanical landing gear. The broad clearing, early coarse approach terrain, simple cloud lobes and remaining solar glare keep the wider concept-quality milestone open. Profile a wider range of devices before increasing shader or geometry budgets.

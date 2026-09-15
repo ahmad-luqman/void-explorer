@@ -1,4 +1,14 @@
 import { test, expect } from '@playwright/test';
+
+// Select the same game backend whether Chromium uses software or the host GPU.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(
+    (preference) => {
+      localStorage.setItem('void-renderer', preference);
+    },
+    process.env.WEBGPU_TEST ? 'auto' : 'webgl',
+  );
+});
 test('production export loads terrain workers and supports a complete approach', async ({
   page,
 }) => {
@@ -92,6 +102,23 @@ test('production Lumen Coast entry supports a saved coastal excursion without in
   page,
 }) => {
   test.setTimeout(160000);
+  const returnToShip = async () => {
+    await page.getByRole('button', { name: 'Look over Lumen Bay' }).click();
+    await page.keyboard.down('s');
+    try {
+      await expect
+        .poll(
+          async () =>
+            Number.parseInt(
+              await page.locator('.surface-navigation .range').innerText(),
+            ),
+          { timeout: 15000 },
+        )
+        .toBeLessThan(45);
+    } finally {
+      await page.keyboard.up('s');
+    }
+  };
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => {
@@ -152,6 +179,7 @@ test('production Lumen Coast entry supports a saved coastal excursion without in
   ).toBeInViewport();
   await page.screenshot({ path: 'test-results/production-coast-mobile.png' });
   await page.setViewportSize({ width: 1440, height: 960 });
+  await returnToShip();
   await page.getByRole('button', { name: /Board ship/ }).click();
   await page.getByRole('button', { name: /Take off/ }).click();
   await expect(page.getByRole('button', { name: /Land here/ })).toBeVisible({
@@ -189,6 +217,7 @@ test('production Lumen Coast entry supports a saved coastal excursion without in
     ),
   ).toBeLessThan(1e-7);
   await page.screenshot({ path: 'test-results/production-coast-legacy.png' });
+  await returnToShip();
   await page.getByRole('button', { name: /Board ship/ }).click();
   await page.getByRole('button', { name: /Take off/ }).click();
   await expect(page.getByRole('button', { name: /Land here/ })).toBeVisible({
