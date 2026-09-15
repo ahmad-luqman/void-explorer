@@ -145,3 +145,10 @@ Delivered: profile-4 bay/island composition, protected foreground shelf relief, 
 2. Address procedural water highlights and shoreline transitions. Cloud banks remain sparse solid approximations; volumetric weather and scene reflections are separate later work.
 3. Add authored spacecraft panel/recess detail, then mechanical gear animation. The material pass and entry-camera correction are delivered; broader flight/camera feel remains open.
 4. Continue old/new saved-expedition checks and desktop/mobile image comparisons on both backends. Profile real devices before raising geometry/shader budgets or claiming release readiness.
+
+### Water and nearby stone finish — active
+
+1. Replace the visibly periodic ocean swell/highlight bands with a small deterministic, mipmapped wave texture shared by both backends. Keep phases in native planet coordinates, separate fine and broad scales, and reduce solar glare at the lighting stage. Preserve ocean heights, shore geometry and expedition formats.
+2. Refine shoreline color transitions so mixed coastal triangles do not become broad white rims. Actual foam, scene reflections and displaced water remain separate work.
+3. Add deterministic boulder/landmark shape variants and face-level mineral/crevice color detail within the existing prop collision envelopes. Retain placements, walking lanes and the 700-instance limit; record any draw-call cost.
+4. Inspect approach, bay, parked-ship and landmark viewpoints; verify full new/legacy saved coastal journeys and day/night plus High/Low rendering on WebGL and WebGPU. Commit implementation and the actual screenshot review, then update the private build.
