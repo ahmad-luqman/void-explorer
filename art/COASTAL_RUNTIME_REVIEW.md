@@ -294,3 +294,5 @@ Review captures freeze the simulation and hide only the pause overlay; they reta
 All 109 unit tests, TypeScript, scoped changed-module lint and the static build pass. Actual WebGL/WebGPU checks cover the elevated coast, orbital High/Low, sunlit ground/shadows, night and water, without page or shader errors. The generated TSL cloud/ring modules come from the repository GLSL source through `scripts/port-shaders.mjs`.
 
 Final production orbital/coastal journeys pass on WebGL (26.2/44.8 s) and WebGPU (26.2/41.4 s), including saved terrain profiles 3–5. These are test durations, not frame benchmarks. The full completion audit remains open.
+
+The validated filtering pass is published privately as Sites version 27. Deployment reported `succeeded`. Authored destinations, streaming refinement and full environment/device acceptance remain in the active completion audit.
