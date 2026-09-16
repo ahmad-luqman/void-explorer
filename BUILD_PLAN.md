@@ -169,3 +169,10 @@ Next prioritize more sculpted cliff/foreground forms and authored spacecraft pan
 Delivered: chipped coastal sentinel crowns, split foreground outcrops and cheaper sub-meter gravel, with unchanged placement and collision/save contracts. Tests prove closed, bounded geometry and no increase in scenery triangles at four coastal positions. The final scene adds four draw groups in the bay while reducing the observed triangle count. All 87 unit tests, type checking, scoped lint and the build pass; complete new/legacy production journeys pass on both renderers. [The runtime review](art/COASTAL_RUNTIME_REVIEW.md) preserves actual images and remaining limits.
 
 Next bounded implementation: authored AURORA panel/recess detail while preserving its dimensions, landing pads and engine/gear part contract; then mechanical gear animation. The larger environment still needs authored surface finish, better distant terrain and cloud/water work to approach the concept.
+
+### AURORA surface detail — active
+
+1. Replace uninterrupted nacelle armor with individually shaped plates and recessed access panels. Add selective wing hatches, cockpit-shoulder vent detail and fin seams using the existing seven materials.
+2. Preserve the 28.8 m span, full model bounds, landing-pad locations, independently visible LandingGear and two named engine cores. Keep the export below the existing 5,000-triangle/14-mesh contract with no textures or decoder dependencies.
+3. Regenerate the editable Blender source, studio image, GLB and measured asset report from the repository script in a fresh background Blender process. Review both studio and actual flight/parked views.
+4. Validate the asset contract, authored/fallback loading and complete new/legacy saved coastal journeys on both renderers. Commit the model and actual review, then update the private build. Mechanical gear animation follows this bounded surface-detail pass.
