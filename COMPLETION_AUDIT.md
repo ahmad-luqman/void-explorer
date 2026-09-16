@@ -18,7 +18,7 @@ User objective: implement everything in the supplied session summary, not only t
 | Audio beyond engine tone | Six continuous layers, seven event types; offline waveform/mute checks and actual landing/footstep/pause journey | Implemented procedural soundscape; device-specific listening checks remain part of release validation |
 | Performance across real devices | Chromium Metal on this Mac | Incomplete: measured budgets and available physical-device runs; do not label emulation real hardware |
 | Broader browsers | Chromium WebGL/WebGPU | Incomplete: Firefox/WebKit/Safari coverage where available, graceful support behavior |
-| Mobile controls | Responsive HUD | Incomplete: actual touch flight, walking, interaction and mobile journey checks |
+| Mobile controls | Analog steering/movement, simultaneous throttle/roll/boost, pulse, run, captured/cancelled pointers; 15.1 s saved touch excursion | Implemented and checked with Chromium touch emulation in portrait/landscape; physical device validation remains open |
 | Release | Private Sites build v22; existing saves/journeys | Incomplete: final full regression, visual audit, performance evidence, documented limits and private release |
 
 ## Evidence rules

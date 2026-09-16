@@ -267,3 +267,10 @@ The terrain-transition static export passed separate production expeditions on b
 ## Dependency audit
 
 The pinned Sites scaffold currently reports 11 dependency advisories (8 high, 2 moderate, 1 low), primarily in build/development tooling, image parsing, and server-function packages. This milestone publishes only static HTML, JavaScript, and assets; it does not deploy those server endpoints. Framework/tooling updates and a fresh audit are needed before adding server functionality. The local development server should remain bound to localhost. No forced dependency upgrades were applied during this milestone.
+
+
+## Touch expedition controls
+
+An analog stick now steers flight or moves on foot. Independent captured pointers support simultaneous throttle, brake, roll, boost and run; pulse is a toggle. Touch input is independent of physical keys and clears on pointer cancellation, lost capture, pause, phase changes and blur. The HUD scrolls within available space and keeps controls clear of the central view in portrait and short landscape layouts.
+
+The Chromium touch journey checks simultaneous steering/throttle, cancellation, pulse, walking/running, stop, save/reload, boarding and takeoff at 390×844 and 844×390. It passes in 15.1 s on this Mac. All 95 unit tests and type checking pass. New touch component, simulation changes and browser test pass lint; the main page retains its existing React/compiler and accessibility lint findings (no repository-wide clean-lint claim). Captures are in `art/milestones/touch-surface-{portrait,landscape}.png`. These are emulation checks, not physical-phone certification.

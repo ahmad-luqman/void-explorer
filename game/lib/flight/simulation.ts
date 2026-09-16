@@ -35,6 +35,7 @@ export type Controls = {
   brake: boolean;
   boost: boolean;
   strafe?: number;
+  forward?: number;
 };
 export const emptyControls = (): Controls => ({
   pitch: 0,
@@ -164,6 +165,9 @@ export class FlightSimulation {
       }
     }
     return false;
+  }
+  togglePulse() {
+    if (this.surface.phase === 'flight') this.pulse = !this.pulse;
   }
   engage() {
     if (this.surface.phase !== 'flight') return;

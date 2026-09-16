@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Matrix4, Vector3 } from 'three';
 import {
   ArrowRight,
@@ -27,7 +27,13 @@ import type { FlightRenderer } from '@/lib/flight/renderer';
 import { createFlightRenderer } from '@/lib/flight/renderer-factory';
 import { registerFlightTools } from '@/lib/flight/webmcp';
 import { distanceLabel, elevation, SYSTEM_COUNT } from '@/lib/flight/universe';
+import type { SurfacePhase } from '@/lib/flight/surface';
 import { ExpeditionAudio } from '@/lib/flight/audio';
+import {
+  TouchControls,
+  emptyTouchAxes,
+  type TouchAxes,
+} from '@/components/touch-controls';
 import { StarChart } from '@/components/star-chart';
 import { navigationReadout, etaLabel } from '@/lib/flight/navigation';
 import {
@@ -53,7 +59,7 @@ const initial = {
   x: 50,
   y: 50,
   visible: false,
-  phase: 'flight',
+  phase: 'flight' as SurfacePhase,
   surfaceMessage: '',
   shipDistance: 0,
   walked: 0,
@@ -107,6 +113,15 @@ export default function Home() {
     help: false,
   });
   flags.current = { started, paused, settings, chart, help };
+  const touch = useRef(emptyTouchAxes());
+  const touchKeys = useRef(new Set<string>());
+  const onTouchAxes = useCallback((axes: TouchAxes) => {
+    touch.current = axes;
+  }, []);
+  const onTouchKey = useCallback((code: string, down: boolean) => {
+    if (down) touchKeys.current.add(code);
+    else touchKeys.current.delete(code);
+  }, []);
   const audio = useRef<ExpeditionAudio | null>(null);
   function bootSound() {
     try {
@@ -250,17 +265,25 @@ export default function Home() {
               f.started && !f.paused && !f.settings && !f.chart && !f.help;
           if (active) {
             const c = emptyControls(),
-              k = keys.current;
+              k = touchKeys.current.size
+                ? new Set([...keys.current, ...touchKeys.current])
+                : keys.current;
             c.pitch =
               Number(k.has('ArrowUp')) -
               Number(k.has('ArrowDown')) -
-              mouse.current.y;
+              mouse.current.y +
+              touch.current.pitch;
             c.yaw =
               Number(k.has('ArrowLeft')) -
               Number(k.has('ArrowRight')) -
-              mouse.current.x;
+              mouse.current.x +
+              touch.current.yaw;
             c.roll = Number(k.has('KeyQ')) - Number(k.has('KeyE'));
-            c.strafe = Number(k.has('KeyD')) - Number(k.has('KeyA'));
+            c.strafe =
+              Number(k.has('KeyD')) -
+              Number(k.has('KeyA')) +
+              touch.current.strafe;
+            c.forward = touch.current.forward;
             c.accelerate = k.has('KeyW');
             c.decelerate = k.has('KeyS');
             c.brake = k.has('KeyX') || k.has('Space');
@@ -520,7 +543,9 @@ export default function Home() {
     window.addEventListener('resize', resize);
     const blur = () => {
       keys.current.clear();
+      touchKeys.current.clear();
       mouse.current = { x: 0, y: 0, down: false };
+      touch.current = emptyTouchAxes();
       if (flags.current.started) setPaused(true);
     };
     window.addEventListener('blur', blur);
@@ -542,6 +567,7 @@ export default function Home() {
     const blocked = paused || settings || chart || help;
     if (blocked) {
       keys.current.clear();
+      touchKeys.current.clear();
       mouse.current = { x: 0, y: 0, down: false };
     }
     const down = (e: KeyboardEvent) => {
@@ -675,6 +701,9 @@ export default function Home() {
           }
         }}
         onPointerCancel={() => (mouse.current = { x: 0, y: 0, down: false })}
+        onLostPointerCapture={() =>
+          (mouse.current = { x: 0, y: 0, down: false })
+        }
       />
       <div className="vignette" />
       <div className="phosphor" />
@@ -1036,30 +1065,15 @@ export default function Home() {
               </>
             )}
           </div>
-          <div className="touch-controls">
-            {[
-              ['ArrowLeft', '←'],
-              ['ArrowUp', '↑'],
-              ['ArrowDown', '↓'],
-              ['ArrowRight', '→'],
-              ['KeyW', '+'],
-              ['KeyS', '−'],
-              ['KeyX', 'BRAKE'],
-            ].map(([code, label]) => (
-              <button
-                key={code}
-                aria-label={code}
-                onPointerDown={(e) => {
-                  e.currentTarget.setPointerCapture(e.pointerId);
-                  keys.current.add(code);
-                }}
-                onPointerUp={() => keys.current.delete(code)}
-                onPointerCancel={() => keys.current.delete(code)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <TouchControls
+            key={`${data.phase}-${paused || settings || chart || help}`}
+            phase={data.phase}
+            enabled={started && !paused && !settings && !chart && !help}
+            onKey={onTouchKey}
+            onAxes={onTouchAxes}
+            pulse={data.pulse}
+            onPulse={() => runtime.current?.sim.togglePulse()}
+          />
         </>
       )}
       {error && (

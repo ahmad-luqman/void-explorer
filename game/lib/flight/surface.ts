@@ -516,7 +516,11 @@ export class SurfaceExpedition {
     forward.addScaledVector(up, -forward.dot(up)).normalize();
     const right = new Vector3().crossVectors(forward, up).normalize();
     const direction = forward
-      .multiplyScalar(Number(input.accelerate) - Number(input.decelerate))
+      .multiplyScalar(
+        Number(input.accelerate) -
+          Number(input.decelerate) +
+          (input.forward || 0),
+      )
       .addScaledVector(right, input.strafe || 0);
     if (direction.lengthSq() > 1) direction.normalize();
     const distance = (input.boost ? 0.007 : 0.004) * dt;

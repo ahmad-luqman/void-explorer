@@ -1066,23 +1066,6 @@ h1 > span {
   .control-strip {
     display: none;
   }
-  .touch-controls {
-    position: absolute;
-    display: flex;
-    gap: 5px;
-    bottom: 49px;
-    left: 16px;
-    right: 16px;
-    justify-content: center;
-  }
-  .touch-controls button {
-    height: 36px;
-    min-width: 36px;
-    padding: 6px;
-    border: 1px solid #447984;
-    background: #0d242ecc;
-    font-size: 13px;
-  }
   .space-dialog[data-slot='dialog-content'] {
     padding: 28px 22px;
   }
@@ -1614,5 +1597,178 @@ h1 > span {
   }
   .surface-survey button {
     overflow-wrap: anywhere;
+  }
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  .touch-controls {
+    position: absolute;
+    z-index: 8;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    left: 16px;
+    right: 16px;
+    bottom: max(48px, env(safe-area-inset-bottom));
+    pointer-events: none;
+  }
+  .touch-controls button {
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+    border: 1px solid #447984;
+    color: #dcf6fa;
+    background: #0d242edb;
+    font: inherit;
+    font-size: 12px;
+    min-height: 44px;
+    border-radius: 8px;
+  }
+  .touch-controls button:active,
+  .touch-controls button[aria-pressed='true'] {
+    background: #27606f;
+    border-color: #a3f0f4;
+  }
+  .touch-controls button:disabled {
+    opacity: 0.3;
+  }
+  .touch-stick-wrap {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+  }
+  .touch-controls .touch-stick {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: #0b1c298c;
+  }
+  .touch-stick-cross {
+    color: #6898a8;
+    font-size: 48px;
+    font-weight: 200;
+  }
+  .touch-stick-thumb {
+    position: absolute;
+    left: 33px;
+    top: 33px;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #94d5df;
+    background: #49798b99;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .touch-hint {
+    font-size: 9px;
+    color: #a4c4cf;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+  .touch-actions {
+    display: grid;
+    width: 170px;
+    gap: 5px;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .touch-pulse {
+    grid-column: 1 / -1;
+  }
+  .touch-controls.on-foot .touch-actions {
+    width: 62px;
+    grid-template-columns: 1fr;
+  }
+  .flight-bottom {
+    bottom: 280px;
+  }
+  .flight-buttons {
+    bottom: -255px;
+  }
+  .control-strip {
+    display: none;
+  }
+  .space-canvas {
+    touch-action: none;
+  }
+}
+@media (max-height: 520px) and (pointer: coarse) {
+  .touch-controls {
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .flight-bottom {
+    bottom: 24px;
+    left: 150px;
+    right: 200px;
+  }
+  .flight-buttons {
+    right: 0;
+    bottom: -12px;
+  }
+  .telemetry > div:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  .navigation {
+    max-height: max(180px, calc(100dvh - 420px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .nav-actions button,
+  .surface-survey button {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .surface-survey {
+    position: static;
+    width: auto;
+    margin-top: 12px;
+    padding: 12px 0 0;
+    border-left: 0;
+    border-top: 1px solid #447984;
+    background: transparent;
+    backdrop-filter: none;
+  }
+  .surface-status {
+    bottom: 200px;
+  }
+}
+@media (max-height: 520px) and (pointer: coarse) {
+  .navigation {
+    top: 64px;
+    left: 16px;
+    width: 190px;
+    max-height: calc(100dvh - 220px);
+    padding: 10px;
+  }
+  .surface-status {
+    top: 70px;
+    bottom: auto;
+    max-width: 42vw;
+    padding: 8px 12px;
+  }
+}
+@media (max-width: 560px) {
+  .navigation {
+    width: calc(50vw - 32px);
+  }
+}
+@media (max-height: 520px) and (pointer: coarse) {
+  .flight-top > div:first-child > span,
+  .navigation .nav-heading,
+  .navigation .planet-kind,
+  .navigation .surface-hint {
+    display: none;
+  }
+  .navigation h2 {
+    margin: 0 0 6px;
+    font-size: 14px;
+  }
+  .navigation .range {
+    font-size: 18px;
+    margin: 6px 0;
   }
 }
