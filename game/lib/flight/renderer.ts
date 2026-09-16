@@ -10,6 +10,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { type Body, elevation, random } from './universe';
 import { FlightSimulation } from './simulation';
+import { flightFieldOfView, response } from './handling';
 import { createShip } from './ship';
 import { terrainColor } from './terrain';
 import { contactRequest, terrainRefresh } from './terrain-stream';
@@ -1037,12 +1038,16 @@ export class FlightRenderer {
     else
       this.camera.quaternion.slerp(
         desired,
-        1 - Math.exp(-dt * (surface.phase === 'walking' ? 18 : 5)),
+        response(surface.phase === 'walking' ? 18 : 7, dt),
       );
     this.wasTitle = title;
-    const fov = (title ? 58 : 60) + Math.min(17, this.sim.speed / 550);
+    const fov = flightFieldOfView(
+      this.sim.speed,
+      title,
+      surface.phase === 'walking',
+    );
     if (Math.abs(this.camera.fov - fov) > 0.01) {
-      this.camera.fov += (fov - this.camera.fov) * 0.06;
+      this.camera.fov += (fov - this.camera.fov) * response(3.8, dt);
       this.camera.updateProjectionMatrix();
     }
     if (title) {

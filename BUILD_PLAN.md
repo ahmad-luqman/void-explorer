@@ -197,4 +197,11 @@ Delivered: six-joint folding gear with level pads, simulation-driven deployment/
 
 The user authorized completing every remaining area in the supplied summary. Track requirement-level evidence in [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md). Continue through environment art, flight/camera/effects/routes, authored destinations and streaming, layered audio, mobile controls, broad-browser/performance checks and final release validation. Do not declare the overall game complete after an individual bounded milestone.
 
-Current implementation: replace the weak walking-scale ground treatment with filtered, native-frame fractured rock and dust, shared by WebGL/WebGPU and coherent across terrain patches. Preserve all heights and saved geography. Then address cliff forms, foreground composition, clouds and water with actual concept comparisons.
+Ground material, fuller cloud coverage, layered procedural audio and complete touch controls are implemented. The concept comparison remains open: expanded cloud banks still look geometric, distant cliffs remain coarse, and shoreline/foreground composition needs further work.
+
+Current flight/release pass:
+1. Integrate damped angular response with the exact exponential time integral; bound combined inputs and clear angular drift at autopilot/surface/reset transitions.
+2. Make chase-camera rotation and speed FOV respond consistently across display rates. Preserve terrain collision, saved poses and autopilot destinations.
+3. Validate 20/30/60/144 Hz behavior and full production excursions on both backends.
+4. Extend repeatable journeys to Firefox and WebKit, and record warmed frame pacing on available hardware. Keep browser emulation distinct from actual phone certification.
+5. Publish validated milestones privately, then continue the larger environment, route-planning, destinations and streaming requirements in the completion audit.

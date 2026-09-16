@@ -17,6 +17,7 @@ import { COAST_UP, COAST_FORWARD, COAST_TIME } from './coast';
 import { surfaceRadius } from './universe';
 import { SurfaceExpedition } from './surface';
 import { flightClearance } from './flight-clearance';
+import { steerFlight } from './handling';
 import {
   type Body,
   type System,
@@ -54,6 +55,7 @@ export class FlightSimulation {
   originRevision = 0;
   position = new Vector3(0, 420, 2680);
   orientation = new Quaternion();
+  angularVelocity = new Vector3();
   speed = 0;
   throttle = 0;
   pulse = false;
@@ -145,6 +147,7 @@ export class FlightSimulation {
     return true;
   }
   face(point: Vector3) {
+    this.angularVelocity.set(0, 0, 0);
     this.orientation.setFromRotationMatrix(
       new Matrix4().lookAt(this.position, point, UP),
     );
@@ -253,6 +256,7 @@ export class FlightSimulation {
     this.updateEnvironment();
     this.surface.refreshScenery();
     if (this.surface.phase !== 'flight') {
+      this.angularVelocity.set(0, 0, 0);
       this.surface.step(dt, input);
       this.updateEnvironment();
       return;
@@ -263,25 +267,8 @@ export class FlightSimulation {
       this.autopilot = false;
       this.descending = false;
     }
-    if (manual) {
-      const turn = 1.0 * dt;
-      this.orientation.multiply(
-        new Quaternion().setFromAxisAngle(
-          new Vector3(1, 0, 0),
-          input.pitch * turn,
-        ),
-      );
-      this.orientation.multiply(
-        new Quaternion().setFromAxisAngle(UP, input.yaw * turn),
-      );
-      this.orientation.multiply(
-        new Quaternion().setFromAxisAngle(
-          new Vector3(0, 0, 1),
-          input.roll * turn * 1.5,
-        ),
-      );
-      this.orientation.normalize();
-    }
+    if (this.autopilot) this.angularVelocity.set(0, 0, 0);
+    else steerFlight(this.orientation, this.angularVelocity, input, dt);
     this.throttle = Math.max(
       0,
       Math.min(
@@ -480,6 +467,7 @@ export class FlightSimulation {
       ).toArray(),
       position: this.position.toArray(),
       orientation: this.orientation.toArray(),
+      angularVelocity: this.angularVelocity.toArray(),
       speed: this.speed,
       throttle: this.throttle,
       altitude: this.altitude,

@@ -274,3 +274,10 @@ The pinned Sites scaffold currently reports 11 dependency advisories (8 high, 2 
 An analog stick now steers flight or moves on foot. Independent captured pointers support simultaneous throttle, brake, roll, boost and run; pulse is a toggle. Touch input is independent of physical keys and clears on pointer cancellation, lost capture, pause, phase changes and blur. The HUD scrolls within available space and keeps controls clear of the central view in portrait and short landscape layouts.
 
 The Chromium touch journey checks simultaneous steering/throttle, cancellation, pulse, walking/running, stop, save/reload, boarding and takeoff at 390×844 and 844×390. It passes in 15.1 s on this Mac. All 95 unit tests and type checking pass. New touch component, simulation changes and browser test pass lint; the main page retains its existing React/compiler and accessibility lint findings (no repository-wide clean-lint claim). Captures are in `art/milestones/touch-surface-{portrait,landscape}.png`. These are emulation checks, not physical-phone certification.
+
+
+## Flight response and camera timing
+
+Manual turns ease in over roughly 100 ms and settle faster on release. The simulation integrates exponential angular velocity analytically, bounds overlapping keyboard/touch inputs, and clears drift during autopilot, surface operations and resets. The chase camera follows turns more closely; logarithmic speed FOV is bounded to 60–77° and uses elapsed-time smoothing. Walking remains at 60°. No terrain or save schema changes.
+
+All 98 unit tests, type checking, scoped handling/renderer lint (excluding the existing Vite worker import-resolution false positive), and the static build pass. Identical turn/release/FOV sequences agree at 20, 30, 60 and 144 Hz. Complete production orbital/coastal saved journeys pass on WebGL (26.3/33.5 s) and WebGPU (26.2/36.7 s), including terrain profiles 3 and 4 and touch-layout checks. These durations are test lengths, not frame-rate measurements.
