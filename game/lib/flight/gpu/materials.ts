@@ -200,21 +200,29 @@ export function convertMaterial(source: T.Material): T.Material {
       .mul(0.000025)
       .add(stone.mul(0.000005))
       .mul(grainFilter);
+    const interpolatedNormal = N.varying(
+      N.modelViewMatrix.mul(N.vec4(N.normalLocal, 0)).xyz,
+    ).normalize();
+    const surfaceNormal = N.mix(
+      N.normalViewGeometry,
+      interpolatedNormal,
+      N.varying(N.attribute('surfaceSmooth', 'float')),
+    ).normalize();
     const sx = N.dFdx(N.positionView),
       sy = N.dFdy(N.positionView);
-    const r1 = N.cross(sy, N.normalViewGeometry),
-      r2 = N.cross(N.normalViewGeometry, sx);
+    const r1 = N.cross(sy, surfaceNormal),
+      r2 = N.cross(surfaceNormal, sx);
     const det = sx.dot(r1);
     const grad = r1
       .mul(N.dFdx(rockHeight))
       .add(r2.mul(N.dFdy(rockHeight)))
       .mul(det.sign());
-    const rockNormal = N.normalViewGeometry
+    const rockNormal = surfaceNormal
       .mul(det.abs().max(1e-20))
       .sub(grad)
       .normalize();
     material.normalNode = N.mix(
-      N.normalViewGeometry,
+      surfaceNormal,
       rockNormal,
       wet.oneMinus(),
     ).normalize();

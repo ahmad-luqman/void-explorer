@@ -306,3 +306,10 @@ Cloud banks now have rounded overlapping bases and restrained emissive underside
 `motion-effects.ts` replaces the old elapsed-times-speed dust animation with integrated travel phase. Heading-aligned streaks use different range, length and visibility envelopes for atmosphere, cruise and pulse. The axial corridor stays clear; Low quality draws 90 streaks and High 180. Phase and opacity use simulation time, so menus freeze the effects and reset/restoration discard stale phase. Surface operations and the title hide both draws.
 
 Atmospheric wing vapor uses two short curved ribbons, with transparent edges and ends, density/speed gating and restrained angular-response curvature. It adds 150 vertices / 192 triangles and at most one draw beyond the previous streak effect. Ribbons remain in front of the chase camera; they are a stylized flow cue, not a fluid or condensation simulation. Effects change no ship, camera, collision or save poses.
+
+
+## Graded-terrain lighting and distant pattern filtering
+
+Contact terrain derives a `surfaceSmooth` attribute from the local grid-cell aspect ratio. Square cells retain flat facet lighting; aspect ratios from 3 to 10 blend toward interpolated normals, preventing dense stripes across the long thin cells where the fine walking grid crosses distant ridges. The derived attribute adds at most 388 KiB of CPU/GPU buffer data per contact mesh without changing or transferring terrain positions, indices, heights, saved geography or collision.
+
+The cloud shell now uses broader weather masses, softer coverage and derivative-filtered noise octaves. Rings retain broad visible bands while their narrow powered sine bands blend toward their analytic average when their width falls below the pixel footprint. GLSL remains the source for the regenerated TSL cloud/ring functions; both renderer paths use the same formulas. Cloud geometry and coastal billow counts remain unchanged. These remain stylized thin weather layers; camera-scale filtering is not volumetric weather or a terrain-streaming rewrite.

@@ -23,10 +23,11 @@ export function addSurfaceMaterial(
       value: groundTextureAnchor(anchor),
     };
     shader.vertexShader =
-      'varying vec3 vSurfaceNormal;\n' + shader.vertexShader;
+      'attribute float surfaceSmooth;varying float vSurfaceSmooth;varying vec3 vSurfaceViewNormal;varying vec3 vSurfaceNormal;\n' +
+      shader.vertexShader;
     shader.vertexShader = shader.vertexShader.replace(
       '#include <begin_vertex>',
-      '#include <begin_vertex>\nvSurfaceNormal=normal;',
+      '#include <begin_vertex>\nvSurfaceNormal=normal;vSurfaceSmooth=surfaceSmooth;vSurfaceViewNormal=normalMatrix*normal;',
     );
     shader.uniforms.surfaceAnchor = {
       value: anchor.clone(),
@@ -51,7 +52,7 @@ export function addSurfaceMaterial(
     return mix(mix(mix(mineralHash(i),mineralHash(i+vec3(1,0,0)),f.x),mix(mineralHash(i+vec3(0,1,0)),mineralHash(i+vec3(1,1,0)),f.x),f.y),
       mix(mix(mineralHash(i+vec3(0,0,1)),mineralHash(i+vec3(1,0,1)),f.x),mix(mineralHash(i+vec3(0,1,1)),mineralHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
   uniform sampler2D groundAlbedo;uniform float groundAlbedoReady;uniform vec3 groundAlbedoAnchor;
-  uniform sampler2D groundTexture;uniform vec3 groundTextureAnchor;varying vec3 vSurfaceNormal;
+  uniform sampler2D groundTexture;uniform vec3 groundTextureAnchor;varying vec3 vSurfaceNormal;varying vec3 vSurfaceViewNormal;varying float vSurfaceSmooth;
   vec4 sampleGround(vec3 p,vec3 n){
     vec3 weight=pow(abs(normalize(n)),vec3(4.));weight/=max(dot(weight,vec3(1.)),.0001);
     return texture2D(groundTexture,p.yz)*weight.x+texture2D(groundTexture,p.xz)*weight.y+texture2D(groundTexture,p.xy)*weight.z;
@@ -84,6 +85,7 @@ export function addSurfaceMaterial(
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
+       normal=normalize(mix(normal,normalize(vSurfaceViewNormal),vSurfaceSmooth));
        float grainFilter=1.-smoothstep(.3,1.5,max(length(dFdx(vContactLocal)),length(dFdy(vContactLocal)))*160.);
        float rockHeight=(mix(groundSample.a,dot(slate,vec3(.3333)),groundAlbedoReady)*.000025+stone*.000005)*grainFilter;
        vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);
@@ -100,5 +102,5 @@ export function addSurfaceMaterial(
   `,
     );
   };
-  material.customProgramCacheKey = () => 'surface-slate-v6';
+  material.customProgramCacheKey = () => 'surface-slate-filtered-v7';
 }

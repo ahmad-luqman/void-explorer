@@ -240,3 +240,9 @@ Delivered: shared signed-depth buffers, matching WebGL/WebGPU shallows and filte
 3. Verify pause/reset/turn and quality behavior, bounded geometry and frame-rate independence. Inspect actual moving gameplay on WebGL/WebGPU, run full production journeys and retain captures before private publication.
 
 Delivered: integrated heading-aligned streaks with atmosphere/cruise/pulse envelopes and short, soft-edged wing vapor. The central view stays clear, Low halves the streak count, and both effects obey pause/reset and surface state. All 108 unit tests, type checking, scoped lint, the static build, motion checks and full production journeys pass on both renderers. Elevated-flight review exposed distant terrain striping and Low-quality planet shimmer; investigate these during the next terrain/material pass. Authored destinations, streaming refinement and remaining environment/device acceptance remain open.
+
+### Terrain and distant shader artifact review — active
+
+1. Isolate elevated coastal striping and small-planet shimmer with repeatable paused views and individual render layers. Distinguish geometry, overlapping surfaces and unfiltered shader detail before editing.
+2. Fix the demonstrated causes while retaining saved terrain profiles and collision agreement; filter detail by projected pixel size where appropriate.
+3. Preserve before/after gameplay evidence on both renderers and both quality settings. Verify affected geometry/material invariants, streaming and complete saved production expeditions before publication.

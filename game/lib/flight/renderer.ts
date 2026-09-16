@@ -20,6 +20,7 @@ import TerrainWorker from './terrain.worker?worker';
 import ContactWorker from './contact.worker?worker';
 import { createTerrainSkirt } from './terrain-seam';
 import { addSurfaceMaterial } from './surface-material';
+import { contactNormalBlend } from './contact-shading';
 import { addWaterMaterial } from './water-material';
 import { sampleEnvironment } from './environment';
 import { createCloudLayer } from './clouds';
@@ -61,7 +62,7 @@ const atmosphereVertex = `varying vec3 vNormal; varying vec3 vPosition; void mai
 const atmosphereFragment = `varying vec3 vNormal;varying vec3 vPosition;uniform vec3 color; void main(){float rim=pow(max(0.,1.-abs(dot(normalize(vNormal),normalize(-vPosition)))),3.);gl_FragColor=vec4(color,rim*.52);}`;
 const planetAtmosphereVertex = `varying vec3 vRadial;varying vec3 vNormal;varying vec3 vPosition;void main(){vRadial=normalize(position);vNormal=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vPosition=p.xyz;gl_Position=projectionMatrix*p;}`;
 const planetAtmosphereFragment = `varying vec3 vRadial;varying vec3 vNormal;varying vec3 vPosition;uniform vec3 color;uniform vec3 keyDirection;uniform vec3 secondaryDirection;void main(){float sunlight=max(dot(normalize(vRadial),keyDirection),dot(normalize(vRadial),secondaryDirection));float day=smoothstep(-.18,.35,sunlight);float rim=pow(max(0.,1.-abs(dot(normalize(vNormal),normalize(-vPosition)))),3.);vec3 tint=mix(vec3(.22,.045,.3),color,day);gl_FragColor=vec4(tint,rim*(.08+day*.6));}`;
-const ringFragment = `varying vec2 vUv;void main(){float r=vUv.x;float bands=pow(.5+.5*sin(r*280.),5.)*.3+pow(.5+.5*sin(r*97.),12.)*.55+.06;float fade=smoothstep(0.,.08,r)*(1.-smoothstep(.9,1.,r));vec3 col=mix(vec3(.23,.015,.2),vec3(.95,.055,.54),bands);gl_FragColor=vec4(col*1.4,bands*fade*.8);}`;
+const ringFragment = `float ringBand(float r,float frequency,float power,float average){float phase=r*frequency;float detail=pow(.5+.5*sin(phase),power);return mix(detail,average,smoothstep(.15,.8,fwidth(phase)*sqrt(power)));}varying vec2 vUv;void main(){float r=vUv.x;float bands=ringBand(r,280.,5.,.24609375)*.3+ringBand(r,97.,12.,.16118026)*.55+ringBand(r,21.,2.,.375)*.12+.03;float fade=smoothstep(0.,.08,r)*(1.-smoothstep(.9,1.,r));vec3 col=mix(vec3(.23,.015,.2),vec3(.95,.055,.54),bands);gl_FragColor=vec4(col*1.4,bands*fade*.8);}`;
 function applyTerrainMask(
   material: T.MeshStandardMaterial,
   center: { value: T.Vector3 },
@@ -516,6 +517,10 @@ export class FlightRenderer {
       geometry.setAttribute(
         'terrainHeight',
         new T.BufferAttribute(patch.data.heights, 1),
+      );
+      geometry.setAttribute(
+        'surfaceSmooth',
+        new T.BufferAttribute(contactNormalBlend(patch.data.axis), 1),
       );
       geometry.setIndex(new T.BufferAttribute(patch.data.indices, 1));
       geometry.computeVertexNormals();

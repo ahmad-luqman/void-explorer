@@ -4,21 +4,35 @@ import {
   mul,
   add,
   pow,
+  fwidth,
+  sqrt,
   smoothstep,
+  mix,
+  Fn,
   sub,
   vec3,
-  mix,
   vec4,
-  Fn,
 } from 'three/tsl';
 /** @returns {(...inputs: import('three/webgpu').Node[]) => import('three/webgpu').Node<'vec4'>} */
 export function createShader(_uniforms) {
+  const ringBand = /*@__PURE__*/ Fn(([r, frequency, power, average]) => {
+    const phase = r.mul(frequency);
+    const detail = pow(add(0.5, mul(0.5, sin(phase))), power);
+
+    return mix(
+      detail,
+      average,
+      smoothstep(0.15, 0.8, fwidth(phase).mul(sqrt(power))),
+    );
+  });
+
   const shade = /*@__PURE__*/ Fn(([vUv]) => {
     const r = vUv.x;
-    const bands = pow(add(0.5, mul(0.5, sin(r.mul(280)))), 5)
+    const bands = ringBand(r, 280, 5, 0.24609375)
       .mul(0.3)
-      .add(pow(add(0.5, mul(0.5, sin(r.mul(97)))), 12).mul(0.55))
-      .add(0.06);
+      .add(ringBand(r, 97, 12, 0.16118026).mul(0.55))
+      .add(ringBand(r, 21, 2, 0.375).mul(0.12))
+      .add(0.03);
     const fade = smoothstep(0, 0.08, r).mul(sub(1, smoothstep(0.9, 1, r)));
     const col = mix(vec3(0.23, 0.015, 0.2), vec3(0.95, 0.055, 0.54), bands);
 

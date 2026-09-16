@@ -147,22 +147,26 @@ export function createCloudLayer(
       float cloudNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
         return mix(mix(mix(cloudHash(i),cloudHash(i+vec3(1,0,0)),f.x),mix(cloudHash(i+vec3(0,1,0)),cloudHash(i+vec3(1,1,0)),f.x),f.y),
         mix(mix(cloudHash(i+vec3(0,0,1)),cloudHash(i+vec3(1,0,1)),f.x),mix(cloudHash(i+vec3(0,1,1)),cloudHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+      float filteredCloud(vec3 p,float footprint){
+        return mix(cloudNoise(p),.5,smoothstep(.35,1.25,footprint));
+      }
       void main(){vec3 radial=normalize(cloudDirection);
-        vec3 p=radial*210.+vec3(time*.0006,0.,time*.00022);
-        float base=cloudNoise(p);
-        float field=base*.62+cloudNoise(p*2.7)*.26+(detail>.5?cloudNoise(p*7.)*.12:.06);
-        float mass=smoothstep(coverage,coverage+.12,field);
+        vec3 p=radial*10.+vec3(time*.0006,0.,time*.00022);
+        float footprint=max(length(dFdx(p)),length(dFdy(p)));
+        float base=filteredCloud(p,footprint);
+        float field=base*.68+filteredCloud(p*2.7,footprint*2.7)*.24+(detail>.5?filteredCloud(p*7.,footprint*7.)*.08:.04);
+        float mass=smoothstep(coverage-.025,coverage+.2,field);
         mass*=1.-coast*smoothstep(.98,.995,dot(radial,coastUp));
         float light=smoothstep(-.18,.5,max(dot(radial,keyDirection),dot(radial,secondaryDirection)));
         vec3 sun=normalize(keyDirection+secondaryDirection*.25);
-        float towardSun=cloudNoise(p+sun*.65);
+        float towardSun=filteredCloud(p+sun*.65,footprint);
         float relief=clamp(.5+(base-towardSun)*2.3,0.,1.);
         float thickness=smoothstep(coverage,coverage+.24,field);
         vec3 shade=mix(vec3(.32,.4,.56),tint,relief*.75+.2);
         vec3 color=mix(vec3(.025,.03,.065),shade,light);
         color+=vec3(.28,.19,.09)*light*(1.-thickness)*mass;
         float closeFade=smoothstep(.15,1.5,length(cloudView));
-        gl_FragColor=vec4(color,mass*.94*closeFade);
+        gl_FragColor=vec4(color,mass*.78*closeFade);
         #include <fog_fragment>
       }`,
   });
