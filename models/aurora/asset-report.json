@@ -2,9 +2,9 @@
   "source": "aurora-v1.blend",
   "runtime": "game/public/models/aurora-v1.glb",
   "blender": "5.2.1 LTS",
-  "authoring_parts": 80,
+  "authoring_parts": 154,
   "runtime_meshes": 12,
-  "triangles": 3152,
+  "triangles": 3884,
   "materials": 7,
   "dimensions_m": [
     28.799999237060547,
@@ -12,5 +12,5 @@
     7.679999828338623
   ],
   "gear_bottom_m": -3,
-  "glb_bytes": 181956
+  "glb_bytes": 221492
 }

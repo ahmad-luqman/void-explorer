@@ -21,8 +21,8 @@ describe('authored spacecraft contract', () => {
     const box = new Box3().setFromObject(scene),
       size = box.getSize(new Vector3());
     expect(size.x).toBeCloseTo(28.8, 2);
-    expect(size.z).toBeGreaterThan(17);
-    expect(size.z).toBeLessThan(20);
+    expect(size.z).toBeCloseTo(17.72, 2);
+    expect(size.y).toBeCloseTo(7.68, 2);
     expect(box.min.z).toBeLessThan(-9);
     expect(box.min.y).toBeCloseTo(-3, 4);
     scene.updateMatrixWorld(true);
@@ -43,6 +43,34 @@ describe('authored spacecraft contract', () => {
     const gear = scene.getObjectByName('LandingGear');
     expect(gear).toBeDefined();
     expect(new Box3().setFromObject(gear!).min.y).toBeCloseTo(-3, 4);
+    const pads = [
+      new Vector3(-3.4, -3, 4),
+      new Vector3(3.4, -3, 4),
+      new Vector3(0, -3, -5.2),
+    ];
+    const bottoms: Vector3[][] = pads.map(() => []);
+    scene.updateMatrixWorld(true);
+    gear!.traverse((object) => {
+      if (!(object as Mesh).isMesh) return;
+      const mesh = object as Mesh,
+        positions = mesh.geometry.attributes.position;
+      for (let i = 0; i < positions.count; i++) {
+        const vertex = new Vector3()
+          .fromBufferAttribute(positions, i)
+          .applyMatrix4(mesh.matrixWorld);
+        if (Math.abs(vertex.y + 3) > 1e-4) continue;
+        const index = pads.findIndex((pad) => pad.distanceTo(vertex) < 1.01);
+        expect(index).toBeGreaterThanOrEqual(0);
+        bottoms[index].push(vertex);
+      }
+    });
+    bottoms.forEach((vertices, i) => {
+      expect(vertices.length).toBeGreaterThanOrEqual(4);
+      const center = new Box3()
+        .setFromPoints(vertices)
+        .getCenter(new Vector3());
+      expect(center.distanceTo(pads[i])).toBeLessThan(1e-4);
+    });
     const cores: Mesh[] = [];
     scene.traverse((o) => {
       if (o.name.startsWith('EngineCore_') && (o as Mesh).isMesh)

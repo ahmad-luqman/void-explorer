@@ -8,6 +8,7 @@ ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'models/aurora'; OUT.mkdir(parents=True,exist_ok=True)
 RUNTIME=ROOT/'game/public/models/aurora-v1.glb'
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
+bpy.context.preferences.filepaths.save_version=0
 scene=bpy.context.scene; scene.name='AURORA Studio'; scene.unit_settings.system='METRIC'
 parts=[]
 def point(v): return (v[0]*4,-v[2]*4,v[1]*4)
@@ -62,6 +63,39 @@ def strut(name,a,b,radius,mat,category='Static'):
  for p in [a,b]:
   for i in range(6):verts.append(tuple(p+(u*math.cos(i*math.tau/6)+v*math.sin(i*math.tau/6))*radius))
  return mesh(name,verts,[tuple(reversed(range(6))),tuple(range(6,12))]+[(i,(i+1)%6,(i+1)%6+6,i+6) for i in range(6)],mat,category)
+def plate(name,outline,normal,mat,well=False):
+ # Real framed well with a lower floor. The backing stays above the underlying
+ # structure; no coplanar decals, booleans, textures or extra runtime materials.
+ normal=Vector(normal).normalized();outer=[Vector(v) for v in outline]
+ if (outer[1]-outer[0]).cross(outer[2]-outer[0]).dot(normal)<0:outer.reverse()
+ center=sum(outer,Vector())/len(outer);n=len(outer)
+ back=[v-normal*.008 for v in outer]
+ if well:
+  inner=[v.lerp(center,.22) for v in outer]
+  lower=[v-normal*.008 for v in inner]
+  mesh(name+' frame',[tuple(v) for v in outer+inner+back],
+   [(i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n)]+
+   [(i,2*n+i,2*n+(i+1)%n,(i+1)%n) for i in range(n)]+
+   [tuple(reversed(range(2*n,3*n)))],mat)
+  mesh(name+' recess wall',[tuple(v) for v in inner+lower],
+   [(i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n)],trim)
+  mesh(name+' recess floor',[tuple(v) for v in lower],[tuple(range(n))],dark)
+ else:
+  mesh(name,[tuple(v) for v in outer+back],
+   [tuple(range(n)),tuple(reversed(range(n,2*n)))]+
+   [(i,n+i,n+(i+1)%n,(i+1)%n) for i in range(n)],mat)
+def nacelle_plates(x,y,side):
+ stations=[(.4,.575),(.82,.575),(1.47,.575),(1.67,.49)]
+ for section,((za,ra),(zb,rb)) in enumerate(zip(stations,stations[1:])):
+  for face in range(8):
+   a=face*math.tau/8+math.pi/8;b=(face+1)*math.tau/8+math.pi/8
+   outline=[Vector((x+math.cos(angle)*r,y+math.sin(angle)*r,z)) for angle,r,z in [(a,ra,za),(b,ra,za),(b,rb,zb),(a,rb,zb)]]
+   center=sum(outline,Vector())/4
+   outline=[tuple(v.lerp(center,.07)) for v in outline]
+   normal=(math.cos((a+b)/2),math.sin((a+b)/2),0)
+   # Outboard lateral service wells and an upper intake are legible on foot.
+   well=section==1 and face in ([0,7] if side>0 else [3,4])
+   plate('Nacelle plate '+str(side)+' '+str(section)+' '+str(face),outline,normal,light if face in [0,1,2] else ivory,well)
 # Layered wedge and raised cockpit.
 loft('Main pressure hull',[(-2.45,.055,-.06,.06),(-1.6,.38,-.23,.24),(-.6,.7,-.32,.35),(.45,.75,-.34,.38),(1.5,.36,-.24,.2),(1.82,.08,-.15,.12)],dark)
 loft('Upper ivory shell',[(-2.4,.06,.01,.1),(-1.5,.4,.05,.3),(-.5,.67,.18,.43),(.55,.68,.24,.46),(1.5,.27,.12,.29)],ivory)
@@ -74,6 +108,7 @@ for side in [-1,1]:
  strut('Canopy rear frame',(.35*side,.68,-.6),(.23*side,.55,-.33),.023,light)
  box('Cockpit shoulder',(.53*side,.3,-.75),(.22,.2,1.08),ivory)
  box('Shoulder vent',(.555*side,.42,-.45),(.16,.015,.28),dark,bevel=.004)
+ for j in range(3):box('Shoulder vent louver',(.555*side,.431,-.54+j*.09),(.135,.01,.014),trim,bevel=0)
  box('Center service cover',(.28*side,.46,.45),(.45,.035,.85),light)
  for j in range(4):box('Spine radiator',(.28*side,.485,.15+j*.12),(.29,.016,.034),dark,bevel=.002)
  # Two separated planform wings on each side. Negative space is structural.
@@ -86,11 +121,14 @@ for side in [-1,1]:
   panel=[tuple(a.lerp(b,.08)+Vector((0,.067,0))),tuple(a.lerp(b,.43)+Vector((0,.067,0))),tuple(d.lerp(c,.43)+Vector((0,.067,0))),tuple(d.lerp(c,.08)+Vector((0,.067,0)))]
   prism('Wing root inset',panel,.016,dark,bevel=.003)
   for fraction in [.59,.79]:strut('Wing panel joint',tuple(a.lerp(b,fraction)+Vector((0,.065,0))),tuple(d.lerp(c,fraction)+Vector((0,.065,0))),.009,trim)
+  # A shallow maintenance well between the dark root and outboard skin.
+  hatch=[a.lerp(b,.45).lerp(d.lerp(c,.45),.2),a.lerp(b,.55).lerp(d.lerp(c,.55),.2),a.lerp(b,.55).lerp(d.lerp(c,.55),.8),a.lerp(b,.45).lerp(d.lerp(c,.45),.8)]
+  plate('Wing maintenance hatch '+str(side)+' '+str(front),[tuple(v+Vector((0,.082,0))) for v in hatch],(0,1,0),light,True)
   box('Wingtip lamp',tip,(.08,.075,.12),pink,bevel=.006)
  # Octagonal armored nacelles, recessed trim rings, separate runtime emission cores.
  x=.85*side;y=.05
  tube('Engine structural barrel',x,y,[(.1,.43),(.35,.56),(1.64,.56),(1.91,.45)],dark,caps=True)
- tube('Nacelle armor band',x,y,[(.4,.575),(.55,.575),(1.47,.575),(1.67,.49)],ivory)
+ nacelle_plates(x,y,side)
  tube('Forward nacelle collar',x,y,[(.1,.43),(.18,.51),(.31,.51)],light)
  tube('Nozzle rim',x,y,[(1.7,.48),(1.84,.49),(1.96,.43),(1.96,.37),(1.79,.34)],trim)
  tube('Dark exhaust recess',x,y,[(1.78,.34),(1.93,.33)],dark)
@@ -101,6 +139,11 @@ for side in [-1,1]:
  fin=[(side*.81,.47,.52),(side*.81,.47,1.43),(side*1.04,1.17,1.46),(side*1.04,1.17,1.04)]
  verts=[(x+dx,y,z) for dx in [-.035,.035] for x,y,z in fin]
  mesh('Vertical stabilizer '+str(side),verts,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)],ivory,bevel=.01)
+ # The rudder seam sits inside the original fin outline on the outboard face.
+ f=[Vector(v)+Vector((side*.037,0,0)) for v in fin]
+ seam=[f[0].lerp(f[1],.78).lerp(f[3].lerp(f[2],.78),.12),f[0].lerp(f[1],.82).lerp(f[3].lerp(f[2],.82),.12),f[0].lerp(f[1],.82).lerp(f[3].lerp(f[2],.82),.86),f[0].lerp(f[1],.78).lerp(f[3].lerp(f[2],.78),.86)]
+ if (seam[1]-seam[0]).cross(seam[2]-seam[0]).dot(Vector((side,-.23/.7,0)))<0:seam.reverse()
+ mesh('Rudder hinge seam '+str(side),[tuple(v) for v in seam],[(0,1,2,3)],dark)
  box('Fin heel',(side*.83,.48,.91),(.18,.1,.75),dark)
 box('Dorsal cyan marker',(0,.49,.65),(.26,.027,.065),cyan)
 # Contact points exactly match the existing simulation, in quarter-meter authoring units.
