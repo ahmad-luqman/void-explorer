@@ -1,15 +1,26 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { bindLandingGear } from './landing-gear';
 import { createFallbackShip } from './ship-fallback';
 export type ShipRig = {
   ship: T.Group;
   engines: T.Mesh[];
   gear: T.Object3D;
   cores: T.Mesh[];
+  setGearDeployment: (deployment: number) => void;
   modelSource: 'loading' | 'authored' | 'fallback';
   dispose: () => void;
 };
+function releaseSkeletons(root: T.Object3D) {
+  const skeletons = new Set<T.Skeleton>();
+  root.traverse((object) => {
+    if ((object as T.SkinnedMesh).isSkinnedMesh)
+      skeletons.add((object as T.SkinnedMesh).skeleton);
+  });
+  skeletons.forEach((skeleton) => skeleton.dispose());
+}
 function release(root: T.Object3D) {
+  releaseSkeletons(root);
   const materials = new Set<T.Material>();
   root.traverse((o) => {
     const m = o as T.Mesh;
@@ -28,12 +39,20 @@ export function createShip(): ShipRig {
       o.castShadow = true;
   });
   let disposed = false;
+  let deployment = 0;
+  let poseGear = bindLandingGear(fallback.gear);
+  poseGear(deployment);
   const rig: ShipRig = {
     ...fallback,
     cores: [],
     modelSource: 'loading',
+    setGearDeployment: (value) => {
+      deployment = value;
+      poseGear(value);
+    },
     dispose: () => {
       disposed = true;
+      releaseSkeletons(rig.ship);
     },
   };
   new GLTFLoader().load(
@@ -90,14 +109,24 @@ export function createShip(): ShipRig {
         if (o.name.startsWith('EngineCore_') && (o as T.Mesh).isMesh)
           cores.push(o as T.Mesh);
       });
-      if (!gear || cores.length !== 2) {
+      const hasJoints = ['Left', 'Right', 'Nose'].every((leg) =>
+        ['Hinge', 'Pad'].every((part) =>
+          gear?.getObjectByName(`Gear_${leg}_${part}`),
+        ),
+      );
+      if (!gear || !hasJoints || cores.length !== 2) {
         release(gltf.scene);
         rig.modelSource = 'fallback';
         return;
       }
       // Authored meters -> legacy ship units; the flight renderer then applies .004 km/unit.
       gltf.scene.scale.setScalar(0.25);
-      gear.visible = rig.gear.visible;
+      poseGear = bindLandingGear(gear);
+      poseGear(deployment);
+      gear.traverse((object) => {
+        // A tiny moving rig: avoid stale bind-pose bounds during animation.
+        object.frustumCulled = false;
+      });
       // Snapshot children because removing each object mutates the original array.
       // eslint-disable-next-line unicorn/no-useless-spread
       for (const child of [...rig.ship.children])

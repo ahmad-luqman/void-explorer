@@ -1084,13 +1084,7 @@ export class FlightRenderer {
         }
       }
     }
-    this.craft.gear.visible = [
-      'landing',
-      'landed',
-      'walking',
-      'takeoff',
-      'restoring',
-    ].includes(surface.phase);
+    this.craft.setGearDeployment(surface.gearDeployment);
     for (const e of this.craft.engines) {
       e.visible = !['landed', 'walking', 'restoring'].includes(surface.phase);
       e.scale.y = 0.35 + Math.min(3, this.sim.speed / 150) + (title ? 0.4 : 0);

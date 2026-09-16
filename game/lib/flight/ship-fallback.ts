@@ -155,22 +155,29 @@ export function createFallbackShip() {
   edges.scale.copy(hull.scale);
   ship.add(edges);
   const gear = new T.Group();
-  for (const [x, z] of [
-    [-0.85, 1],
-    [0.85, 1],
-    [0, -1.3],
-  ]) {
+  for (const [name, x, z] of [
+    ['Left', -0.85, 1],
+    ['Right', 0.85, 1],
+    ['Nose', 0, -1.3],
+  ] as const) {
+    const hinge = new T.Group();
+    hinge.name = `Gear_${name}_Hinge`;
+    hinge.position.set(x, -0.2, z);
+    gear.add(hinge);
+    const pad = new T.Group();
+    pad.name = `Gear_${name}_Pad`;
+    pad.position.set(0, -0.5, 0);
+    hinge.add(pad);
     const strut = new T.Mesh(
       new T.CylinderGeometry(0.045, 0.065, 0.5, 6),
       edge,
     );
-    strut.position.set(x, -0.45, z);
-    gear.add(strut);
+    strut.position.set(0, -0.25, 0);
+    hinge.add(strut);
     const foot = new T.Mesh(new T.BoxGeometry(0.35, 0.1, 0.35), ivory);
-    foot.position.set(x, -0.7, z);
-    gear.add(foot);
+    pad.add(foot);
   }
-  gear.visible = false;
+  gear.name = 'LandingGear';
   ship.add(gear);
   return { ship, engines, gear };
 }

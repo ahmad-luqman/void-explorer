@@ -1,3 +1,4 @@
+import { bindLandingGear } from '../lib/flight/landing-gear';
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { Box3, Vector3, Mesh, Raycaster, Material } from 'three';
@@ -81,6 +82,48 @@ describe('authored spacecraft contract', () => {
       const center = new Box3().setFromObject(core).getCenter(new Vector3());
       expect(center.z).toBeGreaterThan(7.5);
       expect(center.y).toBeCloseTo(0.2, 3);
+    }
+  });
+  it('folds rigid legs inside the flight envelope while keeping each foot level', async () => {
+    const { scene } = await load();
+    const gear = scene.getObjectByName('LandingGear')!;
+    const pose = bindLandingGear(gear);
+    const padMesh = scene.getObjectByName('Gear_Ivory_armor') as Mesh;
+    const sample = () => {
+      scene.updateMatrixWorld(true);
+      const vertices: Vector3[] = [];
+      gear.traverse((object) => {
+        if (!(object as Mesh).isMesh) return;
+        const mesh = object as Mesh;
+        for (let i = 0; i < mesh.geometry.attributes.position.count; i++)
+          vertices.push(
+            mesh
+              .getVertexPosition(i, new Vector3())
+              .applyMatrix4(mesh.matrixWorld),
+          );
+      });
+      return vertices;
+    };
+    for (const deployment of [1, 0.75, 0.5, 0.25, 0, 0.5, 1]) {
+      pose(deployment);
+      const vertices = sample();
+      for (const vertex of vertices)
+        expect(vertex.length() / 1000).toBeLessThan(FLIGHT_RADIUS);
+      const box = new Box3().setFromPoints(vertices);
+      if (deployment === 0) expect(box.min.y).toBeGreaterThan(-1.5);
+      if (deployment === 1) expect(box.min.y).toBeCloseTo(-3, 4);
+      for (const x of [-3.4, 0, 3.4]) {
+        const points = Array.from(
+          { length: padMesh.geometry.attributes.position.count },
+          (_, i) =>
+            padMesh
+              .getVertexPosition(i, new Vector3())
+              .applyMatrix4(padMesh.matrixWorld),
+        ).filter((v) => Math.abs(v.x - x) < 0.8);
+        expect(
+          new Box3().setFromPoints(points).getSize(new Vector3()).y,
+        ).toBeCloseTo(0.4, 4);
+      }
     }
   });
   it('keeps both upper service wells free of overlapping armor', async () => {

@@ -147,13 +147,32 @@ for side in [-1,1]:
  mesh('Rudder hinge seam '+str(side),[tuple(v) for v in seam],[(0,1,2,3)],dark)
  box('Fin heel',(side*.83,.48,.91),(.18,.1,.75),dark)
 box('Dorsal cyan marker',(0,.49,.65),(.26,.027,.065),cyan)
-# Contact points exactly match the existing simulation, in quarter-meter authoring units.
+# Rigid-weight mechanical rig; rest pose is the exact deployed contact contract.
+armature=bpy.data.armatures.new('LandingGear');gear=bpy.data.objects.new('LandingGear',armature);scene.collection.objects.link(gear)
+bpy.context.view_layer.objects.active=gear;gear.select_set(True);bpy.ops.object.mode_set(mode='EDIT')
 for name,x,z in [('Left',-.85,1),('Right',.85,1),('Nose',0,-1.3)]:
- box(name+' gear bay',(x,-.28,z),(.34,.09,.5),dark,'Gear')
- strut(name+' gear piston',(x,-.28,z-.08),(x,-.67,z),.045,trim,'Gear')
- strut(name+' gear brace',(x,-.33,z+.2),(x,-.63,z),.034,dark,'Gear')
- box(name+' landing pad',(x,-.7,z),(.35,.1,.35),ivory,'Gear',.012)
- box(name+' landing pad inset',(x,-.64,z),(.2,.016,.22),dark,'Gear',.002)
+ hinge=armature.edit_bones.new('Gear_'+name+'_Hinge');hinge.head=point((x,-.28,z-.08));hinge.tail=hinge.head+Vector((0,1,0))
+ pad=armature.edit_bones.new('Gear_'+name+'_Pad');pad.head=point((x,-.67,z));pad.tail=pad.head+Vector((0,1,0));pad.parent=hinge
+bpy.ops.object.mode_set(mode='OBJECT')
+def rig_part(obj,bone):
+ group=obj.vertex_groups.new(name=bone);group.add(list(range(len(obj.data.vertices))),1,'REPLACE')
+ mod=obj.modifiers.new('Mechanical gear','ARMATURE');mod.object=gear
+for name,x,z in [('Left',-.85,1),('Right',.85,1),('Nose',0,-1.3)]:
+ box(name+' gear bay',(x,-.28,z),(.34,.09,.5),dark)
+ hinge='Gear_'+name+'_Hinge';pad='Gear_'+name+'_Pad'
+ rig_part(strut(name+' gear piston',(x,-.28,z-.08),(x,-.67,z),.045,trim,'Gear'),hinge)
+ # A fork at the same hinge axis folds as a rigid, triangulated leg.
+ rig_part(strut(name+' gear brace',(x+.06,-.28,z-.08),(x,-.63,z+.08),.034,dark,'Gear'),hinge)
+ rig_part(box(name+' landing pad',(x,-.7,z),(.35,.1,.35),ivory,'Gear',.012),pad)
+ rig_part(box(name+' landing pad inset',(x,-.64,z),(.2,.016,.22),dark,'Gear',.002),pad)
+# The saved source contains a scrubbable deployment study (1 stowed, 49 down).
+# Runtime uses these same six named joints, driven by the expedition simulation.
+for name in ['Left','Right','Nose']:
+ for suffix,sign in [('Hinge',1),('Pad',-1)]:
+  bone=gear.pose.bones['Gear_'+name+'_'+suffix];bone.rotation_mode='XYZ'
+  for frame,angle in [(1,-math.pi/2),(49,0)]:
+   bone.rotation_euler.x=angle*sign;bone.keyframe_insert(data_path='rotation_euler',frame=frame)
+scene.frame_set(49)
 # Editable source and studio. Parts remain individually named and editable.
 scene.world.color=(.025,.035,.06);scene.world.use_nodes=True;scene.world.node_tree.nodes['Background'].inputs[0].default_value=(.035,.055,.09,1);scene.world.node_tree.nodes['Background'].inputs[1].default_value=.5
 bpy.ops.mesh.primitive_plane_add(size=200,location=(0,0,-3.02));floor=bpy.context.object;floor.name='Studio floor';floor.data.materials.append(material('Studio','#111d2d',.1,.72))
@@ -170,12 +189,13 @@ bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'aurora-v1.blend'))
 bpy.ops.render.render(write_still=True)
 # Export optimized copies only; the saved source stays fully editable.
 root=bpy.data.objects.new('AURORA_VX9',None);scene.collection.objects.link(root)
-gear=bpy.data.objects.new('LandingGear',None);scene.collection.objects.link(gear);gear.parent=root
+gear.animation_data_clear();gear.parent=root
 exports=[root,gear];groups={}
 for obj in parts:
  dup=obj.copy();dup.data=obj.data.copy();scene.collection.objects.link(dup)
  bpy.ops.object.select_all(action='DESELECT');dup.select_set(True);bpy.context.view_layer.objects.active=dup
- for modifier in list(dup.modifiers):bpy.ops.object.modifier_apply(modifier=modifier.name)
+ for modifier in list(dup.modifiers):
+  if modifier.type!='ARMATURE':bpy.ops.object.modifier_apply(modifier=modifier.name)
  category=obj['category'];dup.parent=gear if category=='Gear' else root
  if category=='Core':dup.name=obj.name+'_Runtime';exports.append(dup)
  else:groups.setdefault((category,obj.data.materials[0].name),[]).append(dup)
@@ -187,7 +207,7 @@ for (category,mat),objects in groups.items():
  combined=bpy.context.object;combined.name=category+'_'+mat.replace(' ','_');exports.append(combined)
 bpy.context.view_layer.update();bpy.ops.object.select_all(action='DESELECT')
 for obj in exports:obj.select_set(True)
-bpy.ops.export_scene.gltf(filepath=str(RUNTIME),export_format='GLB',use_selection=True,export_yup=True,export_apply=True,export_animations=False,export_cameras=False,export_lights=False)
+bpy.ops.export_scene.gltf(filepath=str(RUNTIME),export_format='GLB',use_selection=True,export_yup=True,export_apply=False,export_animations=False,export_cameras=False,export_lights=False)
 meshes=[o for o in exports if o.type=='MESH'];triangles=sum(len(p.vertices)-2 for o in meshes for p in o.data.polygons)
 vertices=[o.matrix_world@Vector(v) for o in meshes for v in o.bound_box]
 report={'source':'aurora-v1.blend','runtime':'game/public/models/aurora-v1.glb','blender':bpy.app.version_string,'authoring_parts':len(parts),'runtime_meshes':len(meshes),'triangles':triangles,'materials':len(set(m.name for o in meshes for m in o.data.materials)),'dimensions_m':[max(v[i] for v in vertices)-min(v[i] for v in vertices) for i in range(3)],'gear_bottom_m':-3,'glb_bytes':RUNTIME.stat().st_size}

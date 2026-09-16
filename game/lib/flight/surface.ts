@@ -34,10 +34,12 @@ export type SurfaceRecord = {
   sceneryVersion?: 1 | 2;
   sceneryClearings?: { point: number[]; radius: number }[];
 };
+export const GEAR_TRAVEL_SECONDS = 1.6;
 const FORWARD = new Vector3(0, 0, -1),
   RIGHT = new Vector3(1, 0, 0);
 export class SurfaceExpedition {
   phase: SurfacePhase = 'flight';
+  gearDeployment = 0;
   patch: ContactSurface | null = null;
   message = '';
   bodyId: string | null = null;
@@ -305,7 +307,7 @@ export class SurfaceExpedition {
     this.sim.throttle = 0;
     this.message = adjusted
       ? 'Clear ground located nearby. Adjusting final approach.'
-      : 'Landing gear deployed. Beginning final approach.';
+      : 'Deploying landing gear. Holding for downlock.';
     return true;
   }
   exit() {
@@ -367,6 +369,7 @@ export class SurfaceExpedition {
   }
   reset() {
     this.phase = 'flight';
+    this.gearDeployment = 0;
     this.shipPosition.set(0, 0, 0);
     this.shipOrientation.identity();
     this.patch = null;
@@ -399,6 +402,7 @@ export class SurfaceExpedition {
   }
   restore(record: SurfaceRecord, waitForGround = false) {
     this.reset();
+    this.gearDeployment = record.phase === 'flight' ? 0 : 1;
     this.shipPosition.fromArray(record.shipPosition);
     this.shipOrientation.fromArray(record.shipOrientation);
     this.walked = record.walked;
@@ -434,6 +438,17 @@ export class SurfaceExpedition {
       return;
     }
     if (this.phase === 'landing') {
+      if (this.gearDeployment < 1) {
+        this.gearDeployment = Math.min(
+          1,
+          this.gearDeployment + dt / GEAR_TRAVEL_SECONDS,
+        );
+        s.speed = 0;
+        s.status = 'LANDING';
+        if (this.gearDeployment === 1)
+          this.message = 'Landing gear locked. Beginning final approach.';
+        return;
+      }
       const delta = this.destination.clone().sub(s.position),
         distance = delta.length();
       const move = Math.min(
@@ -462,6 +477,12 @@ export class SurfaceExpedition {
         rise = Math.min(0.12 - this.lift, 0.055 * dt);
       s.position.addScaledVector(up, rise);
       this.lift += rise;
+      // Clear the ground before folding; finish well before the 120 m release.
+      if (this.lift >= 0.015)
+        this.gearDeployment = Math.max(
+          0,
+          this.gearDeployment - dt / GEAR_TRAVEL_SECONDS,
+        );
       s.speed = rise / dt;
       s.status = 'TAKEOFF';
       if (this.lift >= 0.11999) {

@@ -375,6 +375,7 @@ export default function Home() {
               terrainStats: view?.terrainStats,
               contactStats: view?.contactStats,
               shipModel: view?.craft.modelSource,
+              gearDeployment: sim.surface.gearDeployment,
               lighting: view?.lighting,
               sceneryCount: sim.surface.scenery.length,
               vegetationCount: sim.surface.scenery.filter(

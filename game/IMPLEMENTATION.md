@@ -1,3 +1,11 @@
+## Mechanical landing gear
+
+AURORA now uses six rigid-weight joints: three folding leg hinges and three counter-rotating feet. The Blender source preserves the editable rig and a deployment study; the runtime GLB retains 12 meshes, 3,932 triangles, seven materials and the existing deployed bounds/pad centers. The fallback exposes the same named joint contract. `landing-gear.ts` applies an eased 90-degree fold, with feet remaining level and no geometry scaling.
+
+`SurfaceExpedition.gearDeployment` is driven by simulation time. Landing holds its native rotating-world position for a 1.6-second deployment before descent. Takeoff keeps the gear down for the first 15 m, retracts over 1.6 seconds, and returns flight controls at the existing 120 m threshold. Pausing freezes motion. Reset/flight restoration stows the gear; landed/walking restoration deploys it immediately, even while waiting for terrain or the authored GLB. Transient landing/takeoff saves retain the existing flight-save semantics; no save schema change is required. Collision and touchdown use the unchanged deployed pad contract.
+
+Three skinned gear meshes replace the static gear meshes without adding draw groups. Their frustum culling is disabled to avoid stale bind-pose bounds. The source uses a rigid fork rather than telescoping hydraulics, and folded pads are exposed beneath the hull; bay doors and load-bearing suspension are later polish.
+
 # Coastal scene reconstruction — terrain profile 4
 
 New expeditions use terrain profile 4. Lumen Coast now has an open bay corridor, staggered islands, an offshore sentinel platform, and successive background ridges. A low coastal region blends back to the original planet between 40 and 100 km, avoiding a steep procedural wall immediately behind the vista. Profiles 1–3 retain their height functions and contact grids. The 39 m landing exclusion stays level; outside it, up to 2 m of real foreground shelf relief tapers around both walking routes. The same heightfield drives planet meshes, rendered ground and collision.

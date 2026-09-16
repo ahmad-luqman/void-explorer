@@ -92,6 +92,50 @@ describe('surface contact and expedition', () => {
       toPlanet(sim.position, sim.nearest).distanceTo(atRelease),
     ).toBeLessThan(0.01);
   });
+  it('waits for downlock, clears the ground before retracting, and restores gear from saved phase', () => {
+    const { sim } = prepare();
+    expect(sim.surface.gearDeployment).toBe(0);
+    expect(sim.surface.land()).toBe(true);
+    const before = toPlanet(sim.position, sim.nearest);
+    advance(sim, 0.8);
+    expect(sim.surface.gearDeployment).toBeCloseTo(0.5, 5);
+    expect(toPlanet(sim.position, sim.nearest).distanceTo(before)).toBeLessThan(
+      1e-7,
+    );
+    const paused = sim.surface.gearDeployment;
+    sim.step(0, emptyControls());
+    expect(sim.surface.gearDeployment).toBe(paused);
+    advance(sim, 16);
+    expect(sim.surface.phase).toBe('landed');
+    expect(sim.surface.gearDeployment).toBe(1);
+    const landed = sim.surface.record();
+    sim.surface.exit();
+    const walking = sim.surface.record();
+    sim.surface.board();
+    sim.surface.takeoff();
+    advance(sim, 0.2);
+    expect(sim.surface.gearDeployment).toBe(1);
+    advance(sim, 0.8);
+    expect(sim.surface.gearDeployment).toBeGreaterThan(0);
+    expect(sim.surface.gearDeployment).toBeLessThan(1);
+    const flying = sim.surface.record();
+    advance(sim, 1.3);
+    expect(sim.surface.phase).toBe('flight');
+    expect(sim.surface.gearDeployment).toBe(0);
+    for (const record of [landed, walking, flying]) {
+      sim.surface.restore(record, true);
+      expect(sim.surface.phase).toBe('restoring');
+      expect(sim.surface.gearDeployment).toBe(
+        record.phase === 'flight' ? 0 : 1,
+      );
+      advance(sim, 2);
+      expect(sim.surface.gearDeployment).toBe(
+        record.phase === 'flight' ? 0 : 1,
+      );
+    }
+    sim.surface.reset();
+    expect(sim.surface.gearDeployment).toBe(0);
+  });
   it('rejects landing before terrain is ready and in unsafe flight conditions', () => {
     const s = new FlightSimulation();
     s.flightMessage = 'Ground clearance — engines stopped.';
