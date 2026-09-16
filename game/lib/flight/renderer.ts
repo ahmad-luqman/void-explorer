@@ -8,9 +8,10 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { type Body, elevation, random } from './universe';
+import { type Body, elevation } from './universe';
 import { FlightSimulation } from './simulation';
 import { flightFieldOfView, response } from './handling';
+import { MotionEffects } from './motion-effects';
 import { createShip } from './ship';
 import { terrainColor } from './terrain';
 import { contactRequest, terrainRefresh } from './terrain-stream';
@@ -128,9 +129,7 @@ export class FlightRenderer {
   stars: T.Points;
   sun = new T.Group();
   nebula: T.Mesh;
-  dust: T.LineSegments;
-  dustPositions = new Float32Array(180 * 6);
-  dustSeeds: number[][] = [];
+  motion = new MotionEffects();
   width = 1;
   height = 1;
   quality = 'high';
@@ -280,27 +279,7 @@ export class FlightRenderer {
       nebulaMaterial,
     );
     this.scene.add(this.nebula);
-    const rng = random(921);
-    for (let i = 0; i < 180; i++)
-      this.dustSeeds.push([
-        (rng() - 0.5) * 170,
-        (rng() - 0.5) * 100,
-        rng() * 300,
-      ]);
-    const dg = new T.BufferGeometry();
-    dg.setAttribute('position', new T.BufferAttribute(this.dustPositions, 3));
-    this.dust = new T.LineSegments(
-      dg,
-      new T.LineBasicMaterial({
-        color: '#73c7eb',
-        transparent: true,
-        opacity: 0,
-        blending: T.AdditiveBlending,
-        depthWrite: false,
-      }),
-    );
-    this.dust.frustumCulled = false;
-    this.scene.add(this.dust);
+    this.scene.add(this.motion.group);
     this.worker = new TerrainWorker();
     this.worker.onmessage = (
       event: MessageEvent<{
@@ -1195,26 +1174,18 @@ export class FlightRenderer {
     this.haze.color.copy(environment.horizon);
     this.haze.density = environment.hazeDensity;
     this.scene.fog = density > 0.001 ? this.haze : null;
-    const material = this.dust.material as T.LineBasicMaterial;
-    material.opacity = title ? 0 : Math.min(0.65, this.sim.speed / 1400);
-    const stretch = Math.min(38, 1 + this.sim.speed / 160);
-    for (let i = 0; i < this.dustSeeds.length; i++) {
-      const [x, y, z] = this.dustSeeds[i];
-      const depth =
-        10 +
-        ((((z - this.sim.elapsed * Math.min(240, this.sim.speed * 0.4)) % 300) +
-          300) %
-          300);
-      const a = new T.Vector3(x, y, -depth).applyQuaternion(
-          this.camera.quaternion,
-        ),
-        b = new T.Vector3(x, y, -depth - stretch).applyQuaternion(
-          this.camera.quaternion,
-        );
-      a.toArray(this.dustPositions, i * 6);
-      b.toArray(this.dustPositions, i * 6 + 3);
-    }
-    this.dust.geometry.attributes.position.needsUpdate = true;
+    this.motion.update(
+      {
+        elapsed: this.sim.elapsed,
+        speed: this.sim.speed,
+        density,
+        pulse: this.sim.pulse,
+        active: !title && surface.phase === 'flight',
+        orientation: this.sim.orientation,
+        angularVelocity: this.sim.angularVelocity,
+      },
+      this.quality === 'low',
+    );
     if (this.gpu)
       this.gpu.render(this.scene, this.camera, this.quality === 'high');
     else if (this.quality === 'high') this.composer!.render();

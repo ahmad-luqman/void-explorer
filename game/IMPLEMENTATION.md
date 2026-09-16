@@ -299,3 +299,10 @@ New expeditions use terrain profile 5. Profiles 1–4 retain their exact height 
 The coastal contact mesh remains 99,225 vertices / 197,192 triangles. It retains the dense first 300 m, reallocates 300–1,200 m cells to 28.125 m, keeps cells at most 75 m to 3 km, and adds at-most-400 m cells across the 3–18 km ridges. Remote cells may grow to 4 km. The same triangles govern rendering and contact. Planet/contact cache keys distinguish the new profile; older saves keep their selected profile.
 
 Cloud banks now have rounded overlapping bases and restrained emissive underside fill; the instancing/triangle budget is unchanged. All 103 unit tests, type checking, changed-module lint and the static export pass. Final full production journeys pass on both renderers, with profile-5, profile-4 and profile-3 saved excursions. Actual images and remaining concept differences are recorded in `art/COASTAL_RUNTIME_REVIEW.md`.
+
+
+## Motion feedback
+
+`motion-effects.ts` replaces the old elapsed-times-speed dust animation with integrated travel phase. Heading-aligned streaks use different range, length and visibility envelopes for atmosphere, cruise and pulse. The axial corridor stays clear; Low quality draws 90 streaks and High 180. Phase and opacity use simulation time, so menus freeze the effects and reset/restoration discard stale phase. Surface operations and the title hide both draws.
+
+Atmospheric wing vapor uses two short curved ribbons, with transparent edges and ends, density/speed gating and restrained angular-response curvature. It adds 150 vertices / 192 triangles and at most one draw beyond the previous streak effect. Ribbons remain in front of the chase camera; they are a stylized flow cue, not a fluid or condensation simulation. Effects change no ship, camera, collision or save poses.

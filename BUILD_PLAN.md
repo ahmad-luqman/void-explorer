@@ -232,3 +232,9 @@ Delivered: profile-5 cliff shoulders, denser visible ridge geometry at the same 
 3. Verify depth sampling, memory accounting, cache validation and morph continuity, then compare actual coast/water views and complete old/new saved expeditions on both backends. Commit and publish only the validated result; do not claim scene-reflection or physical-wave geometry from shading effects.
 
 Delivered: shared signed-depth buffers, matching WebGL/WebGPU shallows and filtered foam bands, stronger ripple shading and cache/morph compatibility. All 105 unit tests, type checking, scoped lint and the static build pass. Actual-canvas animation/color and disk-restoration checks pass on both backends; full production orbital/coastal journeys preserve profiles 3–5. Foam visibility and water-light composition remain visual polish, alongside distant material and foreground/cloud integration. Continue with authored destinations, speed/atmosphere feedback and streaming refinement while retaining the full completion audit.
+
+### Flight motion and atmospheric feedback — active
+
+1. Replace elapsed-time-times-speed dust with continuously integrated, heading-aligned streaks. Scale their range and visibility for atmospheric flight, cruise and pulse; keep the central aiming corridor clear.
+2. Add bounded, tapered wing vapor in dense atmosphere at speed, with restrained turn response. Preserve ship geometry, simulation/camera poses, collision and saves; freeze effects with simulation time and hide them during surface operations.
+3. Verify pause/reset/turn and quality behavior, bounded geometry and frame-rate independence. Inspect actual moving gameplay on WebGL/WebGPU, run full production journeys and retain captures before private publication.

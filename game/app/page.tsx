@@ -398,6 +398,7 @@ export default function Home() {
               audio: audio.current?.snapshot,
               gearDeployment: sim.surface.gearDeployment,
               lighting: view?.lighting,
+              motion: view?.motion.stats,
               sceneryCount: sim.surface.scenery.length,
               vegetationCount: sim.surface.scenery.filter(
                 (p) => p.shape === 'fan' || p.shape === 'succulent',
@@ -419,7 +420,7 @@ export default function Home() {
                 sim.face(sim.target.position);
               }
               if (name === 'coastal-landing') sim.startCoast();
-              if (name === 'coastal-shore') {
+              if (name === 'coastal-shore' || name === 'atmospheric-flight') {
                 sim.startCoast();
                 const up = coastDirection(0, 0.1, sim.target.radius);
                 const native = up
@@ -427,7 +428,7 @@ export default function Home() {
                   .multiplyScalar(
                     sim.target.radius +
                       Math.max(0, elevation(up, sim.target)) +
-                      0.08,
+                      (name === 'atmospheric-flight' ? 0.9 : 0.08),
                   );
                 const rotation = planetRotation(sim.target);
                 sim.position.copy(fromPlanet(native, sim.target));
@@ -438,11 +439,18 @@ export default function Home() {
                       native
                         .clone()
                         .add(COAST_FORWARD)
-                        .addScaledVector(COAST_UP, -0.65),
+                        .addScaledVector(
+                          COAST_UP,
+                          name === 'atmospheric-flight' ? 0 : -0.65,
+                        ),
                       up,
                     ),
                   )
                   .premultiply(rotation);
+                if (name === 'atmospheric-flight') {
+                  sim.speed = 0.45;
+                  sim.throttle = 0.8;
+                }
               }
               if (name === 'low-flight') {
                 const up = new Vector3(0, 0, 1);
