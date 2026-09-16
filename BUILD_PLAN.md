@@ -11,7 +11,7 @@ The [official showcase](https://developers.openai.com/showcase/void-explorer) su
 3. Make flight and navigation feel right — direct targeting, searchable visual galaxy/system charts, pulse travel, obstacle-aware autopilot, and closing-speed arrival feedback implemented; further handling and route-planning polish remain.
 4. Upgrade rendering — sun-aware sky and atmospheric rims, local haze, animated water normals, and near-ground ship shadows implemented in WebGPU and WebGL; hardware profiling and further rendering polish remain.
 5. Refine the spacecraft concept — dedicated turnaround sheet created, with a documented geometry contract.
-6. Build and integrate AURORA — authored Blender model and compact GLB integrated; animation and further visual polish remain.
+6. Build and integrate AURORA — authored Blender model, compact GLB and mechanical landing gear integrated; further visual polish remains.
 7. Make exploration physical — landing, walking, reboarding, takeoff, and local expedition saves implemented.
 8. Keep the world coherent — shared terrain, water shading, cloud layers, persistent rock fields, obstacle-aware landing, and saved exploration implemented; adaptive cube-sphere flight terrain, predictive ground streaming, mesh morphing, and bounded terrain reuse are now implemented; rotating worlds and surface attachment are now implemented; further refinement remains.
 
@@ -69,7 +69,7 @@ The user authorized game implementation after the concept milestone. A playable 
 
 ## Next implementation milestone
 
-Coastal visual quality recovery, following the plan below. Authored landing-gear animation and flight feel follow after the playable coastline passes visual review. Preserve the ship geometry/collision contract, rotating-world attachment and compatible expedition saves. Deeper route planning, atmospheric/speed effects and audio follow, then release validation on real hardware and broader browsers/devices.
+Mechanical gear is complete. Return to the wider coastal visual-quality milestone: richer ground surfaces and stronger nearby cliff/foreground composition, then distant terrain, clouds and shoreline/water finish. Preserve existing terrain/save compatibility and the ship contact contract. Flight/camera feel, route planning, distinctive destinations and audio remain later work; release validation still needs broader browsers and real devices.
 
 ### Completed rotating-world implementation plan
 
@@ -183,9 +183,12 @@ Delivered: segmented nacelle armor, actual recessed service panels, wing hatches
 Next bounded milestone: mechanical landing-gear deployment and retraction, preserving final pad positions, collision/saved-pose contracts and both renderer paths. Wider terrain, cloud/water finish and device profiling remain open.
 
 
-### Mechanical landing gear — active
+### Mechanical landing gear — delivered
 
 1. Rig the authored legs with folding hinges and counter-rotating pads; retain deployed pad centers, full deployed bounds, seven materials and the existing mesh/triangle budgets. Preserve an editable Blender rig and the fallback craft.
 2. Drive deployment from simulation time. Hold the final descent until the gear locks; lift clear before retracting. Restore landed/walking saves fully deployed and flight saves stowed, including delayed model/terrain loading, without changing the save schema.
 3. Test deployed contact and the animated envelope, interruption/reset/pause and restoration. Review actual flight/landing/takeoff and complete new/legacy production excursions on both renderers.
 4. Commit coherent asset/runtime and validation milestones, preserve actual review captures, and update the private build. Environment concept parity remains unfinished.
+
+
+Delivered: six-joint folding gear with level pads, simulation-driven deployment/downlock, clearance-delayed retraction, and immediate saved-pose restoration. The fallback and delayed authored loading use the same deployment state. Deployed dimensions and pad positions are unchanged, with 12 meshes / 3,932 triangles / seven materials retained. All 90 unit tests, type checking, scoped lint and the static build pass. Authored/fallback and delayed-load saved journeys, plus complete production orbital and new/legacy coastal excursions, pass on WebGL and WebGPU. Actual captures and limitations are in [the runtime review](art/COASTAL_RUNTIME_REVIEW.md). Folded pads remain exposed; bay doors, telescoping hydraulics and suspension are future polish. The wider environment still falls short of the concept.

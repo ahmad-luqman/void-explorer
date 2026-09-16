@@ -198,3 +198,23 @@ This is a bounded spacecraft detail pass. The hull remains much simpler than the
 All 88 unit tests, type checking, scoped lint and the static build pass. Asset checks cover exact dimensions, pad centers, the collision envelope, named gear/cores, triangle/mesh limits, self-contained resources and unobstructed service-well floors. Authored loading and a flyable model-load fallback pass with explicit WebGL and WebGPU selection. The final production orbital and complete new/legacy coastal journeys pass on WebGL (24.5/33.8 seconds) and WebGPU (25.0/34.2 seconds), including workers, landing, walking, saves, boarding, takeoff and mobile layout. Passing journeys report no page or console errors.
 
 These captures use Chromium on Apple M4 Max/ANGLE Metal; the durations are test timings, not frame-rate benchmarks. The flight screenshot also exposes the existing heavy haze/coarse high-altitude environment. This pass changes the spacecraft asset, leaving that scene-quality gap open.
+
+
+## Mechanical landing gear — 16 September 2026
+
+AURORA now folds its three legs aft through 90 degrees and counter-rotates the feet so they remain level. The hull's bay plates stay fixed. The editable Blender source includes the six-joint rig and a scrubbable deployment study. The GLB is 241,408 bytes and retains 12 meshes, 3,932 triangles and seven materials; skinning adds joint work without adding draw groups. Deployed span/length/height and all three pad centers are unchanged.
+
+Landing holds position relative to the rotating ground until the 1.6-second deployment completes. Takeoff clears 15 m before retracting over 1.6 seconds; flight controls return at the existing 120 m threshold. Saved walking/landed expeditions restore fully deployed, including delayed terrain and model loads; flight saves restore stowed. Pause stops gear motion. The save schema and collision footprint are unchanged.
+
+| Actual runtime view | WebGL | WebGPU |
+| --- | --- | --- |
+| Deploying during approach | [Capture](milestones/gear-deploying-webgl.png) | [Capture](milestones/gear-deploying-webgpu.png) |
+| Restored on-foot ship after delayed model load | [Capture](milestones/gear-restored-webgl.png) | [Capture](milestones/gear-restored-webgpu.png) |
+| Retracting after liftoff | [Capture](milestones/gear-retracting-webgl.png) | [Capture](milestones/gear-retracting-webgpu.png) |
+| Parked at Lumen Coast | [Capture](milestones/gear-coast-webgl.png) | [Capture](milestones/gear-coast-webgpu.png) |
+| Bay during saved excursion | [Capture](milestones/gear-bay-webgl.png) | [Capture](milestones/gear-bay-webgpu.png) |
+| Legacy coastal restoration | [Capture](milestones/gear-legacy-webgl.png) | [Capture](milestones/gear-legacy-webgpu.png) |
+
+The parked/restored views preserve the deployed stance on both renderers. Motion is subtle from the high chase camera, where the hull and engine glare obscure much of the undercarriage. The mechanism is a rigid hinged fork with exposed folded pads; fully enclosed doors, telescoping hydraulic cylinders and load-bearing suspension are outside this bounded pass. The environment is unchanged: broad smooth ground, distant relief, clouds and shore/water finish still fall short of the concept.
+
+Validation: all 90 unit tests, TypeScript checks, scoped lint and the production build pass. New tests sample multiple actual skinned poses, check the flight envelope and level pad thickness, and exercise downlock, rotating-ground hold, pause, clearance-delayed retraction, reset and saved-phase restoration. Browser checks on Metal pass authored and fallback loading, landing, delayed-model save/reload, boarding and animated takeoff on both backends. Full production orbital and new/legacy coastal journeys pass on WebGL (26.4 / 36.4 seconds) and WebGPU (27.2 / 36.7 seconds), with no page or console errors. Scoped lint covers the changed simulation, rig and tests; renderer lint excludes its existing Vite worker import-resolution false positives. Existing full-page React compiler/accessibility lint findings remain outside this gear change. Real-device profiling beyond this machine remains open.
