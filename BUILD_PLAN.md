@@ -181,3 +181,11 @@ Next bounded implementation: authored AURORA panel/recess detail while preservin
 Delivered: segmented nacelle armor, actual recessed service panels, wing hatches, shoulder louvers and fin seams, retaining exact bounds, all three pad centers, 12 runtime meshes and seven materials. The final export has 3,932 triangles and no external resources. Actual runtime review caught and removed overlapping panel backs; an asset regression check now protects both upper wells. All 88 unit tests, type checking, scoped lint and the static build pass. Authored/fallback loading and complete production orbital and new/legacy coastal journeys pass on both renderers. [The runtime review](art/COASTAL_RUNTIME_REVIEW.md) preserves final screenshots and limitations.
 
 Next bounded milestone: mechanical landing-gear deployment and retraction, preserving final pad positions, collision/saved-pose contracts and both renderer paths. Wider terrain, cloud/water finish and device profiling remain open.
+
+
+### Mechanical landing gear — active
+
+1. Rig the authored legs with folding hinges and counter-rotating pads; retain deployed pad centers, full deployed bounds, seven materials and the existing mesh/triangle budgets. Preserve an editable Blender rig and the fallback craft.
+2. Drive deployment from simulation time. Hold the final descent until the gear locks; lift clear before retracting. Restore landed/walking saves fully deployed and flight saves stowed, including delayed model/terrain loading, without changing the save schema.
+3. Test deployed contact and the animated envelope, interruption/reset/pause and restoration. Review actual flight/landing/takeoff and complete new/legacy production excursions on both renderers.
+4. Commit coherent asset/runtime and validation milestones, preserve actual review captures, and update the private build. Environment concept parity remains unfinished.
