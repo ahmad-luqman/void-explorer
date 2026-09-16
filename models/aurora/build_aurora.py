@@ -73,10 +73,11 @@ def plate(name,outline,normal,mat,well=False):
  if well:
   inner=[v.lerp(center,.22) for v in outer]
   lower=[v-normal*.008 for v in inner]
-  mesh(name+' frame',[tuple(v) for v in outer+inner+back],
+  # The back is a ring, leaving the floor unobstructed on double-sided exports.
+  mesh(name+' frame',[tuple(v) for v in outer+inner+back+lower],
    [(i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n)]+
    [(i,2*n+i,2*n+(i+1)%n,(i+1)%n) for i in range(n)]+
-   [tuple(reversed(range(2*n,3*n)))],mat)
+   [(2*n+i,3*n+i,3*n+(i+1)%n,2*n+(i+1)%n) for i in range(n)],mat)
   mesh(name+' recess wall',[tuple(v) for v in inner+lower],
    [(i,(i+1)%n,(i+1)%n+n,i+n) for i in range(n)],trim)
   mesh(name+' recess floor',[tuple(v) for v in lower],[tuple(range(n))],dark)
@@ -94,7 +95,7 @@ def nacelle_plates(x,y,side):
    outline=[tuple(v.lerp(center,.07)) for v in outline]
    normal=(math.cos((a+b)/2),math.sin((a+b)/2),0)
    # Outboard lateral service wells and an upper intake are legible on foot.
-   well=section==1 and face in ([0,7] if side>0 else [3,4])
+   well=section==1 and face in ([0,7] if side>0 else [2,3])
    plate('Nacelle plate '+str(side)+' '+str(section)+' '+str(face),outline,normal,light if face in [0,1,2] else ivory,well)
 # Layered wedge and raised cockpit.
 loft('Main pressure hull',[(-2.45,.055,-.06,.06),(-1.6,.38,-.23,.24),(-.6,.7,-.32,.35),(.45,.75,-.34,.38),(1.5,.36,-.24,.2),(1.82,.08,-.15,.12)],dark)

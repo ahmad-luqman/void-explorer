@@ -1,4 +1,11 @@
 import { test, expect } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(
+    (preference) => localStorage.setItem('void-renderer', preference),
+    process.env.WEBGPU_TEST ? 'auto' : 'webgl',
+  );
+});
 test('loads the authored ship and keeps the surface journey available', async ({
   page,
 }) => {
@@ -11,6 +18,9 @@ test('loads the authored ship and keeps the surface journey available', async ({
   await expect(
     page.getByRole('button', { name: 'START EXPEDITION' }),
   ).toBeEnabled({ timeout: 45000 });
+  await expect(page.locator('.title-top')).toContainText(
+    process.env.WEBGPU_TEST ? 'WEBGPU' : 'WEBGL',
+  );
   await expect
     .poll(async () => page.evaluate(() => window.__VOID_EXPLORER__!.state()))
     .toMatchObject({ shipModel: 'authored' });
@@ -35,6 +45,9 @@ test('asset failure retains a flyable fallback', async ({ page }) => {
   await expect(
     page.getByRole('button', { name: 'START EXPEDITION' }),
   ).toBeEnabled({ timeout: 45000 });
+  await expect(page.locator('.title-top')).toContainText(
+    process.env.WEBGPU_TEST ? 'WEBGPU' : 'WEBGL',
+  );
   await expect
     .poll(async () => page.evaluate(() => window.__VOID_EXPLORER__!.state()))
     .toMatchObject({ shipModel: 'fallback' });

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { Box3, Vector3, Mesh } from 'three';
+import { Box3, Vector3, Mesh, Raycaster, Material } from 'three';
 import { FLIGHT_RADIUS } from '../lib/flight/flight-clearance';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 async function load() {
@@ -81,6 +81,39 @@ describe('authored spacecraft contract', () => {
       const center = new Box3().setFromObject(core).getCenter(new Vector3());
       expect(center.z).toBeGreaterThan(7.5);
       expect(center.y).toBeCloseTo(0.2, 3);
+    }
+  });
+  it('keeps both upper service wells free of overlapping armor', async () => {
+    const { scene } = await load();
+    scene.updateMatrixWorld(true);
+    for (const side of [-1, 1]) {
+      const normal = new Vector3(side, 1, 0).normalize();
+      const floor = new Vector3(side * 0.85, 0.05, 1.145)
+        .addScaledVector(normal, 0.575 * Math.cos(Math.PI / 8) - 0.008)
+        .multiplyScalar(4);
+      for (const offset of [-0.3, 0, 0.3]) {
+        const sample = floor.clone().add(new Vector3(0, 0, offset));
+        const hits = new Raycaster(
+          sample.clone().add(normal),
+          normal.clone().negate(),
+        ).intersectObject(scene, true);
+        expect(hits.length).toBeGreaterThan(0);
+        const materialName = (hit: (typeof hits)[number]) => {
+          const material = (hit.object as Mesh).material;
+          return (
+            Array.isArray(material)
+              ? material[hit.face!.materialIndex]
+              : (material as Material)
+          ).name;
+        };
+        expect(materialName(hits[0])).toBe('Graphite structure');
+        expect(hits[0].distance).toBeCloseTo(1, 4);
+        for (const hit of hits.filter(
+          (h) => materialName(h) !== 'Graphite structure',
+        )) {
+          expect(Math.abs(hit.distance - 1)).toBeGreaterThan(0.005);
+        }
+      }
     }
   });
   it('stays compact and self-contained for the static game', async () => {

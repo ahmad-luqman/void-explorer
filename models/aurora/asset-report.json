@@ -4,7 +4,7 @@
   "blender": "5.2.1 LTS",
   "authoring_parts": 154,
   "runtime_meshes": 12,
-  "triangles": 3884,
+  "triangles": 3932,
   "materials": 7,
   "dimensions_m": [
     28.799999237060547,
@@ -12,5 +12,5 @@
     7.679999828338623
   ],
   "gear_bottom_m": -3,
-  "glb_bytes": 221492
+  "glb_bytes": 223316
 }
