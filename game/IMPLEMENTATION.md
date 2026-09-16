@@ -1,3 +1,9 @@
+## Layered expedition audio
+
+`audio.ts` owns the Web Audio graph and smooth master volume. Two propulsion tones, filtered atmospheric wind, low shore wash, mechanical gear noise and a pulse layer respond to physical flight/surface state. Touchdown, takeoff, hatches, footsteps, boost, pulse changes and navigation changes have bounded event envelopes. Footsteps follow distance actually walked; blocked movement produces none. Engine layers stop on foot, landed ambience is muffled, vacuum removes wind, and restoration/pause cannot replay stale events. Settings retain the existing saved sound percentage as master volume; creation/resumption stays on a user gesture. Renderer failures mute the graph and teardown stops its sources/closes the context.
+
+Offline browser rendering verifies nonzero distinct flight/surface output, bounded peaks and exact master mute. A live browser journey verifies touchdown, footsteps and silence of event scheduling while paused. This is a layered procedural soundscape, not licensed recordings or composed music. Actual headphone/speaker checks on further devices remain part of release validation.
+
 ## Mechanical landing gear
 
 AURORA now uses six rigid-weight joints: three folding leg hinges and three counter-rotating feet. The Blender source preserves the editable rig and a deployment study; the runtime GLB retains 12 meshes, 3,932 triangles, seven materials and the existing deployed bounds/pad centers. The fallback exposes the same named joint contract. `landing-gear.ts` applies an eased 90-degree fold, with feet remaining level and no geometry scaling.

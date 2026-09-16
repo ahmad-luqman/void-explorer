@@ -15,7 +15,7 @@ User objective: implement everything in the supplied session summary, not only t
 | Route planning | Searchable galaxy/system charts and single target autopilot | Incomplete: usable planned travel through destinations |
 | Distinctive authored destinations | Lumen Coast production entry | Incomplete: multiple distinctive traversable destinations with discovery/progress |
 | Terrain-streaming refinement | Predictive workers, whole-patch morphing/caches | Incomplete: stronger streaming continuity and measured load/stall behavior |
-| Audio beyond engine tone | Existing synthesized engine | Incomplete: layered reactive flight/surface ambience and event sounds with settings |
+| Audio beyond engine tone | Six continuous layers, seven event types; offline waveform/mute checks and actual landing/footstep/pause journey | Implemented procedural soundscape; device-specific listening checks remain part of release validation |
 | Performance across real devices | Chromium Metal on this Mac | Incomplete: measured budgets and available physical-device runs; do not label emulation real hardware |
 | Broader browsers | Chromium WebGL/WebGPU | Incomplete: Firefox/WebKit/Safari coverage where available, graceful support behavior |
 | Mobile controls | Responsive HUD | Incomplete: actual touch flight, walking, interaction and mobile journey checks |
@@ -24,3 +24,5 @@ User objective: implement everything in the supplied session summary, not only t
 ## Evidence rules
 
 Preserve exact concept prompts and editable sources. Commit coherent milestones after appropriate checks. Compare actual gameplay against the concept, on both renderers, rather than accepting feature presence as visual success. Preserve saved terrain, rotating-world attachment, pad positions and collision agreement. Real hardware not connected to this workspace cannot be certified by browser emulation; finish all implementable work and identify any remaining external validation precisely.
+
+Production-export evidence for the slate/cloud pass: complete orbital and new/legacy coastal journeys pass on WebGL (26.1/36.6 s) and WebGPU (27.1/36.7 s), without page or console errors.

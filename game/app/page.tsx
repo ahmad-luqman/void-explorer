@@ -27,6 +27,7 @@ import type { FlightRenderer } from '@/lib/flight/renderer';
 import { createFlightRenderer } from '@/lib/flight/renderer-factory';
 import { registerFlightTools } from '@/lib/flight/webmcp';
 import { distanceLabel, elevation, SYSTEM_COUNT } from '@/lib/flight/universe';
+import { ExpeditionAudio } from '@/lib/flight/audio';
 import { StarChart } from '@/components/star-chart';
 import { navigationReadout, etaLabel } from '@/lib/flight/navigation';
 import {
@@ -106,28 +107,15 @@ export default function Home() {
     help: false,
   });
   flags.current = { started, paused, settings, chart, help };
-  const audio = useRef<{
-    ctx: AudioContext;
-    gain: GainNode;
-    engine: OscillatorNode;
-  } | null>(null);
+  const audio = useRef<ExpeditionAudio | null>(null);
   function bootSound() {
-    if (!audio.current) {
-      try {
-        const ctx = new AudioContext(),
-          gain = ctx.createGain(),
-          engine = ctx.createOscillator();
-        engine.type = 'sine';
-        engine.frequency.value = 48;
-        gain.gain.value = 0;
-        engine.connect(gain).connect(ctx.destination);
-        engine.start();
-        audio.current = { ctx, gain, engine };
-      } catch {
-        /* Audio is optional. */
-      }
+    try {
+      audio.current ??= new ExpeditionAudio();
+      audio.current.setVolume(sound);
+      audio.current.resume();
+    } catch {
+      /* Audio remains optional on restricted devices. */
     }
-    void audio.current?.ctx.resume();
   }
   function saveExpedition() {
     const sim = runtime.current?.sim;
@@ -219,12 +207,7 @@ export default function Home() {
           setChart(false);
           setHelp(false);
           keys.current.clear();
-          if (audio.current)
-            audio.current.gain.gain.setTargetAtTime(
-              0,
-              audio.current.ctx.currentTime,
-              0.1,
-            );
+          audio.current?.setActive(false);
           const record = captureExpedition(sim);
           if (record)
             try {
@@ -299,19 +282,28 @@ export default function Home() {
             }
             lastPhase = sim.surface.phase;
           }
-          if (audio.current) {
-            audio.current.engine.frequency.setTargetAtTime(
-              38 + Math.min(110, sim.speed / 8),
-              audio.current.ctx.currentTime,
-              0.2,
-            );
-            if (!active)
-              audio.current.gain.gain.setTargetAtTime(
-                0,
-                audio.current.ctx.currentTime,
-                0.1,
-              );
-          }
+          audio.current?.update(
+            {
+              phase: sim.surface.phase,
+              speed: sim.speed,
+              throttle: sim.throttle,
+              altitude: sim.altitude,
+              atmosphere: !sim.nearest.star,
+              coastal:
+                sim.nearest.kind === 'ocean' &&
+                sim.position.distanceTo(sim.nearest.position) -
+                  sim.nearest.radius <
+                  0.2,
+              boost:
+                keys.current.has('ShiftLeft') || keys.current.has('ShiftRight'),
+              pulse: sim.pulse,
+              autopilot: sim.autopilot,
+              walked: sim.surface.walked,
+              gear: sim.surface.gearDeployment,
+              time: sim.elapsed,
+            },
+            active,
+          );
           try {
             view.draw(!f.started, dt);
           } catch (e) {
@@ -375,6 +367,7 @@ export default function Home() {
               terrainStats: view?.terrainStats,
               contactStats: view?.contactStats,
               shipModel: view?.craft.modelSource,
+              audio: audio.current?.snapshot,
               gearDeployment: sim.surface.gearDeployment,
               lighting: view?.lighting,
               sceneryCount: sim.surface.scenery.length,
@@ -541,7 +534,7 @@ export default function Home() {
       view?.dispose();
       runtime.current = null;
       delete window.__VOID_EXPLORER__;
-      void audio.current?.ctx.close();
+      audio.current?.dispose();
       audio.current = null;
     };
   }, []);
@@ -634,17 +627,11 @@ export default function Home() {
       }
   }, [quality, finish, sound, ready]);
   useEffect(() => {
-    if (audio.current) {
-      const active = started && !paused && !settings && !chart && !help;
-      audio.current.gain.gain.setTargetAtTime(
-        active && !['landed', 'walking', 'restoring'].includes(data.phase)
-          ? (sound / 100) * 0.055
-          : 0,
-        audio.current.ctx.currentTime,
-        0.15,
-      );
-    }
-  }, [sound, started, paused, settings, chart, help, data.speed, data.phase]);
+    audio.current?.setVolume(sound);
+    audio.current?.setActive(
+      started && !paused && !settings && !chart && !help,
+    );
+  }, [sound, started, paused, settings, chart, help]);
   const sim = runtime.current?.sim;
   const choose = (id: string, engage = false) => {
     if (!sim?.select(id)) return;
@@ -1158,7 +1145,7 @@ export default function Home() {
           </fieldset>
           <label className="sound-label">
             <span>
-              <Volume2 size={15} /> Engine sound <b>{sound}%</b>
+              <Volume2 size={15} /> Sound <b>{sound}%</b>
             </span>
             <input
               type="range"
