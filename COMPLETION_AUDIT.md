@@ -5,10 +5,10 @@ User objective: implement everything in the supplied session summary, not only t
 | Requirement | Current evidence | Status / work remaining |
 | --- | --- | --- |
 | Mechanical landing gear | Six-joint model; 90-test suite; WebGL/WebGPU full production and delayed-load journeys; runtime review | Implemented; preserve regression coverage |
-| Richer ground surfaces | Current runtime captures still show a broad smooth clearing | Active: layered rock, fractured plates, grit and dust at walking/approach scale |
+| Richer ground surfaces | Generated slate/grit, native triplanar mapping, 92-test suite and dual-renderer captures | Implemented surface treatment; whole-scene visual acceptance remains open |
 | Better distant cliffs | Profile-4 heightfield and faceted coast captures | Incomplete: stronger cliff relief, layered silhouettes and continuous near/far detail |
 | Stronger foreground composition | Fixed rock/fan groups, saved-scene captures | Incomplete: multi-view composition and readable ground/prop integration |
-| Improved clouds | Shaded shell and sparse mesh banks | Incomplete: convincing scale, clustered depth, lighting and transitions |
+| Improved clouds | Shaded shell and 16 expanded cloud banks, bounded 24,000 triangles | Improved coverage; incomplete soft shape/depth, lighting and transitions |
 | Shoreline and water | Filtered wave normals and teal transitions | Incomplete: coastal shallows, breakers and reflection/light composition |
 | Flight handling and camera | Current direct steering and chase camera | Incomplete: smooth responsive handling and camera verified across frame rates |
 | Speed/atmospheric effects | Existing exhaust/pulse visuals | Incomplete: readable motion and atmospheric flight feedback |

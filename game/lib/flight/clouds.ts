@@ -1,30 +1,51 @@
 import * as T from 'three';
-import { type Body, surfaceRadius } from './universe';
+import { type Body, surfaceRadius, random } from './universe';
 import { coastDirection, COAST_UP } from './coast';
 
-// A bounded set of three-dimensional billows gives the coastal horizon depth.
-// These are stylized solid lobes, not a volumetric weather simulation.
+// Overlapping, irregular billows give the coastal horizon coherent weather
+// banks. A single instanced mesh remains attached to the rotating planet.
 export function createCoastalCloudBanks(body: Body) {
-  const geometry = new T.SphereGeometry(1, 12, 8);
+  const geometry = new T.SphereGeometry(1, 10, 6);
   const positions = geometry.attributes.position;
   const colors = new Float32Array(positions.count * 3);
   for (let i = 0; i < positions.count; i++) {
-    const t = T.MathUtils.smoothstep(positions.getY(i), -0.8, 0.5);
-    new T.Color('#8798b4')
-      .lerp(new T.Color('#fff1da'), t)
+    const x = positions.getX(i),
+      y = positions.getY(i),
+      z = positions.getZ(i);
+    const relief =
+      1 + Math.sin(x * 11 + z * 7) * Math.cos(y * 9 - z * 5) * 0.065;
+    positions.setXYZ(
+      i,
+      x * relief,
+      y * relief * (y < 0 ? 0.35 : 1),
+      z * relief,
+    );
+    const t = T.MathUtils.smoothstep(y, -0.35, 0.7);
+    new T.Color('#a4b3cc')
+      .lerp(new T.Color('#fff4e1'), t)
       .toArray(colors, i * 3);
   }
   geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
+  geometry.computeVertexNormals();
   const centers = [
-    [-7, 8],
-    [2, 9],
-    [7, 12],
-    [-5, 17],
-    [13, 14],
-    [1, 22],
-    [12, 24],
-    [-15, 20],
+    [-12, 12],
+    [-7, 15],
+    [-1, 13],
+    [5, 18],
+    [12, 20],
+    [20, 24],
+    [-20, 25],
+    [-12, 30],
+    [-4, 29],
+    [4, 33],
+    [14, 37],
+    [25, 43],
+    [-28, 45],
+    [-15, 49],
+    [-1, 48],
+    [10, 55],
   ];
+  const lobes = 15;
   const mesh = new T.InstancedMesh(
     geometry,
     new T.MeshStandardMaterial({
@@ -32,24 +53,36 @@ export function createCoastalCloudBanks(body: Body) {
       roughness: 1,
       vertexColors: true,
     }),
-    centers.length * 9,
+    centers.length * lobes,
   );
   const dummy = new T.Object3D();
   let index = 0;
   centers.forEach(([x, z], n) => {
-    for (let lobe = 0; lobe < 9; lobe++) {
-      const a = lobe * 2.4 + n;
-      const d = coastDirection(
-        x * 2 + Math.cos(a) * 0.45,
-        z * 2 + Math.sin(a) * 0.25,
-        body.radius,
-      );
-      const crown = lobe % 3 === 0;
+    const rng = random(body.seed ^ (n * 73856093));
+    const center = coastDirection(x, z, body.radius);
+    // One base altitude per bank prevents each lobe following terrain like a prop.
+    const baseRadius = Math.max(
+      body.radius + 3.2,
+      surfaceRadius(center, body) + 1.8,
+    );
+    for (let lobe = 0; lobe < lobes; lobe++) {
+      const base = lobe < 5;
+      const offsetX = base ? (lobe - 2) * 0.46 : (rng() - 0.5) * 1.9;
+      const offsetZ = (rng() - 0.5) * 0.6;
+      const d = coastDirection(x + offsetX, z + offsetZ, body.radius);
+      const radius = base ? 0.52 + rng() * 0.12 : 0.24 + rng() * 0.34;
       dummy.position
         .copy(d)
-        .multiplyScalar(surfaceRadius(d, body) + 2.5 + (crown ? 0.2 : 0));
+        .multiplyScalar(
+          Math.max(baseRadius, surfaceRadius(d, body) + 1.4) +
+            (base ? 0 : 0.12 + rng() * 0.24),
+        );
       dummy.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d);
-      dummy.scale.set(crown ? 0.25 : 0.4, crown ? 0.3 : 0.13, 0.28);
+      dummy.scale.set(
+        radius * (base ? 1.4 : 1),
+        radius * (base ? 0.28 : 0.9),
+        radius * 0.8,
+      );
       dummy.updateMatrix();
       mesh.setMatrixAt(index++, dummy.matrix);
     }

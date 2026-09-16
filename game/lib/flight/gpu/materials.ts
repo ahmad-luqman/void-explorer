@@ -7,6 +7,16 @@ import { createShader as halo } from './halo.js';
 import { createShader as atmosphere } from './atmosphere.js';
 import { createShader as ring } from './ring.js';
 import { createShader as cloud } from './cloud.js';
+import {
+  groundTexture,
+  groundTextureAnchor,
+  GROUND_TEXTURE_SCALE,
+} from '../ground-texture';
+import {
+  groundAlbedo,
+  groundAlbedoAnchor,
+  GROUND_ALBEDO_SCALE,
+} from '../ground-albedo';
 import type { Body } from '../universe';
 import {
   waterTexture,
@@ -54,24 +64,13 @@ const noise = N.Fn(([point, seed]: [Node<'vec3'>, Node<'float'>]) => {
     f.z,
   );
 });
-const stoneEdges = N.Fn(([point, seed]: [Node<'vec2'>, Node<'float'>]) => {
-  const cell = point.floor(),
-    f = point.fract();
-  const first = N.float(10).toVar(),
-    second = N.float(10).toVar();
-  for (let y = -1; y <= 1; y++)
-    for (let x = -1; x <= 1; x++) {
-      const o = N.vec2(x, y),
-        h = hash(N.vec3(cell.add(o), 17), seed);
-      const delta = o
-        .add(N.vec2(h.mul(17.13).fract(), h.mul(31.71).fract()).mul(0.7))
-        .add(0.15)
-        .sub(f);
-      const distance = delta.dot(delta);
-      second.assign(N.min(second, N.max(first, distance)));
-      first.assign(N.min(first, distance));
-    }
-  return second.sqrt().sub(first.sqrt());
+const sampleGround = N.Fn(([point, normal]: [Node<'vec3'>, Node<'vec3'>]) => {
+  const weight = normal.normalize().abs().pow(4).toVar();
+  weight.divAssign(weight.x.add(weight.y).add(weight.z).max(0.0001));
+  return N.texture(groundTexture(), point.yz)
+    .mul(weight.x)
+    .add(N.texture(groundTexture(), point.xz).mul(weight.y))
+    .add(N.texture(groundTexture(), point.xy).mul(weight.z));
 });
 export function convertMaterial(source: T.Material): T.Material {
   if (source instanceof T.ShaderMaterial) {
@@ -134,56 +133,48 @@ export function convertMaterial(source: T.Material): T.Material {
       N.smoothstep(0.0002, 0.001, height).oneMinus(),
     );
     const seed = N.float(body.seed % 997);
-    const pixelWorld = N.dFdx(local).length().max(N.dFdy(local).length());
-    const gravel = N.mix(
-        0.5,
-        hash(p.mul(7200).floor(), seed),
-        N.smoothstep(0.2, 1.2, pixelWorld.mul(7200)).oneMinus(),
-      ),
-      stone = noise(
-        local
-          .mul(440)
-          .add(
-            N.uniform(
-              new T.Vector3(
-                (((anchor.x * 440) % 4096) + 4096) % 4096,
-                (((anchor.y * 440) % 4096) + 4096) % 4096,
-                (((anchor.z * 440) % 4096) + 4096) % 4096,
-              ),
+    const stone = noise(
+      local
+        .mul(440)
+        .add(
+          N.uniform(
+            new T.Vector3(
+              (((anchor.x * 440) % 4096) + 4096) % 4096,
+              (((anchor.y * 440) % 4096) + 4096) % 4096,
+              (((anchor.z * 440) % 4096) + 4096) % 4096,
             ),
           ),
-        seed,
-      );
-    const strata = height.mul(600).add(stone.mul(0.6)).sin().mul(0.5).add(0.5);
-    const crackFilter = N.smoothstep(0.4, 1.8, pixelWorld.mul(1100)).oneMinus();
-    const stoneLocal = local.xz
-      .mul(440)
-      .add(
-        N.uniform(
-          new T.Vector2(
-            (((anchor.x * 440) % 4096) + 4096) % 4096,
-            (((anchor.z * 440) % 4096) + 4096) % 4096,
-          ),
         ),
-      )
-      .mul(2.5);
-    const edge = stoneEdges(stoneLocal, seed);
-    const cracks = N.mix(
-      1,
-      N.smoothstep(0.01, N.fwidth(edge).mul(1.5).add(0.03), edge),
-      crackFilter.mul(N.smoothstep(0.3, 0.65, stone)),
+      seed,
     );
-    const rawTone = stone
-      .mul(0.14)
-      .add(gravel.mul(0.04))
-      .add(strata.mul(0.025))
-      .add(0.83)
-      .mul(N.mix(0.94, 1, cracks));
+    const groundSample = sampleGround(
+      local
+        .mul(GROUND_TEXTURE_SCALE)
+        .add(N.uniform(groundTextureAnchor(anchor))),
+      N.normalLocal,
+    );
+    const albedo = groundAlbedo();
+    const albedoReady = N.reference('value', 'float', albedo.ready);
+    const sampleAlbedo = N.Fn(
+      ([point, normal]: [Node<'vec3'>, Node<'vec3'>]) => {
+        const weight = normal.normalize().abs().pow(4).toVar();
+        weight.divAssign(weight.x.add(weight.y).add(weight.z).max(0.0001));
+        return N.texture(albedo.texture, point.yz)
+          .rgb.mul(weight.x)
+          .add(N.texture(albedo.texture, point.xz).rgb.mul(weight.y))
+          .add(N.texture(albedo.texture, point.xy).rgb.mul(weight.z));
+      },
+    );
+    const slate = sampleAlbedo(
+      local.mul(GROUND_ALBEDO_SCALE).add(N.uniform(groundAlbedoAnchor(anchor))),
+      N.normalLocal,
+    );
     const tone = N.mix(
-      rawTone,
-      0.94,
-      N.smoothstep(0.06, 0.4, N.positionView.length()),
+      groundSample.rgb.mul(1.5),
+      slate.mul(3.5).add(0.25),
+      albedoReady,
     );
+
     const mass = noise(p.mul(9), seed);
     const bedPhase = height
       .mul(38)
@@ -199,9 +190,16 @@ export function convertMaterial(source: T.Material): T.Material {
     const grainFilter = N.smoothstep(
       0.3,
       1.5,
-      N.dFdx(local).length().max(N.dFdy(local).length()).mul(440),
+      N.dFdx(local).length().max(N.dFdy(local).length()).mul(160),
     ).oneMinus();
-    const rockHeight = stone.mul(0.00006).mul(grainFilter);
+    const rockHeight = N.mix(
+      groundSample.a,
+      slate.dot(N.vec3(0.3333)),
+      albedoReady,
+    )
+      .mul(0.000025)
+      .add(stone.mul(0.000005))
+      .mul(grainFilter);
     const sx = N.dFdx(N.positionView),
       sy = N.dFdy(N.positionView);
     const r1 = N.cross(sy, N.normalViewGeometry),

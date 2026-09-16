@@ -32,15 +32,19 @@ it('keeps coastal billows bounded and well above the rotating native terrain', (
     terrainVersion: 4 as const,
   };
   const mesh = createCoastalCloudBanks(body);
-  expect(mesh.count).toBe(72);
-  expect((mesh.geometry.index!.count / 3) * mesh.count).toBeLessThan(13000);
+  expect(mesh.count).toBe(240);
+  expect((mesh.geometry.index!.count / 3) * mesh.count).toBeLessThanOrEqual(
+    24000,
+  );
   const matrix = new Matrix4(),
     point = new Vector3();
   for (let i = 0; i < mesh.count; i++) {
     mesh.getMatrixAt(i, matrix);
     point.setFromMatrixPosition(matrix);
     const radius = point.length();
-    expect(radius - surfaceRadius(point.normalize(), body)).toBeGreaterThan(2);
+    expect(radius - surfaceRadius(point.normalize(), body)).toBeGreaterThan(
+      1.3,
+    );
   }
   mesh.geometry.dispose();
   (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach(

@@ -1,4 +1,6 @@
 import { MeshStandardMaterial, Vector3 } from 'three';
+import { groundTexture, groundTextureAnchor } from './ground-texture';
+import { groundAlbedo, groundAlbedoAnchor } from './ground-albedo';
 import type { Body } from './universe';
 
 // World-anchored mineral/gravel variation adds scale without changing contact
@@ -12,6 +14,20 @@ export function addSurfaceMaterial(
   const previous = material.onBeforeCompile.bind(material);
   material.onBeforeCompile = (shader, renderer) => {
     previous(shader, renderer);
+    const albedo = groundAlbedo();
+    shader.uniforms.groundAlbedo = { value: albedo.texture };
+    shader.uniforms.groundAlbedoReady = albedo.ready;
+    shader.uniforms.groundAlbedoAnchor = { value: groundAlbedoAnchor(anchor) };
+    shader.uniforms.groundTexture = { value: groundTexture() };
+    shader.uniforms.groundTextureAnchor = {
+      value: groundTextureAnchor(anchor),
+    };
+    shader.vertexShader =
+      'varying vec3 vSurfaceNormal;\n' + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nvSurfaceNormal=normal;',
+    );
     shader.uniforms.surfaceAnchor = {
       value: anchor.clone(),
     };
@@ -34,14 +50,15 @@ export function addSurfaceMaterial(
   float mineralNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
     return mix(mix(mix(mineralHash(i),mineralHash(i+vec3(1,0,0)),f.x),mix(mineralHash(i+vec3(0,1,0)),mineralHash(i+vec3(1,1,0)),f.x),f.y),
       mix(mix(mineralHash(i+vec3(0,0,1)),mineralHash(i+vec3(1,0,1)),f.x),mix(mineralHash(i+vec3(0,1,1)),mineralHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
-  float stoneEdges(vec2 p){
-    vec2 cell=floor(p),f=fract(p);float first=10.,second=10.;
-    for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
-      vec2 o=vec2(float(x),float(y));float h=mineralHash(vec3(cell+o,17.));
-      vec2 delta=o+vec2(fract(h*17.13),fract(h*31.71))*.7+.15-f;
-      float distance=dot(delta,delta);second=min(second,max(first,distance));first=min(first,distance);
-    }
-    return sqrt(second)-sqrt(first);
+  uniform sampler2D groundAlbedo;uniform float groundAlbedoReady;uniform vec3 groundAlbedoAnchor;
+  uniform sampler2D groundTexture;uniform vec3 groundTextureAnchor;varying vec3 vSurfaceNormal;
+  vec4 sampleGround(vec3 p,vec3 n){
+    vec3 weight=pow(abs(normalize(n)),vec3(4.));weight/=max(dot(weight,vec3(1.)),.0001);
+    return texture2D(groundTexture,p.yz)*weight.x+texture2D(groundTexture,p.xz)*weight.y+texture2D(groundTexture,p.xy)*weight.z;
+  }
+  vec3 sampleAlbedo(vec3 p,vec3 n){
+    vec3 weight=pow(abs(normalize(n)),vec3(4.));weight/=max(dot(weight,vec3(1.)),.0001);
+    return texture2D(groundAlbedo,p.yz).rgb*weight.x+texture2D(groundAlbedo,p.xz).rgb*weight.y+texture2D(groundAlbedo,p.xy).rgb*weight.z;
   }
   ` + shader.fragmentShader;
     shader.fragmentShader = shader.fragmentShader.replace(
@@ -51,15 +68,10 @@ export function addSurfaceMaterial(
   float seaHeight=length(mineralPosition)-planetRadius;
   float wet=oceanWorld*(1.-smoothstep(.0002,.001,seaHeight));
   float pixelWorld=max(length(dFdx(vContactLocal)),length(dFdy(vContactLocal)));
-  float gravel=mix(.5,mineralHash(floor(mineralPosition*7200.)),1.-smoothstep(.2,1.2,pixelWorld*7200.));
   float stone=mineralNoise(vContactLocal*440.+surfaceDetailAnchor);
-  float strata=.5+.5*sin(seaHeight*600.+stone*.6);
-  float crackFilter=1.-smoothstep(.4,1.8,pixelWorld*1100.);
-  vec2 stoneLocal=(vContactLocal.xz*440.+surfaceDetailAnchor.xz)*2.5;
-  float edge=stoneEdges(stoneLocal);
-  float cracks=mix(1.,smoothstep(.01,.03+fwidth(edge)*1.5,edge),crackFilter*smoothstep(.3,.65,stone));
-  float groundTone=(.83+.14*stone+.04*gravel+.025*strata)*mix(.94,1.,cracks);
-  groundTone=mix(groundTone,.94,smoothstep(.06,.4,length(vViewPosition)));
+  vec4 groundSample=sampleGround(vContactLocal*125.+groundTextureAnchor,vSurfaceNormal);
+  vec3 slate=sampleAlbedo(vContactLocal*166.6666666667+groundAlbedoAnchor,vSurfaceNormal);
+  vec3 groundTone=mix(groundSample.rgb*1.5,slate*3.5+.25,groundAlbedoReady);
   float mass=mineralNoise(mineralPosition*9.);
   float bedPhase=seaHeight*38.+mineralNoise(mineralPosition*5.)*32.+mineralNoise(mineralPosition*23.)*6.;
   float bedFilter=1.-smoothstep(.4,2.,fwidth(bedPhase));
@@ -72,8 +84,8 @@ export function addSurfaceMaterial(
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
-       float grainFilter=1.-smoothstep(.3,1.5,max(length(dFdx(vContactLocal)),length(dFdy(vContactLocal)))*440.);
-       float rockHeight=stone*.00006*grainFilter;
+       float grainFilter=1.-smoothstep(.3,1.5,max(length(dFdx(vContactLocal)),length(dFdy(vContactLocal)))*160.);
+       float rockHeight=(mix(groundSample.a,dot(slate,vec3(.3333)),groundAlbedoReady)*.000025+stone*.000005)*grainFilter;
        vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);
        vec3 r1=cross(sy,normal),r2=cross(normal,sx);
        float det=dot(sx,r1);
@@ -88,5 +100,5 @@ export function addSurfaceMaterial(
   `,
     );
   };
-  material.customProgramCacheKey = () => 'surface-geology-v4';
+  material.customProgramCacheKey = () => 'surface-slate-v6';
 }
