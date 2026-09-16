@@ -261,3 +261,15 @@ Bay views: [WebGL](milestones/depth-water-bay-webgl.png), [WebGPU](milestones/de
 Validation: all 105 unit tests, TypeScript, scoped changed-module lint and the static build pass. Actual GPU-canvas water animation/color and disk-cache restoration checks pass on both renderers. Complete production orbital/coastal journeys pass on WebGL (26.7/40.9 s) and final corrected WebGPU (26.2/45.4 s), including coastal profiles 3–5. WebGPU day/night, High/Low and water checks also pass. Test durations are not frame benchmarks.
 
 The validated depth-water pass is published privately as Sites version 25. Deployment reported `succeeded`; the full completion objective remains active.
+
+## Flight motion feedback — 17 September 2026
+
+Atmospheric [WebGL](milestones/motion-atmosphere-webgl.png) / [WebGPU](milestones/motion-atmosphere-webgpu.png) captures show light peripheral streaks and short tapered wing vapor at roughly 440 m/s over the bay. [WebGL turn](milestones/motion-turn-webgl.png) / [WebGPU turn](milestones/motion-turn-webgpu.png) views show the flow following the ship's heading while the chase camera catches up. [WebGL pulse](milestones/motion-pulse-webgl.png) / [WebGPU pulse](milestones/motion-pulse-webgpu.png) use longer streaks at space speeds, without atmospheric vapor. The pulse captures use Low graphics as part of the quality-switch check.
+
+The original dust used elapsed time multiplied by current speed, making positions jump during acceleration. Phase now integrates the motion rate and opacity uses elapsed-time response. The axis around the destination remains clear. High draws 180 streaks and Low draws 90; wing vapor adds 150 vertices / 192 triangles in one draw. Both hide during surface operations and freeze with simulation time. These are visual flow cues, not a dust-density or condensation physics model.
+
+An initial vapor prototype crossed the chase-camera plane and produced large wedges. The final ribbons stay shorter, with transparent edges and ends. The wider images also expose unresolved visual issues: distant terrain develops striped patterns in elevated coastal flight, and small planets show strong shimmer in the Low-quality pulse view. These require a terrain/material review; the new effects do not establish overall visual acceptance. The completion audit explicitly retains them.
+
+All 108 unit tests, TypeScript, scoped changed-module lint and the static build pass. Motion checks on both renderers cover actual atmospheric/turn/pulse captures, pause, quality switching and effect suppression on the ground. Unit checks cover time integration, reset, 20/30/60/144 Hz consistency and geometry budgets.
+
+Complete production orbital/coastal journeys pass on WebGL (26.7/40.8 s) and WebGPU (26.9/45.2 s), including restored coastal profiles 3–5. No page or console errors occurred. These durations are test lengths, not performance measurements.
