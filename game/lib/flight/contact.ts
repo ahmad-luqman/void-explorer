@@ -92,6 +92,7 @@ export type ContactData = {
   axis: Float64Array;
   positions: Float32Array;
   colors: Float32Array;
+  heights: Float32Array;
   indices: Uint32Array;
 };
 export type GroundSample = {
@@ -121,6 +122,7 @@ export function generateContact(body: Body, center: Vector3): ContactData {
     resolution = axis.length - 1,
     positions = new Float32Array((resolution + 1) ** 2 * 3),
     colors = new Float32Array(positions.length),
+    heights = new Float32Array(positions.length / 3),
     indices = new Uint32Array(resolution * resolution * 6);
   let offset = 0;
   for (let row = 0; row <= resolution; row++)
@@ -145,6 +147,7 @@ export function generateContact(body: Body, center: Vector3): ContactData {
       local.toArray(positions, offset);
       const direction = base.clone().addScaledVector(up, height).normalize();
       const h = elevation(direction, body);
+      heights[offset / 3] = h;
       terrainColor(
         h / body.radius,
         body.kind,
@@ -178,6 +181,7 @@ export function generateContact(body: Body, center: Vector3): ContactData {
     axis,
     positions,
     colors,
+    heights,
     indices,
   };
 }

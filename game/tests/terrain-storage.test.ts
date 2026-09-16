@@ -17,6 +17,7 @@ it('rejects corrupt disk geometry and retains finite native contact data', () =>
   expect(payloadBytes(mesh)).toBe(
     mesh.positions.byteLength +
       mesh.colors.byteLength +
+      mesh.heights.byteLength +
       mesh.indices.byteLength,
   );
   mesh.indices[0] = mesh.positions.length;

@@ -57,12 +57,14 @@ const handle = async (
   // Transfer copies: cached buffers must remain owned by this worker.
   const positions = entry.mesh.positions.slice(),
     colors = entry.mesh.colors.slice(),
+    heights = entry.mesh.heights.slice(),
     indices = entry.mesh.indices.slice();
   self.postMessage(
     {
       ...entry.mesh,
       positions,
       colors,
+      heights,
       indices,
       id: body.id,
       observer: entry.observer,
@@ -78,15 +80,21 @@ const handle = async (
       transitionMs: performance.now() - generatedAt,
       startPositions: transition?.positions,
       startColors: transition?.colors,
+      startHeights: transition?.heights,
       maxDelta: transition?.maxDelta ?? 0,
     },
     {
       transfer: [
         positions.buffer,
         colors.buffer,
+        heights.buffer,
         indices.buffer,
         ...(transition
-          ? [transition.positions.buffer, transition.colors.buffer]
+          ? [
+              transition.positions.buffer,
+              transition.colors.buffer,
+              transition.heights.buffer,
+            ]
           : []),
       ],
     },

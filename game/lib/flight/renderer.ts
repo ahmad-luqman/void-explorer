@@ -51,6 +51,8 @@ type PlanetView = {
     to: Float32Array;
     fromColors: Float32Array;
     toColors: Float32Array;
+    fromHeights: Float32Array;
+    toHeights: Float32Array;
   };
 };
 const daylightWhite = new T.Color('#fff3e8');
@@ -318,6 +320,7 @@ export class FlightRenderer {
         transitionMs: number;
         startPositions?: Float32Array;
         startColors?: Float32Array;
+        startHeights?: Float32Array;
         maxDelta: number;
         leaves: number;
         maxDepth: number;
@@ -325,6 +328,7 @@ export class FlightRenderer {
         indices: Uint32Array;
         positions: Float32Array;
         colors: Float32Array;
+        heights: Float32Array;
         token: number;
         error?: string;
         cacheHit?: boolean;
@@ -348,13 +352,18 @@ export class FlightRenderer {
         disposeObject(p.patch);
       }
       const data = event.data;
-      const transitioning = !!data.startPositions && !!data.startColors;
+      const transitioning =
+        !!data.startPositions && !!data.startColors && !!data.startHeights;
       if (transitioning) {
         protectContact(
           data.startPositions!,
           data.positions,
           toPlanet(this.sim.position, p.body),
           CONTACT_RADIUS + 20,
+          [
+            { from: data.startColors!, to: data.colors, size: 3 },
+            { from: data.startHeights!, to: data.heights, size: 1 },
+          ],
         );
         p.transition = {
           age: 0,
@@ -362,6 +371,8 @@ export class FlightRenderer {
           to: data.positions,
           fromColors: data.startColors!,
           toColors: data.colors,
+          fromHeights: data.startHeights!,
+          toHeights: data.heights,
         };
       } else p.transition = undefined;
       const g = new T.BufferGeometry();
@@ -377,6 +388,13 @@ export class FlightRenderer {
         new T.BufferAttribute(
           transitioning ? data.startColors!.slice() : data.colors,
           3,
+        ).setUsage(T.DynamicDrawUsage),
+      );
+      g.setAttribute(
+        'terrainHeight',
+        new T.BufferAttribute(
+          transitioning ? data.startHeights!.slice() : data.heights,
+          1,
         ).setUsage(T.DynamicDrawUsage),
       );
       g.setIndex(new T.BufferAttribute(event.data.indices, 1));
@@ -444,9 +462,11 @@ export class FlightRenderer {
         bytes:
           event.data.positions.byteLength +
           event.data.colors.byteLength +
+          event.data.heights.byteLength +
           event.data.indices.byteLength +
           (data.startPositions?.byteLength ?? 0) +
-          (data.startColors?.byteLength ?? 0),
+          (data.startColors?.byteLength ?? 0) +
+          (data.startHeights?.byteLength ?? 0),
       };
     };
     this.worker.onerror = () => {
@@ -496,6 +516,7 @@ export class FlightRenderer {
         bytes:
           patch.data.positions.byteLength +
           patch.data.colors.byteLength +
+          patch.data.heights.byteLength +
           patch.data.indices.byteLength +
           patch.data.axis.byteLength,
       };
@@ -512,6 +533,10 @@ export class FlightRenderer {
       geometry.setAttribute(
         'color',
         new T.BufferAttribute(patch.data.colors, 3),
+      );
+      geometry.setAttribute(
+        'terrainHeight',
+        new T.BufferAttribute(patch.data.heights, 1),
       );
       geometry.setIndex(new T.BufferAttribute(patch.data.indices, 1));
       geometry.computeVertexNormals();
@@ -616,6 +641,7 @@ export class FlightRenderer {
     indexed.dispose();
     const pos = geo.getAttribute('position');
     const colors = new Float32Array(pos.count * 3);
+    const heights = new Float32Array(pos.count);
     const d = new T.Vector3();
     const color = new T.Color();
     for (let i = 0; i < pos.count; i += 3) {
@@ -623,6 +649,7 @@ export class FlightRenderer {
       for (let j = 0; j < 3; j++) {
         d.fromBufferAttribute(pos, i + j).normalize();
         const h = elevation(d, body);
+        heights[i + j] = h;
         avg += h / 3;
         d.multiplyScalar(
           body.radius + (body.kind === 'ocean' ? Math.max(0, h) : h),
@@ -640,6 +667,7 @@ export class FlightRenderer {
       for (let j = 0; j < 3; j++) color.toArray(colors, (i + j) * 3);
     }
     geo.setAttribute('color', new T.BufferAttribute(colors, 3));
+    geo.setAttribute('terrainHeight', new T.BufferAttribute(heights, 1));
     geo.computeVertexNormals();
     geo.computeBoundingSphere();
     const clipCenter = { value: new T.Vector3(0, 0, 1) },
@@ -875,6 +903,13 @@ export class FlightRenderer {
           t.toColors,
           progress,
         );
+        blendTerrain(
+          geometry.attributes.terrainHeight.array as Float32Array,
+          t.fromHeights,
+          t.toHeights,
+          progress,
+        );
+        geometry.attributes.terrainHeight.needsUpdate = true;
         geometry.attributes.position.needsUpdate = true;
         geometry.attributes.color.needsUpdate = true;
         this.terrainStats.morphProgress = progress;

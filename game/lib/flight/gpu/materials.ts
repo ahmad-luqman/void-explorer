@@ -263,18 +263,38 @@ export function convertMaterial(source: T.Material): T.Material {
       radial,
       N.vec2(t.mul(0.0007), t.mul(0.0004)),
     );
-    const shore = wet
-      .mul(wet.oneMinus())
-      .mul(4)
-      .mul(ripples.w.mul(0.2).add(0.25));
+    const depth = N.varying(N.attribute('terrainHeight', 'float'))
+      .negate()
+      .max(0);
+    const offshore = N.smoothstep(0.002, 0.08, depth);
+    const waterColor = N.mix(
+      N.vec3(0.035, 0.32, 0.27),
+      N.vec3(0.006, 0.105, 0.155),
+      offshore,
+    ).mul(ripples.w.mul(0.18).add(0.91));
+    const shallow = N.smoothstep(0.003, 0.018, depth).oneMinus();
+    const phase = depth.mul(560).add(t.mul(1.5)).add(ripples.w.mul(1.7));
+    const phaseFilter = N.smoothstep(0.5, 3, N.fwidth(phase)).oneMinus();
+    const breaker = N.smoothstep(0.68, 0.98, phase.sin()).mul(phaseFilter);
+    const wash = N.smoothstep(0.0005, 0.003, depth)
+      .oneMinus()
+      .mul(ripples.w.mul(0.35).add(0.25));
+    const foam = shallow.mul(breaker.mul(0.7).add(wash)).clamp(0, 0.85);
     const baseColor =
       (material.colorNode as Node<'vec3'> | null) ?? N.materialColor;
+    // GLSL replaces diffuse color after vertex color multiplication. NodeMaterial
+    // normally multiplies it afterwards; apply vertex colors only to dry terrain
+    // here so the ocean palette and foam are not darkened a second time.
+    const terrainColor = source.vertexColors
+      ? baseColor.mul(N.vertexColor().rgb)
+      : baseColor;
+    material.vertexColors = false;
     material.colorNode = N.mix(
-      baseColor.mul(N.mix(1, ripples.w.mul(0.06).add(0.97), wet)),
-      N.vec3(0.075, 0.34, 0.3),
-      shore,
+      terrainColor,
+      N.mix(waterColor, N.vec3(0.58, 0.78, 0.7), foam),
+      wet,
     );
-    const wave = ripples.xyz.mul(0.1).add(swell.xyz.mul(0.018));
+    const wave = ripples.xyz.mul(0.22).add(swell.xyz.mul(0.035));
     const tangent = wave.sub(radial.mul(wave.dot(radial)));
     const normal = N.modelViewMatrix
       .mul(N.vec4(radial.add(tangent), 0))
@@ -304,7 +324,7 @@ export function convertMaterial(source: T.Material): T.Material {
     };
     material.roughnessNode = N.mix(
       (material.roughnessNode as Node<'float'> | null) ?? N.materialRoughness,
-      swell.w.mul(0.06).add(0.26),
+      swell.w.mul(0.12).add(0.24),
       wet,
     );
   }

@@ -70,7 +70,11 @@ describe('planetary mesh transitions', () => {
   it('holds contact coverage fixed and tapers deformation toward the horizon', () => {
     const final = new Float32Array([1, 0, 0, 15, 0, 0, 25, 0, 0]);
     const from = new Float32Array([1, 8, 0, 15, 8, 0, 25, 8, 0]);
-    protectContact(from, final, new Vector3(), 10);
+    const depth = new Float32Array([-8, -8, -8]);
+    protectContact(from, final, new Vector3(), 10, [
+      { from: depth, to: new Float32Array([0, 0, 0]), size: 1 },
+    ]);
+    expect([...depth]).toEqual([0, -4, -8]);
     expect([...from]).toEqual([1, 0, 0, 15, 4, 0, 25, 8, 0]);
   });
 });

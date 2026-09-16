@@ -22,6 +22,7 @@ import {
   rotationPeriod,
 } from '@/lib/flight/rotation';
 import { translate } from '@/lib/flight/coordinates';
+import { coastDirection, COAST_FORWARD, COAST_UP } from '@/lib/flight/coast';
 import { FlightSimulation, emptyControls } from '@/lib/flight/simulation';
 import type { FlightRenderer } from '@/lib/flight/renderer';
 import { createFlightRenderer } from '@/lib/flight/renderer-factory';
@@ -418,6 +419,31 @@ export default function Home() {
                 sim.face(sim.target.position);
               }
               if (name === 'coastal-landing') sim.startCoast();
+              if (name === 'coastal-shore') {
+                sim.startCoast();
+                const up = coastDirection(0, 0.1, sim.target.radius);
+                const native = up
+                  .clone()
+                  .multiplyScalar(
+                    sim.target.radius +
+                      Math.max(0, elevation(up, sim.target)) +
+                      0.08,
+                  );
+                const rotation = planetRotation(sim.target);
+                sim.position.copy(fromPlanet(native, sim.target));
+                sim.orientation
+                  .setFromRotationMatrix(
+                    new Matrix4().lookAt(
+                      native,
+                      native
+                        .clone()
+                        .add(COAST_FORWARD)
+                        .addScaledVector(COAST_UP, -0.65),
+                      up,
+                    ),
+                  )
+                  .premultiply(rotation);
+              }
               if (name === 'low-flight') {
                 const up = new Vector3(0, 0, 1);
                 sim.position

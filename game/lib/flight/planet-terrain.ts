@@ -22,6 +22,7 @@ type Tile = {
 export type PlanetTerrain = {
   positions: Float32Array;
   colors: Float32Array;
+  heights: Float32Array;
   indices: Uint32Array;
   leaves: number;
   maxDepth: number;
@@ -196,6 +197,7 @@ export function generatePlanetTerrain(
   );
   const positions: number[] = [],
     colors: number[] = [],
+    heights: number[] = [],
     indices: number[] = [];
   const vertices = new Map<string, number>();
   const vertex = (p: CubePoint) => {
@@ -206,15 +208,17 @@ export function generatePlanetTerrain(
       direction = point.clone().normalize();
     const index = positions.length / 3;
     positions.push(point.x, point.y, point.z);
+    const height = elevation(direction, body);
+    heights.push(height);
     const color = terrainColor(
-      elevation(direction, body) / body.radius,
+      height / body.radius,
       body.kind,
       0.94 +
         0.06 *
           Math.abs(
             Math.sin(direction.x * 127 + direction.y * 83 + direction.z * 59),
           ),
-      sampleBiome(direction, body),
+      sampleBiome(direction, body, height),
     );
     colors.push(color.r, color.g, color.b);
     vertices.set(key, index);
@@ -245,6 +249,7 @@ export function generatePlanetTerrain(
   return {
     positions: new Float32Array(positions),
     colors: new Float32Array(colors),
+    heights: new Float32Array(heights),
     indices: new Uint32Array(indices),
     leaves: leaves.length,
     maxDepth: Math.max(...leaves.map((t) => t.depth)),

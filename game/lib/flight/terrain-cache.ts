@@ -71,6 +71,7 @@ export class TerrainCache {
     const bytes =
       mesh.positions.byteLength +
       mesh.colors.byteLength +
+      mesh.heights.byteLength +
       mesh.indices.byteLength;
     const entry = {
       key: ++this.serial,

@@ -43,6 +43,7 @@ const handle = async (
       data,
       data.positions.byteLength +
         data.colors.byteLength +
+        data.heights.byteLength +
         data.indices.byteLength +
         data.axis.byteLength,
     );
@@ -59,6 +60,7 @@ const handle = async (
         data.axis.buffer,
         data.positions.buffer,
         data.colors.buffer,
+        data.heights.buffer,
         data.indices.buffer,
       ],
     },

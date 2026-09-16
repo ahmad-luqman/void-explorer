@@ -7,6 +7,7 @@ type Branch = { box: Box3; left?: Branch; right?: Branch; faces?: number[] };
 export function projectTerrain(previous: PlanetTerrain, next: PlanetTerrain) {
   const positions = new Float32Array(next.positions.length);
   const colors = new Float32Array(next.colors.length);
+  const heights = new Float32Array(next.heights.length);
   const a = new Vector3(),
     b = new Vector3(),
     c = new Vector3();
@@ -71,6 +72,7 @@ export function projectTerrain(previous: PlanetTerrain, next: PlanetTerrain) {
     if (found < 0) {
       positions.set(next.positions.subarray(i, i + 3), i);
       colors.set(next.colors.subarray(i, i + 3), i);
+      heights[i / 3] = next.heights[i / 3];
       continue;
     }
     matched++;
@@ -79,13 +81,17 @@ export function projectTerrain(previous: PlanetTerrain, next: PlanetTerrain) {
     maxDelta = Math.max(maxDelta, hit.distanceTo(target));
     face(found);
     Triangle.getBarycoord(hit, a, b, c, bary);
+    heights[i / 3] =
+      previous.heights[previous.indices[found]] * bary.x +
+      previous.heights[previous.indices[found + 1]] * bary.y +
+      previous.heights[previous.indices[found + 2]] * bary.z;
     for (let channel = 0; channel < 3; channel++)
       colors[i + channel] =
         previous.colors[previous.indices[found] * 3 + channel] * bary.x +
         previous.colors[previous.indices[found + 1] * 3 + channel] * bary.y +
         previous.colors[previous.indices[found + 2] * 3 + channel] * bary.z;
   }
-  return { positions, colors, matched, maxDelta };
+  return { positions, colors, heights, matched, maxDelta };
 }
 
 export function blendTerrain(
@@ -115,6 +121,7 @@ export function protectContact(
   to: Float32Array,
   center: Vector3,
   radius: number,
+  attributes: { from: Float32Array; to: Float32Array; size: 1 | 3 }[] = [],
 ) {
   for (let i = 0; i < from.length; i += 3) {
     const distance = Math.hypot(
@@ -126,5 +133,12 @@ export function protectContact(
     const weight = t * t * (3 - 2 * t);
     for (let j = 0; j < 3; j++)
       from[i + j] = to[i + j] + (from[i + j] - to[i + j]) * weight;
+    for (const attribute of attributes)
+      for (let j = 0; j < attribute.size; j++) {
+        const index = (i / 3) * attribute.size + j;
+        attribute.from[index] =
+          attribute.to[index] +
+          (attribute.from[index] - attribute.to[index]) * weight;
+      }
   }
 }

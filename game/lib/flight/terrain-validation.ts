@@ -14,11 +14,14 @@ function mesh(data: unknown): data is PlanetTerrain {
     !!d &&
     d.positions instanceof Float32Array &&
     d.colors instanceof Float32Array &&
+    d.heights instanceof Float32Array &&
     d.indices instanceof Uint32Array &&
     d.positions.length > 0 &&
     d.positions.length <= 300000 &&
     d.positions.length % 3 === 0 &&
     d.colors.length === d.positions.length &&
+    d.heights.length === d.positions.length / 3 &&
+    d.heights.every((v) => Number.isFinite(v) && Math.abs(v) < 10000) &&
     d.indices.length > 0 &&
     d.indices.length <= 600000 &&
     d.indices.length % 3 === 0 &&
