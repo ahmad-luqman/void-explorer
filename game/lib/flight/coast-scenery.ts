@@ -18,7 +18,7 @@ export function coastalScenery(
   )
     return [];
   const { x: fx, z: fz } = coastCoordinates(native, body.radius);
-  const vista = body.terrainVersion === 4;
+  const vista = (body.terrainVersion ?? 1) >= 4;
   const props: SurfaceProp[] = [];
   const place = (
     id: string,

@@ -23,7 +23,7 @@ export type Body = {
   ring: boolean;
   system: number;
   star?: boolean;
-  terrainVersion?: 1 | 2 | 3 | 4;
+  terrainVersion?: 1 | 2 | 3 | 4 | 5;
   rotationClock?: { time: number };
   color?: string;
 };
@@ -222,14 +222,20 @@ export function elevation(direction: Vector3, body: Body): number {
     (broad - 0.47) * body.radius * 0.17 +
     Math.max(0, ridges - 0.48) * body.radius * 0.085 +
     (detail - 0.5) * body.radius * 0.009;
-  return body.id === 'p0-0' && (body.terrainVersion ?? 1) >= 2
-    ? (body.terrainVersion === 4 ? coastalVistaElevation : coastalElevation)(
+  if (body.id !== 'p0-0' || (body.terrainVersion ?? 1) < 2) return original;
+  return (body.terrainVersion ?? 1) >= 4
+    ? coastalVistaElevation(
+        direction,
+        body.radius,
+        original,
+        body.terrainVersion === 5,
+      )
+    : coastalElevation(
         direction,
         body.radius,
         original,
         body.terrainVersion === 3,
-      )
-    : original;
+      );
 }
 export function surfaceRadius(direction: Vector3, body: Body) {
   return (

@@ -64,7 +64,7 @@ export class FlightSimulation {
   routeActive = false;
   descending = false;
   elapsed = 0;
-  terrainVersion: 1 | 2 | 3 | 4 = 4;
+  terrainVersion: 1 | 2 | 3 | 4 | 5 = 5;
   rotationClock = { time: 0 };
   activeSystem: System = this.systems[0];
   target: Body = this.systems[0].planets[0];
@@ -79,11 +79,11 @@ export class FlightSimulation {
     for (const system of this.systems)
       for (const body of system.planets)
         body.rotationClock = this.rotationClock;
-    this.setTerrainVersion(4);
+    this.setTerrainVersion(5);
     this.face(this.target.position);
     this.updateEnvironment();
   }
-  setTerrainVersion(version: 1 | 2 | 3 | 4) {
+  setTerrainVersion(version: 1 | 2 | 3 | 4 | 5) {
     this.terrainVersion = version;
     for (const system of this.systems)
       for (const body of system.planets) body.terrainVersion = version;
@@ -224,7 +224,7 @@ export class FlightSimulation {
   reset() {
     this.route = [];
     this.routeActive = false;
-    this.setTerrainVersion(4);
+    this.setTerrainVersion(5);
     this.surface.reset();
     this.elapsed = 0;
     this.rotationClock.time = 0;

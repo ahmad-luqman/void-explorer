@@ -14,12 +14,7 @@ export function createCoastalCloudBanks(body: Body) {
       z = positions.getZ(i);
     const relief =
       1 + Math.sin(x * 11 + z * 7) * Math.cos(y * 9 - z * 5) * 0.065;
-    positions.setXYZ(
-      i,
-      x * relief,
-      y * relief * (y < 0 ? 0.35 : 1),
-      z * relief,
-    );
+    positions.setXYZ(i, x * relief, y * relief * (y < 0 ? 0.8 : 1), z * relief);
     const t = T.MathUtils.smoothstep(y, -0.35, 0.7);
     new T.Color('#a4b3cc')
       .lerp(new T.Color('#fff4e1'), t)
@@ -50,6 +45,8 @@ export function createCoastalCloudBanks(body: Body) {
     geometry,
     new T.MeshStandardMaterial({
       color: '#ffffff',
+      emissive: '#546682',
+      emissiveIntensity: 0.2,
       roughness: 1,
       vertexColors: true,
     }),
@@ -67,20 +64,22 @@ export function createCoastalCloudBanks(body: Body) {
     );
     for (let lobe = 0; lobe < lobes; lobe++) {
       const base = lobe < 5;
-      const offsetX = base ? (lobe - 2) * 0.46 : (rng() - 0.5) * 1.9;
-      const offsetZ = (rng() - 0.5) * 0.6;
+      const offsetX = base
+        ? (lobe - 2) * 0.38 + (rng() - 0.5) * 0.15
+        : (rng() - 0.5) * 1.6;
+      const offsetZ = (rng() - 0.5) * 0.85;
       const d = coastDirection(x + offsetX, z + offsetZ, body.radius);
       const radius = base ? 0.52 + rng() * 0.12 : 0.24 + rng() * 0.34;
       dummy.position
         .copy(d)
         .multiplyScalar(
           Math.max(baseRadius, surfaceRadius(d, body) + 1.4) +
-            (base ? 0 : 0.12 + rng() * 0.24),
+            (base ? rng() * 0.07 : 0.22 + rng() * 0.3),
         );
       dummy.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d);
       dummy.scale.set(
-        radius * (base ? 1.4 : 1),
-        radius * (base ? 0.28 : 0.9),
+        radius * (base ? 1.15 : 1),
+        radius * (base ? 0.65 : 0.95),
         radius * 0.8,
       );
       dummy.updateMatrix();
@@ -121,7 +120,9 @@ export function createCloudLayer(
       secondaryDirection,
       seed: { value: body.seed % 991 },
       detail: { value: 1 },
-      coast: { value: body.id === 'p0-0' && body.terrainVersion === 4 ? 1 : 0 },
+      coast: {
+        value: body.id === 'p0-0' && (body.terrainVersion ?? 1) >= 4 ? 1 : 0,
+      },
       coastUp: { value: COAST_UP.clone() },
       coverage: {
         value:
@@ -166,7 +167,7 @@ export function createCloudLayer(
       }`,
   });
   const mesh = new T.Mesh(geometry, material);
-  if (body.id === 'p0-0' && body.terrainVersion === 4)
+  if (body.id === 'p0-0' && (body.terrainVersion ?? 1) >= 4)
     mesh.add(createCoastalCloudBanks(body));
   return mesh;
 }

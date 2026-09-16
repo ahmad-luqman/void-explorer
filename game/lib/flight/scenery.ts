@@ -103,7 +103,7 @@ export function generateScenery(
     (p) => p.shape === 'landmark' && visible(p),
   );
   props.push(...additions.filter((p) => p.shape !== 'landmark'));
-  if (body.terrainVersion === 4 && body.id === 'p0-0') {
+  if ((body.terrainVersion ?? 1) >= 4 && body.id === 'p0-0') {
     const sorted = props
       .filter(visible)
       .sort(

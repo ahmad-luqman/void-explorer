@@ -8,7 +8,11 @@ import { validContact } from '../lib/flight/terrain-validation';
 import { planetRotation } from '../lib/flight/rotation';
 import { elevation } from '../lib/flight/universe';
 import { FlightSimulation, emptyControls } from '../lib/flight/simulation';
-import { ContactSurface, generateContact } from '../lib/flight/contact';
+import {
+  ContactSurface,
+  generateContact,
+  contactAxis,
+} from '../lib/flight/contact';
 import {
   captureExpedition,
   parseExpedition,
@@ -63,6 +67,45 @@ describe('playable coastal visual slice', () => {
     sim.surface.lookOverBay();
     expect(sim.position.distanceTo(at)).toBe(0);
   });
+  it('refines distant cliff coverage within the contact budget and retains profile-4 saves', () => {
+    const axis = [...contactAxis(true, true, true)];
+    expect(axis.length ** 2).toBeLessThan(100000);
+    const ridge = axis.filter((x) => x >= 3 && x <= 18);
+    expect(
+      Math.max(...ridge.slice(1).map((x, i) => x - ridge[i])),
+    ).toBeLessThanOrEqual(0.400000001);
+    expect(axis.filter((x) => Math.abs(x) <= 0.3)).toEqual(
+      [...contactAxis(true, true)].filter((x) => Math.abs(x) <= 0.3),
+    );
+    const sim = new FlightSimulation();
+    sim.startCoast();
+    sim.setTerrainVersion(4);
+    const saved = captureExpedition(sim)!;
+    const samples = [
+      [0, 0],
+      [0.02, 0.02],
+      [-0.67, 1.24],
+      [1.9, -4.8],
+      [4.2, 11.5],
+      [-3.1, 15.4],
+    ].map(([x, z]) => coastDirection(x, z));
+    const old = samples.map((d) => elevation(d, sim.target));
+    const restored = new FlightSimulation();
+    expect(restoreExpedition(restored, saved)).toBe(true);
+    expect(restored.terrainVersion).toBe(4);
+    expect(samples.map((d) => elevation(d, restored.target))).toEqual(old);
+    sim.setTerrainVersion(5);
+    expect(samples.slice(0, 2).map((d) => elevation(d, sim.target))).toEqual(
+      old.slice(0, 2),
+    );
+    expect(
+      samples
+        .slice(2)
+        .some(
+          (d, i) => Math.abs(elevation(d, sim.target) - old[i + 2]) > 0.005,
+        ),
+    ).toBe(true);
+  });
   it('colors dry coastal shelves violet rather than using the shallow-water palette', () => {
     const sim = new FlightSimulation(),
       body = sim.target;
@@ -108,10 +151,10 @@ describe('playable coastal visual slice', () => {
     expect(migrated.version).toBe(5);
     expect(migrated.terrainVersion).toBe(1);
     expect(
-      parseExpedition(JSON.stringify({ ...migrated, terrainVersion: 5 })),
+      parseExpedition(JSON.stringify({ ...migrated, terrainVersion: 6 })),
     ).toBeNull();
     restored.startCoast();
-    expect(restored.terrainVersion).toBe(4);
+    expect(restored.terrainVersion).toBe(5);
     expect(elevation(COAST_UP, restored.nearest)).toBeCloseTo(0.062, 8);
   });
   it('retains profile-2 saved coast geometry while new expeditions gain distinct ridges', () => {
@@ -182,11 +225,11 @@ describe('playable coastal visual slice', () => {
     const options = { pixels: 2, projection: 800, maxLeaves: 3000 };
     expect(
       new Set(
-        ([1, 2, 3, 4] as const).map((terrainVersion) =>
+        ([1, 2, 3, 4, 5] as const).map((terrainVersion) =>
           terrainSignature({ ...body, terrainVersion }, 'high', options),
         ),
       ).size,
-    ).toBe(4);
+    ).toBe(5);
   });
   it('opens a water corridor, preserves the old landing shelf and keeps profile-3 heights through reload', () => {
     const source = new FlightSimulation();

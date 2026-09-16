@@ -214,3 +214,13 @@ Current flight/release pass:
 4. Check ordered arrivals, manual interruption, editing, saved restoration, desktop/mobile chart layout and production journeys. Publish with the verified sound/touch/handling/browser milestones.
 
 Next environment pass remains the highest visual priority: improve distant terrain forms and cloud-bank silhouettes, then shoreline/foreground composition. The concept gap is still visible; the completion audit must remain open through those changes, authored destinations, streaming refinement and remaining device validation.
+
+### Coastal cliff and cloud silhouette pass — delivered
+
+1. Add terrain profile 5 for new expeditions, retaining exact profiles 1–4 and the protected landing/walking shelf. Shape broken cliff shoulders and gullies into the authoritative heightfield.
+2. Reallocate the coastal contact grid: retain sub-300 m walking detail and at-most-75 m cells to 3 km, use at-most-400 m cells across the visible 3–18 km ridges, and relax the remote horizon. Stay below 100,000 vertices/200,000 triangles; old profiles keep their original grids.
+3. Replace the cloud banks' flattened bases with overlapping rounded billows and softer shaded undersides, retaining bounded instancing and native planetary placement.
+4. Verify profile-4 restoration, new geometry/collision budgets, both production journeys and actual paired coast views. Judge the result against the concept, then commit the validated work.
+
+
+Delivered: profile-5 cliff shoulders, denser visible ridge geometry at the same vertex/triangle budget, rounded cloud bases, and removal of the giant background wall. Profiles 1–4 and protected surface poses remain compatible. All 103 unit tests and complete production journeys on both renderers pass, including saved coastal profiles 3–5. The next visual work is shoreline depth/breakers, distant material treatment and foreground composition; authored destinations, streaming refinement and remaining device validation stay in the full completion audit.

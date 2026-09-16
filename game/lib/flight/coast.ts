@@ -148,11 +148,12 @@ export function coastalVistaElevation(
   d: Vector3,
   radius: number,
   original: number,
+  cliffs = false,
 ) {
-  if (d.dot(COAST_UP) < 0.99) return original;
+  if (d.dot(COAST_UP) < (cliffs ? 0.97 : 0.99)) return original;
   const { x, z } = coastCoordinates(d, radius);
   const distance = Math.hypot(x, z);
-  if (distance >= 100) return original;
+  if (distance >= (cliffs ? 180 : 100)) return original;
   // Preserve the landing footprint; low exposed shelves outside it add real relief.
   const legacy = coastalElevation(d, radius, original, true);
   // Surround the vista with a low regional coast. The original planet has
@@ -162,10 +163,10 @@ export function coastalVistaElevation(
       -0.1 +
       Math.max(0, -z) * 0.02 +
       Math.max(0, Math.sin(x * 0.7) * Math.cos(z * 0.6)) * 0.8;
-    return (
-      regional * (1 - smooth(40, 100, distance)) +
-      original * smooth(40, 100, distance)
-    );
+    // Move the transition to the planet's much taller original terrain beyond
+    // the coastal horizon, so it cannot become a single giant background wall.
+    const blend = smooth(cliffs ? 80 : 40, cliffs ? 180 : 100, distance);
+    return regional * (1 - blend) + original * blend;
   }
   const laneDistance = Math.min(
     Math.abs(x - 0.027 - z * 0.65),
@@ -199,7 +200,24 @@ export function coastalVistaElevation(
       1 - Math.hypot((dx - 0.42) * 1.5, (dz + 0.2) * 1.8),
     );
     const cut = 0.78 + 0.22 * Math.abs(Math.sin(dx * 13 + dz * 9 + px));
-    h += height * (ridge ** 1.1 * cut + flank ** 1.4 * 0.3);
+    if (cliffs) {
+      // Resistant shoulders separated by eroded ledges. The summit remains
+      // sharp; irregular gullies break up each face rather than making cones.
+      const shoulder =
+        0.28 * smooth(0.05, 0.24, ridge) +
+        0.24 * smooth(0.31, 0.45, ridge) +
+        0.48 * (Math.max(0, ridge - 0.45) / 0.55) ** 1.1;
+      const gullies =
+        1 -
+        0.24 *
+          smooth(
+            0.7,
+            1,
+            Math.abs(Math.sin(dx * 7 - dz * 4 + Math.sin(dz * 4))),
+          ) *
+          smooth(0.08, 0.4, ridge);
+      h += height * (shoulder * gullies * cut + flank ** 1.4 * 0.3);
+    } else h += height * (ridge ** 1.1 * cut + flank ** 1.4 * 0.3);
   }
   const shoreRelief =
     Math.sin(x * 57 + Math.sin(z * 39)) * Math.cos(z * 43) * 0.002 +

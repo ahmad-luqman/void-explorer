@@ -290,3 +290,12 @@ An optional validated route field extends compatible expedition saves. Older sav
 
 
 Route validation: all 102 unit tests, type checking, scoped runtime/test lint and the static build pass. The chart passes lint with its pre-existing SVG semantic-tag warning excluded. Production route journeys pass on WebGL (9.9 s) and WebGPU (10.2 s), including editing at 390×844, a real first-leg arrival, pause, save/reload and removal. Complete orbital and new/legacy coastal excursions also pass on the final route build (WebGL 26.3/36.7 s; WebGPU 26.5/37.0 s). Actual chart captures are preserved in `art/milestones/planned-route*.png`.
+
+
+## Coastal cliff profile 5
+
+New expeditions use terrain profile 5. Profiles 1–4 retain their exact height functions and contact-grid allocation. The new coast has cliff shoulders/gullies, unchanged protected landing/walking geography, and an 80–180 km transition to the original planet terrain to avoid a giant horizon wall.
+
+The coastal contact mesh remains 99,225 vertices / 197,192 triangles. It retains the dense first 300 m, reallocates 300–1,200 m cells to 28.125 m, keeps cells at most 75 m to 3 km, and adds at-most-400 m cells across the 3–18 km ridges. Remote cells may grow to 4 km. The same triangles govern rendering and contact. Planet/contact cache keys distinguish the new profile; older saves keep their selected profile.
+
+Cloud banks now have rounded overlapping bases and restrained emissive underside fill; the instancing/triangle budget is unchanged. All 103 unit tests, type checking, changed-module lint and the static export pass. Final full production journeys pass on both renderers, with profile-5, profile-4 and profile-3 saved excursions. Actual images and remaining concept differences are recorded in `art/COASTAL_RUNTIME_REVIEW.md`.
