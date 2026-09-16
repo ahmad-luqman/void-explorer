@@ -163,3 +163,38 @@ The improvement is modest at the main bay viewpoint. The clearing remains broad,
 
 
 Validation: 87 unit tests passed, with the two formation tests rerun after the final crown refinement. Type checking, scoped lint and the static build pass. Geometry checks cover every variant's closed edges, positive volume, unit normals and collision bounds; the scenery test checks preserved prop transforms, instance count and total triangle budget at four positions. The final production saved coastal journeys pass on WebGL (33.9 seconds) and WebGPU (34.7 seconds), including profile-4 save/reload, profile-3 restoration, mobile layouts, return walking, boarding and both takeoffs. The development WebGPU saved journey and closer foreground review also pass without page or console errors. Existing unit coverage for rotation, legacy terrain and clear walking lanes remains passing.
+
+
+## AURORA surface detail — 16 September 2026
+
+The ship now has individually segmented nacelle armor, framed service recesses, four wing maintenance hatches, cockpit-shoulder louvers and rudder seams. The panels help distinguish armor from the dark underlying structure in the chase and parked views. The editable Blender model retains 154 source parts; the runtime export still uses 12 meshes and seven materials, with no texture or decoder dependencies. Geometry rises from 3,152 to 3,932 triangles, and the GLB from 181,956 to 223,316 bytes, within the existing 5,000-triangle/14-mesh limits.
+
+The span, length and deployed height remain 28.8 × 17.72 × 7.68 m. All three landing-pad centers, the independently visible gear group and both controllable engine cores are preserved. Runtime flight, contact and save code are unchanged. A runtime review caught coplanar armor behind the first draft's recess floors; the final frames have open ring backs. Ray checks through both upper wells now guard against an overlapping surface.
+
+### Actual views
+
+- [Blender studio render](../models/aurora/aurora-studio.png)
+- [Parked ship, WebGL](milestones/aurora-detail-ship-webgl.png)
+- [Parked ship, WebGPU](milestones/aurora-detail-ship-webgpu.png)
+- [Flight, WebGL](milestones/aurora-detail-flight-webgl.png)
+- [Flight, WebGPU](milestones/aurora-detail-flight-webgpu.png)
+- [Coastal approach, WebGL](milestones/aurora-detail-approach-webgl.png)
+- [Coastal approach, WebGPU](milestones/aurora-detail-approach-webgpu.png)
+- [Alternate landing, WebGL](milestones/aurora-detail-landing-webgl.png)
+- [Alternate landing, WebGPU](milestones/aurora-detail-landing-webgpu.png)
+- [Bay, WebGL](milestones/aurora-detail-bay-webgl.png)
+- [Bay, WebGPU](milestones/aurora-detail-bay-webgpu.png)
+- [Mobile, WebGL](milestones/aurora-detail-mobile-webgl.png)
+- [Mobile, WebGPU](milestones/aurora-detail-mobile-webgpu.png)
+- [Older coast restored, WebGL](milestones/aurora-detail-legacy-webgl.png)
+- [Older coast restored, WebGPU](milestones/aurora-detail-legacy-webgpu.png)
+
+### Remaining work
+
+This is a bounded spacecraft detail pass. The hull remains much simpler than the concept, and low-angle lighting hides some small details. Landing gear still appears/disappears without mechanical deployment; that is the next implementation milestone. The surrounding scene still needs better ground surfaces, distant terrain, cloud forms and shoreline/water finish. Concept parity and broader device performance remain open.
+
+### Validation
+
+All 88 unit tests, type checking, scoped lint and the static build pass. Asset checks cover exact dimensions, pad centers, the collision envelope, named gear/cores, triangle/mesh limits, self-contained resources and unobstructed service-well floors. Authored loading and a flyable model-load fallback pass with explicit WebGL and WebGPU selection. The final production orbital and complete new/legacy coastal journeys pass on WebGL (24.5/33.8 seconds) and WebGPU (25.0/34.2 seconds), including workers, landing, walking, saves, boarding, takeoff and mobile layout. Passing journeys report no page or console errors.
+
+These captures use Chromium on Apple M4 Max/ANGLE Metal; the durations are test timings, not frame-rate benchmarks. The flight screenshot also exposes the existing heavy haze/coarse high-altitude environment. This pass changes the spacecraft asset, leaving that scene-quality gap open.
