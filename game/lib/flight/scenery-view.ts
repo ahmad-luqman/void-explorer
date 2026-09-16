@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { explorationGeometry } from './scenery-geometry';
+import { rockFormation, rockFormationGeometry } from './rock-formations';
 import type { SurfaceProp } from './scenery';
 import type { WorldKind } from './universe';
 
@@ -27,20 +28,32 @@ export function createSceneryView(
     'fan',
     'succulent',
     'landmark',
+    'gravel',
+    'outcrop',
+    'cliff',
   ] as const) {
     const mineral = shape === 'mineral';
-    const extra = shape !== 'rock' && shape !== 'mineral';
-    const variants = shape === 'rock' || shape === 'landmark' ? 3 : 1;
+    const extra =
+      shape !== 'rock' &&
+      shape !== 'mineral' &&
+      shape !== 'gravel' &&
+      shape !== 'outcrop';
+    const variants = ['rock', 'landmark', 'outcrop', 'cliff'].includes(shape)
+      ? 3
+      : 1;
     for (let variant = 0; variant < variants; variant++) {
       const items = props.filter(
         (p) =>
-          (p.shape ?? (p.mineral ? 'mineral' : 'rock')) === shape &&
+          (rockFormation(p) ?? p.shape ?? (p.mineral ? 'mineral' : 'rock')) ===
+            shape &&
           (variants === 1 || stoneVariant(p.id) === variant),
       );
       if (!items.length) continue;
       const geometry = mineral
         ? new T.ConeGeometry(1, 1, 5)
-        : explorationGeometry(shape, variant);
+        : shape === 'gravel' || shape === 'outcrop' || shape === 'cliff'
+          ? rockFormationGeometry(shape, variant)
+          : explorationGeometry(shape, variant);
       if (mineral) geometry.translate(0, 0.4, 0);
       const material = new T.MeshStandardMaterial({
         color: '#ffffff',
