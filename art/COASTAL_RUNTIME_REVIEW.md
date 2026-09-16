@@ -296,3 +296,26 @@ All 109 unit tests, TypeScript, scoped changed-module lint and the static build 
 Final production orbital/coastal journeys pass on WebGL (26.2/44.8 s) and WebGPU (26.2/41.4 s), including saved terrain profiles 3–5. These are test durations, not frame benchmarks. The full completion audit remains open.
 
 The validated filtering pass is published privately as Sites version 27. Deployment reported `succeeded`. Authored destinations, streaming refinement and full environment/device acceptance remain in the active completion audit.
+
+## Authored survey destinations — 17 September 2026
+
+Ember Relay and Glass Choir add two fixed, traversable destinations on the existing desert and ice worlds. Rectangular receiver ruins and tall blue crystal clusters distinguish their silhouettes and palettes. Lumen Coast joins them in a seven-observation expedition journal. These are small exploration sites, with authored placements and field text rather than missions or NPC encounters.
+
+| Actual production view | WebGL | WebGPU |
+| --- | --- | --- |
+| Ember Relay and landed AURORA | [Capture](milestones/site-ember-relay-webgl.png) | [Capture](milestones/site-ember-relay-webgpu.png) |
+| Glass Choir and landed AURORA | [Capture](milestones/site-glass-choir-webgl.png) | [Capture](milestones/site-glass-choir-webgpu.png) |
+| Ember observation recorded | [Capture](milestones/survey-ember-relay-webgl.png) | [Capture](milestones/survey-ember-relay-webgpu.png) |
+| Glass observation recorded | [Capture](milestones/survey-glass-choir-webgl.png) | [Capture](milestones/survey-glass-choir-webgpu.png) |
+| Ember journal, 390×844 | [Capture](milestones/journal-ember-relay-webgl.png) | [Capture](milestones/journal-ember-relay-webgpu.png) |
+| Glass journal, 390×844 | [Capture](milestones/journal-glass-choir-webgl.png) | [Capture](milestones/journal-glass-choir-webgpu.png) |
+
+The landing footprints remain dry and nearly level without terrain edits. Fixed props share the 700-prop budget and bounded collision shapes. Gameplay testing caught obstacles on both the next-observation path and the return to AURORA; the final paired towers stand farther outside these walking lanes. Actual keyboard journeys record all three observations at each new site, save/reload, inspect the mobile journal, walk back, board, take off and engage site guidance on both renderers, without page or console errors.
+
+Site guidance uses continuous flight around the rotating world and ends at a hover for manual landing. A separate simulation check covers transfer from Glass Choir to Ember Relay while preserving discoveries. All three sites have complete simulation walking/return checks. Older saves omit the new optional fields and retain their terrain profile and surface poses.
+
+The visual gap remains clear: surrounding desert/ice ridges have broad coarse facets, the clearings are sparse, and the desert sky exposes solid geometric cloud lobes. The site kits provide identity and an exploration loop; they do not establish whole-scene concept acceptance. Terrain-streaming refinement and distant/foreground/cloud integration remain active work.
+
+The [mobile title](milestones/site-title-mobile.png) exposes the additional site shortcuts, and the [touch-emulated survey panel](milestones/site-survey-mobile.png) scrolls within the left HUD column while preserving movement controls. These 390×844 checks use Chromium touch emulation, not a physical phone.
+
+Validation: all 115 unit tests, TypeScript, scoped runtime/test lint and the static build pass. Existing page-level React compiler/ref, hook dependency and semantic-tag lint findings remain outside this change; page lint passes with those established rule exceptions. New-site production journeys pass on WebGL and WebGPU (about 1.4–1.5 minutes per site). Final orbital/coastal regressions pass on WebGL (26.2/40.7 s) and WebGPU (27.1/45.3 s), including legacy profiles 3–5; route journeys pass in 10.1/10.0 s. These durations are test lengths, not frame-pacing measurements.
