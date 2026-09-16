@@ -19,7 +19,7 @@ User objective: implement everything in the supplied session summary, not only t
 | Performance across real devices | M4 Max Metal: six-second orbit/coast High/Low samples on WebGL/WebGPU; p95 16.7–16.8 ms, zero >50 ms | Desktop baseline recorded; incomplete lower-power/phone hardware and sustained streaming profiling |
 | Broader browsers | Full production orbital/new/legacy coastal journeys pass on Chromium WebGL/WebGPU, Firefox 155 and WebKit 26.6 WebGL | Expanded desktop-engine coverage implemented; actual Safari/phone validation remains open |
 | Mobile controls | Analog steering/movement, simultaneous throttle/roll/boost, pulse, run, captured/cancelled pointers; 15.1 s saved touch excursion | Implemented and checked with Chromium touch emulation in portrait/landscape; physical device validation remains open |
-| Release | Private Sites build v24 published successfully; 103 tests; final orbital/coastal/route journeys, touch checks, Firefox/WebKit route checks and M4 Max frame-pacing baseline | Intermediate release delivered; full visual/device acceptance and remaining game requirements are still open |
+| Release | Private Sites build v25 published successfully; 105 tests; final orbital/coastal/route journeys, touch checks, Firefox/WebKit route checks and M4 Max frame-pacing baseline | Intermediate release delivered; full visual/device acceptance and remaining game requirements are still open |
 
 ## Evidence rules
 
@@ -28,4 +28,4 @@ Preserve exact concept prompts and editable sources. Commit coherent milestones 
 Production-export evidence for the slate/cloud pass: complete orbital and new/legacy coastal journeys pass on WebGL (26.1/36.6 s) and WebGPU (27.1/36.7 s), without page or console errors.
 
 
-Latest verified private publication: 17 September 2026 local time, Sites version 24, source subtree commit `a2c835529b0335e5be39b2d2b014fe697061ec5b`. Deployment reported `succeeded`. The public GitHub origin was not pushed. The next work is environment silhouette/shoreline quality, authored destinations and streaming, plus the remaining speed/atmosphere and hardware-validation requirements above.
+Latest verified private publication: 17 September 2026 local time, Sites version 25, source subtree commit `416176fe0305e6de2f284290b8673159d51accf8`. Deployment reported `succeeded`. The public GitHub origin was not pushed. The next work is environment silhouette/shoreline quality, authored destinations and streaming, plus the remaining speed/atmosphere and hardware-validation requirements above.
