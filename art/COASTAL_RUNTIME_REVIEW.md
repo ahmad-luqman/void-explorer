@@ -248,3 +248,14 @@ Final WebGPU captures: [bay](milestones/cliffs-bay-webgpu.png), [parked ship](mi
 The final M4 Max/WebGPU pacing check remains near 60 Hz: 361 intervals per six-second scene, 16.7 ms median, 16.7–16.8 ms p95 and no interval above 50 ms in orbital High, coast High or coast Low. [Raw report](milestones/cliffs-frame-pacing-webgpu.json). This is a warmed desktop baseline, not lower-power/mobile or streaming-stall certification.
 
 Private publication succeeded as Sites version 24. Choose **Explore Lumen Coast** from the title to see the profile-5 geography; continued older expeditions deliberately retain their prior terrain. The overall completion audit remains open.
+
+
+## Depth-aware coastal water — 17 September 2026
+
+Globe, adaptive planet and contact meshes now carry signed seabed elevation separately from their sea-level geometry. Both shaders use that depth for teal shallows, deeper offshore blue, narrow moving foam bands and stronger ripple normals. Geometry, coastal profiles, collision and saved poses are unchanged. Old disposable terrain buffers regenerate under cache revision 7; byte accounting includes the additional float per vertex, and contact payloads remain below 6 MiB. Depth and color follow the same protected LOD morph as position.
+
+Close flight captures: [WebGL](milestones/depth-water-close-webgl.png), [WebGPU](milestones/depth-water-close-webgpu.png). Actual review caught an extra vertex-color multiplication on WebGPU that made water nearly black; the final material matches WebGL's color order. A sampled offshore color regression check now complements the actual-canvas animation check, which excludes ship exhaust and UI.
+
+Bay views: [WebGL](milestones/depth-water-bay-webgl.png), [WebGPU](milestones/depth-water-bay-webgpu.png). Ripples and depth color are visibly stronger. Foam is subtle at this scale, and the broad solar reflection still dominates the bay. The shore can expose the existing mixed land/water triangle transition. These are shading effects, without scene reflections, displaced waves or a physically simulated surf zone. Cloud integration, distant material detail and foreground composition remain below the concept target.
+
+Validation: all 105 unit tests, TypeScript, scoped changed-module lint and the static build pass. Actual GPU-canvas water animation/color and disk-cache restoration checks pass on both renderers. Complete production orbital/coastal journeys pass on WebGL (26.7/40.9 s) and final corrected WebGPU (26.2/45.4 s), including coastal profiles 3–5. WebGPU day/night, High/Low and water checks also pass. Test durations are not frame benchmarks.

@@ -225,8 +225,10 @@ Next environment pass remains the highest visual priority: improve distant terra
 
 Delivered: profile-5 cliff shoulders, denser visible ridge geometry at the same vertex/triangle budget, rounded cloud bases, and removal of the giant background wall. Profiles 1–4 and protected surface poses remain compatible. All 103 unit tests and complete production journeys on both renderers pass, including saved coastal profiles 3–5. The next visual work is shoreline depth/breakers, distant material treatment and foreground composition; authored destinations, streaming refinement and remaining device validation stay in the full completion audit.
 
-### Depth-aware coastal water — active
+### Depth-aware coastal water — delivered
 
 1. Carry signed terrain elevation through globe/contact/adaptive mesh generation, worker transfer, bounded caches and LOD morphing. Reject old cached buffers and retain all collision positions and saved geography.
 2. Use the shared depth field for teal shallows, deeper offshore color, moving shoreward foam bands and stronger wave-normal breakup on both WebGL and WebGPU.
 3. Verify depth sampling, memory accounting, cache validation and morph continuity, then compare actual coast/water views and complete old/new saved expeditions on both backends. Commit and publish only the validated result; do not claim scene-reflection or physical-wave geometry from shading effects.
+
+Delivered: shared signed-depth buffers, matching WebGL/WebGPU shallows and filtered foam bands, stronger ripple shading and cache/morph compatibility. All 105 unit tests, type checking, scoped lint and the static build pass. Actual-canvas animation/color and disk-restoration checks pass on both backends; full production orbital/coastal journeys preserve profiles 3–5. Foam visibility and water-light composition remain visual polish, alongside distant material and foreground/cloud integration. Continue with authored destinations, speed/atmosphere feedback and streaming refinement while retaining the full completion audit.
