@@ -275,3 +275,22 @@ All 108 unit tests, TypeScript, scoped changed-module lint and the static build 
 Complete production orbital/coastal journeys pass on WebGL (26.7/40.8 s) and WebGPU (26.9/45.2 s), including restored coastal profiles 3–5. No page or console errors occurred. These durations are test lengths, not performance measurements.
 
 The motion-feedback pass is published privately as Sites version 26. Deployment reported `succeeded`. Terrain artifacts and the wider visual/exploration/device requirements remain open.
+
+## Graded terrain and distant pattern filtering — 17 September 2026
+
+Layer isolation traced the dense central cliff stripes to flat normals on very long, narrow contact-grid triangles. The pattern remained with textures and vertex colors removed, and disappeared with interpolated normals. The final fix derives a per-vertex blend from cell aspect ratio: square cells retain facets; ratios 3–10 transition toward smooth lighting. Positions, height samples, indices, collision and saved terrain profiles are unchanged. The derived attribute costs at most 388 KiB per contact mesh; worker/cache payloads are unchanged.
+
+The [before coast](milestones/filter-coast-before-webgl.png) and final [WebGL](milestones/filter-coast-webgl.png) / [WebGPU](milestones/filter-coast-webgpu.png) views show the dense comb-like lighting reduced in the central ridge corridor. Broad facets remain on larger cells. The smoother corridor also makes the underlying anisotropic grid visible as a change in lighting style; independent terrain refinement remains open. This fixes a shading artifact without claiming a mesh-topology rewrite.
+
+The small-planet shimmer came from overly fine cloud coverage, not depth testing. The [isolated pre-fix cloud view](milestones/filter-clouds-before-webgl.png) deliberately hides rings to inspect that layer. Weather now has larger masses, softer coverage and filtered noise octaves. Ring bands blend toward their analytic average when their narrow peaks become smaller than the pixel footprint, suppressing dotted patterns. At long range the rings can therefore look smooth; fine bands return as they become resolvable.
+
+| Final orbital view | WebGL | WebGPU |
+| --- | --- | --- |
+| High | [Capture](milestones/filter-orbit-high-webgl.png) | [Capture](milestones/filter-orbit-high-webgpu.png) |
+| Low | [Capture](milestones/filter-orbit-low-webgl.png) | [Capture](milestones/filter-orbit-low-webgpu.png) |
+
+Review captures freeze the simulation and hide only the pause overlay; they retain the rendered game scene and HUD. These are comparable views, not pixel-identical before/after positions. Clouds remain stylized patches rather than volumetric weather, and nearby billows still need softer integration. The broader environment concept comparison, authored destinations and streaming work remain open.
+
+All 109 unit tests, TypeScript, scoped changed-module lint and the static build pass. Actual WebGL/WebGPU checks cover the elevated coast, orbital High/Low, sunlit ground/shadows, night and water, without page or shader errors. The generated TSL cloud/ring modules come from the repository GLSL source through `scripts/port-shaders.mjs`.
+
+Final production orbital/coastal journeys pass on WebGL (26.2/44.8 s) and WebGPU (26.2/41.4 s), including saved terrain profiles 3–5. These are test durations, not frame benchmarks. The full completion audit remains open.
