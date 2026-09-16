@@ -158,9 +158,14 @@ Delivered: shared filtered ocean wave detail, reduced specular glare, a narrower
 
 Next prioritize more sculpted cliff/foreground forms and authored spacecraft panels/recesses, then mechanical landing gear. The broad clearing, early coarse approach terrain, simple cloud lobes and remaining solar glare keep the wider concept-quality milestone open. Profile a wider range of devices before increasing shader or geometry budgets.
 
-### Sculpted coastal formations — active
+### Sculpted coastal formations — delivered
 
 1. Rebuild the coastal sentinel and large foreground rock geometry with broad broken crowns, offset buttresses, deep vertical clefts and stepped faces. Keep every vertex within each existing prop's collision envelope; preserve placements, terrain profiles, saved poses and both walking lanes.
 2. Allocate detail by visible size: use inexpensive chipped gravel for sub-meter stones and richer outcrops for the existing large coastal foreground groups. Keep the 700-prop cap and demonstrate that the coastal scenery triangle total does not exceed the previous kit. Keep shader complexity unchanged.
 3. Review the bay, parked ship and closer foreground views, including native planet rotation and saved restoration. Run geometry/budget checks and complete new/legacy coastal journeys on WebGL and WebGPU, using the available Metal hardware path.
 4. Preserve actual runtime captures and a candid review, commit coherent milestones, and update the private build. Broader terrain sculpting, spacecraft surface detail and mechanical gear remain subsequent work.
+
+
+Delivered: chipped coastal sentinel crowns, split foreground outcrops and cheaper sub-meter gravel, with unchanged placement and collision/save contracts. Tests prove closed, bounded geometry and no increase in scenery triangles at four coastal positions. The final scene adds four draw groups in the bay while reducing the observed triangle count. All 87 unit tests, type checking, scoped lint and the build pass; complete new/legacy production journeys pass on both renderers. [The runtime review](art/COASTAL_RUNTIME_REVIEW.md) preserves actual images and remaining limits.
+
+Next bounded implementation: authored AURORA panel/recess detail while preserving its dimensions, landing pads and engine/gear part contract; then mechanical gear animation. The larger environment still needs authored surface finish, better distant terrain and cloud/water work to approach the concept.

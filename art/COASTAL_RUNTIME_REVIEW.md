@@ -137,3 +137,29 @@ The final production images use ANGLE Metal on an Apple M4 Max. The early WebGL 
 All 85 unit tests, type checking, scoped lint and the static build pass. The unit checks include every rock variant's geometry/collision envelope, finite unit normals, continuous native wave phases across terrain anchors and repeating-texture edge continuity. Complete production coastal journeys passed on Apple M4 Max/ANGLE Metal with WebGL (49.6 seconds) and WebGPU (41.9 seconds), including new-profile save/reload, profile-3 restoration, boarding, both takeoffs and mobile layouts. Day/night and High/Low transitions passed on software WebGL (38.9 seconds) and hardware WebGPU (26.5 seconds); the latter explicitly asserts the active backend. Passing journeys reported no page or console errors.
 
 Initial software runs encountered a stopped development server, a long system pause and increasingly variable landing/walking timeouts under the machine's current load. Temporary timeout increases were reverted. Hardware testing then exposed a separate test assumption: the extra forward walk could exceed the game's existing 55 m boarding range. The coastal journey now walks back within 45 m before boarding, retaining the original game limits and test deadlines. `HARDWARE_TEST=1` enables the macOS Metal test path; renderer selection is explicit. These checks cover this Mac and Chromium, not broad hardware/browser performance or release readiness.
+
+## Sculpted coastal formations — 16 September 2026
+
+This bounded pass replaces the coastal sentinel columns and large foreground boulders with broader split masses, chipped crowns, offset buttresses and stepped shoulders. Darker recessed faces help the joints read without adding shader work. An initial draft looked too much like cut blocks; the final geometry breaks the crown edges and tapers the outcrop shoulders. The close foreground view makes the new forms easier to inspect than the distant bay view.
+
+Detail follows stable prop size and identity. Sub-meter rocks now use eight-triangle chips, existing large coastal foreground groups use 184-triangle outcrops, and coastal sentinels use 272 triangles instead of 288. Other rocks, plants and global landmarks retain their existing geometry. The 700-instance cap, prop locations, dimensions, collision envelopes, terrain profiles and saves are unchanged. Tests compare the complete scenery triangle totals against the preceding kit at four coastal walking positions; none increases.
+
+The final development WebGPU bay frame recorded 55 draw calls and 516,507 triangles including shadows, with a roughly 32 m walk taking 8.9 seconds on the M4 Max/Metal path. The close foreground frame recorded 53 calls and 515,915 triangles. The preceding pass recorded 47 calls and 558,955 triangles at a slightly different bay position. In this bay view, four extra instance groups (eight calls with the shadow pass) trade additional draw calls for fewer triangles; these snapshots are not controlled FPS benchmarks or broad-device performance claims.
+
+### Actual views
+
+- [Bay, WebGL](milestones/formations-bay-webgl.png)
+- [Bay, WebGPU](milestones/formations-bay-webgpu.png)
+- [Close foreground, WebGPU](milestones/formations-foreground-webgpu.png)
+- [Sentinels, WebGPU](milestones/formations-sentinels-webgpu.png)
+- [Parked ship, WebGL](milestones/formations-ship-webgl.png)
+- [Parked ship, WebGPU](milestones/formations-ship-webgpu.png)
+- [Mobile, WebGL](milestones/formations-mobile-webgl.png)
+- [Mobile, WebGPU](milestones/formations-mobile-webgpu.png)
+- [Older coast restored, WebGL](milestones/formations-legacy-webgl.png)
+- [Older coast restored, WebGPU](milestones/formations-legacy-webgpu.png)
+
+The improvement is modest at the main bay viewpoint. The clearing remains broad, large ground facets and distant ridges still look coarse, and the rock faces need more authored surface detail to approach the concept. Clouds, glare and spacecraft geometry remain conspicuous gaps. The foreground capture also shows the existing obstacle response when leaving the protected walking lane; this pass does not change traversal rules. The wider art milestone remains open. Next prioritize authored spacecraft panel/recess detail, followed by mechanical gear, while keeping broader terrain sculpting and scene finish on the art backlog.
+
+
+Validation: 87 unit tests passed, with the two formation tests rerun after the final crown refinement. Type checking, scoped lint and the static build pass. Geometry checks cover every variant's closed edges, positive volume, unit normals and collision bounds; the scenery test checks preserved prop transforms, instance count and total triangle budget at four positions. The final production saved coastal journeys pass on WebGL (33.9 seconds) and WebGPU (34.7 seconds), including profile-4 save/reload, profile-3 restoration, mobile layouts, return walking, boarding and both takeoffs. The development WebGPU saved journey and closer foreground review also pass without page or console errors. Existing unit coverage for rotation, legacy terrain and clear walking lanes remains passing.
