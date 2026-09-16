@@ -233,3 +233,16 @@ The coastal weather banks now use 240 overlapping irregular billows across 16 ba
 | Parked ship | [Capture](milestones/slate-ship-webgl.png) | [Capture](milestones/slate-ship-webgpu.png) |
 
 All 92 unit tests, type checking, scoped material/cloud lint and the static build pass. The ground tests check texture memory, seam continuity, bounded relief and neighboring native anchors; cloud tests check geometry cost and clearance. Both renderer coastal new/legacy saved journeys and High/Low plus night/water rendering checks pass in the development build. Final production-export regression is tracked in the full completion audit. The single procedural fallback texture took roughly 35 ms to construct in Node on this machine; this is not a GPU frame benchmark or mobile performance claim.
+
+## Cliff silhouettes and cloud bases — 17 September 2026
+
+The profile-5 pass reallocates the 99,225-vertex contact mesh toward the visible ridges: unchanged dense walking coverage, 28.125 m intermediate cells, at most 75 m cells to 3 km, and at most 400 m cells across 3–18 km. Beyond the main vista, cells can grow to 4 km. Profiles 1–4 keep their original heightfields and grid allocation.
+
+New expeditions have broken cliff shoulders and eroded gullies, with sharp upper peaks. The blend back to the planet's much taller original mountains now occurs at 80–180 km; the enormous pale wall visible on the right of the previous bay view is gone. Cloud-bank bases now overlap as rounded billows rather than thin shelves, with restrained underside fill lighting. Instancing and the 24,000-triangle cloud budget are unchanged.
+
+Actual WebGL captures: [bay](milestones/cliffs-bay-webgl.png), [parked ship](milestones/cliffs-ship-webgl.png). The cliffs have a more complex silhouette and the sky reads more coherently. This does **not** close the concept comparison: cloud edges still look geometric, distant surfaces need stronger material detail, water lacks visible shallow-water breakers, and the clearing still needs better foreground composition. These screenshots are comparable viewpoints, not pixel-identical camera poses.
+
+
+Final WebGPU captures: [bay](milestones/cliffs-bay-webgpu.png), [parked ship](milestones/cliffs-ship-webgpu.png). Both renderers show the same new geography, rounded clouds and removed background wall. All 103 unit tests, type checking, scoped changed-module lint and the static build pass. Complete production orbital/coastal journeys pass on WebGL (26.8/41.4 s) and WebGPU (26.4/45.4 s). The expanded coast test completes and resaves profiles 5, 4 and 3, preserving parked-ship coordinates through each legacy restoration. Test durations are not performance measurements.
+
+The final M4 Max/WebGPU pacing check remains near 60 Hz: 361 intervals per six-second scene, 16.7 ms median, 16.7–16.8 ms p95 and no interval above 50 ms in orbital High, coast High or coast Low. [Raw report](milestones/cliffs-frame-pacing-webgpu.json). This is a warmed desktop baseline, not lower-power/mobile or streaming-stall certification.

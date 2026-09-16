@@ -6,9 +6,9 @@ User objective: implement everything in the supplied session summary, not only t
 | --- | --- | --- |
 | Mechanical landing gear | Six-joint model; 90-test suite; WebGL/WebGPU full production and delayed-load journeys; runtime review | Implemented; preserve regression coverage |
 | Richer ground surfaces | Generated slate/grit, native triplanar mapping, 92-test suite and dual-renderer captures | Implemented surface treatment; whole-scene visual acceptance remains open |
-| Better distant cliffs | Profile-4 heightfield and faceted coast captures | Incomplete: stronger cliff relief, layered silhouettes and continuous near/far detail |
+| Better distant cliffs | Profile-5 cliff shoulders/gullies, 400 m ridge cells within the 99,225-vertex budget, background-wall removal; paired renderer captures | Silhouette/detail pass implemented; distant material finish and whole-scene concept acceptance remain open |
 | Stronger foreground composition | Fixed rock/fan groups, saved-scene captures | Incomplete: multi-view composition and readable ground/prop integration |
-| Improved clouds | Shaded shell and 16 expanded cloud banks, bounded 24,000 triangles | Improved coverage; incomplete soft shape/depth, lighting and transitions |
+| Improved clouds | Shaded shell and 16 rounded cloud banks, bounded 24,000 triangles; flat bases removed | Improved shape and underside lighting; cloud edges/integration still fall short of the concept |
 | Shoreline and water | Filtered wave normals and teal transitions | Incomplete: coastal shallows, breakers and reflection/light composition |
 | Flight handling and camera | Damped angular velocity with exact integration; exponential chase/FOV; 20/30/60/144 Hz equivalence; 98 unit tests and complete production journeys on both renderers | Implemented response/camera pass; player/device feel review continues with release validation |
 | Speed/atmospheric effects | Existing exhaust/pulse visuals | Incomplete: readable motion and atmospheric flight feedback |
