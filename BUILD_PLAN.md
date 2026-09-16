@@ -192,3 +192,9 @@ Next bounded milestone: mechanical landing-gear deployment and retraction, prese
 
 
 Delivered: six-joint folding gear with level pads, simulation-driven deployment/downlock, clearance-delayed retraction, and immediate saved-pose restoration. The fallback and delayed authored loading use the same deployment state. Deployed dimensions and pad positions are unchanged, with 12 meshes / 3,932 triangles / seven materials retained. All 90 unit tests, type checking, scoped lint and the static build pass. Authored/fallback and delayed-load saved journeys, plus complete production orbital and new/legacy coastal excursions, pass on WebGL and WebGPU. Actual captures and limitations are in [the runtime review](art/COASTAL_RUNTIME_REVIEW.md). Folded pads remain exposed; bay doors, telescoping hydraulics and suspension are future polish. The wider environment still falls short of the concept.
+
+### Full completion objective — active
+
+The user authorized completing every remaining area in the supplied summary. Track requirement-level evidence in [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md). Continue through environment art, flight/camera/effects/routes, authored destinations and streaming, layered audio, mobile controls, broad-browser/performance checks and final release validation. Do not declare the overall game complete after an individual bounded milestone.
+
+Current implementation: replace the weak walking-scale ground treatment with filtered, native-frame fractured rock and dust, shared by WebGL/WebGPU and coherent across terrain patches. Preserve all heights and saved geography. Then address cliff forms, foreground composition, clouds and water with actual concept comparisons.
