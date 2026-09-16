@@ -1,0 +1,38 @@
+{
+  "browser": "153.0.8010.12",
+  "device": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "threads": 16,
+    "devicePixelRatio": 1,
+    "width": 1440,
+    "height": 960
+  },
+  "date": "2026-09-16T18:50:46.047Z",
+  "backend": " DEEP RANGE SURVEY PROGRAM\nFLIGHT SYSTEM WEBGL",
+  "results": {
+    "orbitHigh": {
+      "samples": 361,
+      "median": 16.7,
+      "p95": 16.8,
+      "p99": 16.8,
+      "maximum": 16.8,
+      "over50ms": 0
+    },
+    "coastHigh": {
+      "samples": 361,
+      "median": 16.7,
+      "p95": 16.7,
+      "p99": 16.8,
+      "maximum": 16.8,
+      "over50ms": 0
+    },
+    "coastLow": {
+      "samples": 361,
+      "median": 16.7,
+      "p95": 16.7,
+      "p99": 16.8,
+      "maximum": 16.8,
+      "over50ms": 0
+    }
+  }
+}

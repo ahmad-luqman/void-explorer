@@ -16,8 +16,8 @@ User objective: implement everything in the supplied session summary, not only t
 | Distinctive authored destinations | Lumen Coast production entry | Incomplete: multiple distinctive traversable destinations with discovery/progress |
 | Terrain-streaming refinement | Predictive workers, whole-patch morphing/caches | Incomplete: stronger streaming continuity and measured load/stall behavior |
 | Audio beyond engine tone | Six continuous layers, seven event types; offline waveform/mute checks and actual landing/footstep/pause journey | Implemented procedural soundscape; device-specific listening checks remain part of release validation |
-| Performance across real devices | Chromium Metal on this Mac | Incomplete: measured budgets and available physical-device runs; do not label emulation real hardware |
-| Broader browsers | Chromium WebGL/WebGPU | Incomplete: Firefox/WebKit/Safari coverage where available, graceful support behavior |
+| Performance across real devices | M4 Max Metal: six-second orbit/coast High/Low samples on WebGL/WebGPU; p95 16.7–16.8 ms, zero >50 ms | Desktop baseline recorded; incomplete lower-power/phone hardware and sustained streaming profiling |
+| Broader browsers | Full production orbital/new/legacy coastal journeys pass on Chromium WebGL/WebGPU, Firefox 155 and WebKit 26.6 WebGL | Expanded desktop-engine coverage implemented; actual Safari/phone validation remains open |
 | Mobile controls | Analog steering/movement, simultaneous throttle/roll/boost, pulse, run, captured/cancelled pointers; 15.1 s saved touch excursion | Implemented and checked with Chromium touch emulation in portrait/landscape; physical device validation remains open |
 | Release | Private Sites build v22; existing saves/journeys | Incomplete: final full regression, visual audit, performance evidence, documented limits and private release |
 
