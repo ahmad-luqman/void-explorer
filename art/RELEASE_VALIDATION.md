@@ -1,6 +1,6 @@
 # Expedition release validation — 16 September 2026
 
-This is an intermediate release check. The game is playable, but the full completion audit remains open, especially environment concept parity, route planning, authored destinations and terrain-streaming refinement.
+This is an intermediate release check (continued into 17 September local time). The game is playable, but the full completion audit remains open, especially environment concept parity, route planning, authored destinations and terrain-streaming refinement.
 
 ## Environment and method
 
@@ -43,3 +43,8 @@ Each scene contributed 361 intervals, with a 16.7 ms median and 16.8 ms maximum.
 - Listen to the procedural sound mix through physical speakers/headphones.
 - Profile sustained movement and streaming, memory, loading and long sessions after the remaining destination/terrain work.
 - Finish the environment art comparison and full completion audit before claiming the game finished.
+
+
+## Route-planning regression
+
+The final route build passes 102 unit tests, the static build and type checking. Production orbital/coastal journeys pass again on Chromium WebGL (26.3/36.7 s) and WebGPU (26.5/37.0 s). The new route journey passes on both (9.9/10.2 s), checking mobile reordering, immediate itinerary saving, first arrival and next-leg selection, manual pause, saved restoration and removal. The full touch excursion also passes after the handling changes (14.0 s).

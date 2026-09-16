@@ -12,7 +12,7 @@ User objective: implement everything in the supplied session summary, not only t
 | Shoreline and water | Filtered wave normals and teal transitions | Incomplete: coastal shallows, breakers and reflection/light composition |
 | Flight handling and camera | Damped angular velocity with exact integration; exponential chase/FOV; 20/30/60/144 Hz equivalence; 98 unit tests and complete production journeys on both renderers | Implemented response/camera pass; player/device feel review continues with release validation |
 | Speed/atmospheric effects | Existing exhaust/pulse visuals | Incomplete: readable motion and atmospheric flight feedback |
-| Route planning | Searchable galaxy/system charts and single target autopilot | Incomplete: usable planned travel through destinations |
+| Route planning | Eight-stop editable itinerary, chart bearing, per-leg autopilot/pulse, paused save restoration; 102 unit tests and production route journey on WebGL/WebGPU | Implemented; direct leg distances are estimates before obstacle avoidance |
 | Distinctive authored destinations | Lumen Coast production entry | Incomplete: multiple distinctive traversable destinations with discovery/progress |
 | Terrain-streaming refinement | Predictive workers, whole-patch morphing/caches | Incomplete: stronger streaming continuity and measured load/stall behavior |
 | Audio beyond engine tone | Six continuous layers, seven event types; offline waveform/mute checks and actual landing/footstep/pause journey | Implemented procedural soundscape; device-specific listening checks remain part of release validation |

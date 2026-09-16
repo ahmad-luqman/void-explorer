@@ -54,6 +54,8 @@ const initial = {
   range: 1700,
   visited: 1,
   auto: false,
+  routeStops: 0,
+  routeActive: false,
   throttle: 0,
   pulse: false,
   x: 50,
@@ -352,6 +354,8 @@ export default function Home() {
               range: nav.range,
               visited: sim.visited.size,
               auto: sim.autopilot,
+              routeStops: sim.route.length,
+              routeActive: sim.routeActive,
               throttle: sim.throttle,
               pulse: sim.pulse,
               phase: sim.surface.phase,
@@ -858,6 +862,13 @@ export default function Home() {
                 </b>
               </div>
               <p className="navigation-guidance">{data.guidance}</p>
+              {data.routeStops > 0 && (
+                <p className="route-guidance">
+                  {data.routeActive ? 'ROUTE ACTIVE' : 'ROUTE PAUSED'} ·{' '}
+                  {data.routeStops} {data.routeStops === 1 ? 'stop' : 'stops'}{' '}
+                  remaining
+                </p>
+              )}
               <div className="nav-actions">
                 {data.phase === 'flight' && (
                   <>
@@ -1264,7 +1275,21 @@ export default function Home() {
             Inspect a star or planet, plot your destination, and choose when to
             fly.
           </DialogDescription>
-          {sim && chart && <StarChart sim={sim} onChoose={choose} />}
+          {sim && chart && (
+            <StarChart
+              sim={sim}
+              onChoose={choose}
+              onRouteChange={() => {
+                saveExpedition();
+              }}
+              onFlyRoute={() => {
+                if (sim.startRoute()) {
+                  saveExpedition();
+                  setChart(false);
+                }
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </main>

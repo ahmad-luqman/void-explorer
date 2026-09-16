@@ -11,8 +11,10 @@ import {
 type Props = {
   sim: FlightSimulation;
   onChoose: (id: string, engage?: boolean) => void;
+  onRouteChange: () => void;
+  onFlyRoute: () => void;
 };
-export function StarChart({ sim, onChoose }: Props) {
+export function StarChart({ sim, onChoose, onRouteChange, onFlyRoute }: Props) {
   const [mode, setMode] = useState<'system' | 'galaxy'>('system'),
     [systemId, setSystemId] = useState(sim.target.system),
     [selected, setSelected] = useState(sim.target.id),
@@ -20,6 +22,11 @@ export function StarChart({ sim, onChoose }: Props) {
     [limit, setLimit] = useState(30),
     [zoom, setZoom] = useState(1),
     [pan, setPan] = useState({ x: 0, y: 0 });
+  const [route, setRoute] = useState([...sim.route]);
+  const updateRoute = () => {
+    setRoute([...sim.route]);
+    onRouteChange();
+  };
   const map = useRef<SVGSVGElement>(null);
   useEffect(() => {
     const element = map.current;
@@ -242,6 +249,26 @@ export function StarChart({ sim, onChoose }: Props) {
                 strokeDasharray="5 7"
                 opacity=".65"
               />
+              {route.length > 0 && (
+                <polyline
+                  aria-label="Planned route bearing"
+                  points={[
+                    pilot,
+                    ...route.map((id) =>
+                      project(
+                        relative(sim.destination(id)!.address!, chartOrigin),
+                      ),
+                    ),
+                  ]
+                    .map((p) => `${p.x},${p.y}`)
+                    .join(' ')}
+                  fill="none"
+                  stroke="#80e8ce"
+                  strokeWidth="2"
+                  opacity=".7"
+                  pointerEvents="none"
+                />
+              )}
               {markers.map((m) => {
                 const p = project(m.position);
                 const active =
@@ -332,8 +359,94 @@ export function StarChart({ sim, onChoose }: Props) {
             </span>
             <span>○ Discovered</span>
             <span className="pink">○ Selected</span>
-            <span>Dashed: direct bearing · drag to pan · scroll to zoom</span>
+            <span>
+              Green: planned route · dashed: selected bearing · drag to pan
+            </span>
           </p>
+          <div className="chart-route" aria-label="Planned route">
+            <h4>
+              EXPEDITION ROUTE <small>{route.length} / 8 stops</small>
+            </h4>
+            <button
+              className="chart-add-stop"
+              disabled={route.length >= 8 || route.includes(body.id)}
+              onClick={() => {
+                sim.queueStop(body.id);
+                updateRoute();
+              }}
+            >
+              {route.includes(body.id) ? 'Already in route' : 'Add to route'}
+            </button>
+            {route.length ? (
+              <>
+                <ol>
+                  {route.map((id, index) => {
+                    const stop = sim.destination(id)!;
+                    const previous = index
+                      ? sim.destination(route[index - 1])!.position
+                      : sim.position;
+                    return (
+                      <li key={id}>
+                        <span>
+                          <b>
+                            {index + 1}. {stop.name}
+                          </b>
+                          <small>
+                            {distanceLabel(previous.distanceTo(stop.position))}{' '}
+                            · direct leg
+                          </small>
+                        </span>
+                        <div>
+                          <button
+                            aria-label={`Move ${stop.name} earlier`}
+                            disabled={index === 0}
+                            onClick={() => {
+                              sim.editRoute(index, -1);
+                              updateRoute();
+                            }}
+                          >
+                            ↑
+                          </button>
+                          <button
+                            aria-label={`Move ${stop.name} later`}
+                            disabled={index === route.length - 1}
+                            onClick={() => {
+                              sim.editRoute(index, 1);
+                              updateRoute();
+                            }}
+                          >
+                            ↓
+                          </button>
+                          <button
+                            aria-label={`Remove ${stop.name} from route`}
+                            onClick={() => {
+                              sim.editRoute(index, 0);
+                              updateRoute();
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <button
+                  className="chart-engage"
+                  disabled={sim.surface.phase !== 'flight'}
+                  onClick={onFlyRoute}
+                >
+                  Fly planned route
+                </button>
+                <small>
+                  Visits each destination in order. Pulse engages for distant
+                  legs. Steering or throttle pauses the route.
+                </small>
+              </>
+            ) : (
+              <p>Add destinations in the order you want to visit.</p>
+            )}
+          </div>
         </div>
         <aside className="chart-details">
           <span className="eyebrow">DESTINATION PREVIEW</span>

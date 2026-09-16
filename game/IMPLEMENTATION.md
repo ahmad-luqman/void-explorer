@@ -281,3 +281,12 @@ The Chromium touch journey checks simultaneous steering/throttle, cancellation, 
 Manual turns ease in over roughly 100 ms and settle faster on release. The simulation integrates exponential angular velocity analytically, bounds overlapping keyboard/touch inputs, and clears drift during autopilot, surface operations and resets. The chase camera follows turns more closely; logarithmic speed FOV is bounded to 60–77° and uses elapsed-time smoothing. Walking remains at 60°. No terrain or save schema changes.
 
 All 98 unit tests, type checking, scoped handling/renderer lint (excluding the existing Vite worker import-resolution false positive), and the static build pass. Identical turn/release/FOV sequences agree at 20, 30, 60 and 144 Hz. Complete production orbital/coastal saved journeys pass on WebGL (26.3/33.5 s) and WebGPU (26.2/36.7 s), including terrain profiles 3 and 4 and touch-layout checks. These durations are test lengths, not frame-rate measurements.
+
+## Saved itineraries
+
+The star chart now queues up to eight distinct destinations, displays the planned bearing and direct center-to-center leg lengths, and supports reordering/removal. Flying the route uses the existing obstacle-aware autopilot, automatically engages pulse for legs over 50,000 km, and removes a stop only on arrival. Steering/throttle/braking, target changes, descent, surface operations and route edits pause the itinerary without discarding unfinished stops. The map's Fly planned route control resumes it.
+
+An optional validated route field extends compatible expedition saves. Older saves restore with an empty itinerary; all routes restore paused. Unit checks cover limits, malformed/unreachable IDs, atomic restoration, manual interruption and ordered completion. Distances are direct bearings, not obstacle-adjusted path lengths. Full route controls are available in the responsive chart.
+
+
+Route validation: all 102 unit tests, type checking, scoped runtime/test lint and the static build pass. The chart passes lint with its pre-existing SVG semantic-tag warning excluded. Production route journeys pass on WebGL (9.9 s) and WebGPU (10.2 s), including editing at 390×844, a real first-leg arrival, pause, save/reload and removal. Complete orbital and new/legacy coastal excursions also pass on the final route build (WebGL 26.3/36.7 s; WebGPU 26.5/37.0 s). Actual chart captures are preserved in `art/milestones/planned-route*.png`.

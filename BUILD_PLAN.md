@@ -205,3 +205,12 @@ Current flight/release pass:
 3. Validate 20/30/60/144 Hz behavior and full production excursions on both backends.
 4. Extend repeatable journeys to Firefox and WebKit, and record warmed frame pacing on available hardware. Keep browser emulation distinct from actual phone certification.
 5. Publish validated milestones privately, then continue the larger environment, route-planning, destinations and streaming requirements in the completion audit.
+
+### Saved route planning — implementation and validation
+
+1. Queue up to eight unique chart destinations, display their bearing and direct leg lengths, and reorder/remove stops through the existing map.
+2. Follow each leg with the existing obstacle-aware autopilot. Engage pulse for distant legs, consume only reached stops, and retain the unfinished itinerary when steering/throttle/braking or editing interrupts it.
+3. Persist optional routes in compatible expedition saves. Validate IDs and limits atomically; restoration always leaves the route paused. Keep older saves without a route valid.
+4. Check ordered arrivals, manual interruption, editing, saved restoration, desktop/mobile chart layout and production journeys. Publish with the verified sound/touch/handling/browser milestones.
+
+Next environment pass remains the highest visual priority: improve distant terrain forms and cloud-bank silhouettes, then shoreline/foreground composition. The concept gap is still visible; the completion audit must remain open through those changes, authored destinations, streaming refinement and remaining device validation.

@@ -20,6 +20,7 @@ export type ExpeditionSave = {
   position: number[];
   orientation: number[];
   target: string;
+  route?: string[];
   visited: number[];
   surface: SurfaceRecord;
 };
@@ -68,6 +69,7 @@ export function captureExpedition(
       : sim.orientation
     ).toArray(),
     target: sim.target.id,
+    route: [...sim.route],
     visited: [...sim.visited],
     surface,
   };
@@ -88,6 +90,11 @@ export function parseExpedition(raw: string | null): ExpeditionSave | null {
       !vector(s.position, 3) ||
       !quaternion(s.orientation) ||
       !bodyId(s.target) ||
+      (s.route !== undefined &&
+        (!Array.isArray(s.route) ||
+          s.route.length > 8 ||
+          !s.route.every(bodyId) ||
+          new Set(s.route).size !== s.route.length)) ||
       !Array.isArray(s.visited) ||
       s.visited.length > 1024 ||
       !s.visited.every(
@@ -146,7 +153,11 @@ export function restoreExpedition(
       ...(s.companion ? [s.companion] : []),
     ]),
     target = bodies.find((b) => b.id === save.target);
-  if (!target) return false;
+  if (
+    !target ||
+    (save.route || []).some((id) => !bodies.some((body) => body.id === id))
+  )
+    return false;
   const body = bodies.find((b) => b.id === save.surface.bodyId);
   const terrainVersion = save.version === 5 ? save.terrainVersion! : 1;
   const time = save.version >= 3 ? save.rotationTime! : 0;
@@ -228,6 +239,8 @@ export function restoreExpedition(
   sim.elapsed = time;
   sim.orientation.copy(orientation);
   sim.target = target;
+  sim.route = [...(save.route || [])];
+  sim.routeActive = false;
   sim.visited = new Set(save.visited);
   sim.updateEnvironment();
   sim.surface.restore(record, sim.altitude < 60 && !sim.nearest.star);

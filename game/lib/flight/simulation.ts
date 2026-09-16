@@ -60,6 +60,8 @@ export class FlightSimulation {
   throttle = 0;
   pulse = false;
   autopilot = false;
+  route: string[] = [];
+  routeActive = false;
   descending = false;
   elapsed = 0;
   terrainVersion: 1 | 2 | 3 | 4 = 4;
@@ -136,6 +138,7 @@ export class FlightSimulation {
       this.pulse = false;
       this.autopilot = false;
       this.descending = false;
+      this.routeActive = false;
       this.flightMessage =
         'Survey range limit. Turn back toward the charted systems.';
       return false;
@@ -152,39 +155,75 @@ export class FlightSimulation {
       new Matrix4().lookAt(this.position, point, UP),
     );
   }
-  select(id: string) {
-    for (const s of this.systems) {
-      const b =
-        s.star.id === id
-          ? s.star
-          : s.companion?.id === id
-            ? s.companion
-            : s.planets.find((p) => p.id === id);
-      if (b) {
-        this.target = b;
-        this.autopilot = false;
-        this.descending = false;
-        return true;
-      }
+  destination(id: string): Body | undefined {
+    for (const system of this.systems) {
+      if (system.star.id === id) return system.star;
+      if (system.companion?.id === id) return system.companion;
+      const planet = system.planets.find((body) => body.id === id);
+      if (planet) return planet;
     }
-    return false;
+  }
+  select(id: string) {
+    const body = this.destination(id);
+    if (!body) return false;
+    this.target = body;
+    this.autopilot = false;
+    this.routeActive = false;
+    this.descending = false;
+    return true;
+  }
+  queueStop(id: string) {
+    if (
+      this.route.length >= 8 ||
+      this.route.includes(id) ||
+      !this.destination(id)
+    )
+      return false;
+    this.route.push(id);
+    return true;
+  }
+  editRoute(index: number, direction: -1 | 0 | 1) {
+    if (!Number.isInteger(index) || index < 0 || index >= this.route.length)
+      return;
+    const next = index + direction;
+    if (next < 0 || next >= this.route.length) return;
+    if (this.routeActive) this.autopilot = false;
+    this.routeActive = false;
+    if (!direction) this.route.splice(index, 1);
+    else
+      [this.route[index], this.route[next]] = [
+        this.route[next],
+        this.route[index],
+      ];
+  }
+  startRoute() {
+    if (this.surface.phase !== 'flight' || !this.route.length) return false;
+    if (!this.select(this.route[0])) return false;
+    this.routeActive = true;
+    this.autopilot = true;
+    this.pulse = this.position.distanceTo(this.target.position) > 50000;
+    return true;
   }
   togglePulse() {
     if (this.surface.phase === 'flight') this.pulse = !this.pulse;
   }
   engage() {
     if (this.surface.phase !== 'flight') return;
+    this.routeActive = false;
     this.autopilot = !this.autopilot;
     this.descending = false;
   }
   descend() {
     if (this.surface.phase !== 'flight') return;
     if (this.target.star) return;
+    this.routeActive = false;
     this.autopilot = true;
     this.descending = true;
     this.pulse = false;
   }
   reset() {
+    this.route = [];
+    this.routeActive = false;
     this.setTerrainVersion(4);
     this.surface.reset();
     this.elapsed = 0;
@@ -256,6 +295,7 @@ export class FlightSimulation {
     this.updateEnvironment();
     this.surface.refreshScenery();
     if (this.surface.phase !== 'flight') {
+      this.routeActive = false;
       this.angularVelocity.set(0, 0, 0);
       this.surface.step(dt, input);
       this.updateEnvironment();
@@ -264,6 +304,7 @@ export class FlightSimulation {
     const manual =
       Math.abs(input.pitch) + Math.abs(input.yaw) + Math.abs(input.roll) > 0.01;
     if (manual || input.brake || input.accelerate || input.decelerate) {
+      this.routeActive = false;
       this.autopilot = false;
       this.descending = false;
     }
@@ -309,6 +350,9 @@ export class FlightSimulation {
           (this.descending ? 12 : Math.max(180, this.target.radius * 0.65));
       const remaining = this.position.distanceTo(this.target.position) - stop;
       if (remaining < 2) {
+        const arrivedRoute =
+          this.routeActive && this.route[0] === this.target.id;
+        this.routeActive = false;
         desired = 0;
         this.throttle = 0;
         this.autopilot = false;
@@ -326,6 +370,10 @@ export class FlightSimulation {
           );
         }
         this.descending = false;
+        if (arrivedRoute) {
+          this.route.shift();
+          if (!this.startRoute()) this.pulse = false;
+        }
       } else {
         // Steer around intervening worlds instead of flying a straight line
         // through the planet the expedition is leaving.
@@ -435,6 +483,7 @@ export class FlightSimulation {
         this.autopilot = false;
         this.descending = false;
         this.pulse = false;
+        this.routeActive = false;
         this.flightMessage = candidate.reason;
         break;
       }
@@ -475,6 +524,8 @@ export class FlightSimulation {
       target: this.target.id,
       system: this.activeSystem.id,
       autopilot: this.autopilot,
+      route: [...this.route],
+      routeActive: this.routeActive,
       descending: this.descending,
       pulse: this.pulse,
       visited: [...this.visited],

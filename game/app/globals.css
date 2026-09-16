@@ -1772,3 +1772,79 @@ h1 > span {
     margin: 6px 0;
   }
 }
+.chart-route {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #355567;
+}
+.chart-route h4 {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #9cdedb;
+}
+.chart-route small,
+.chart-route p {
+  display: block;
+  font-size: 12px;
+  color: #adc1ce;
+  line-height: 1.5;
+}
+.chart-route ol {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+.chart-route li {
+  padding: 10px 0;
+  border-bottom: 1px solid #28404f;
+}
+.chart-route li b {
+  font-size: 13px;
+  font-weight: 500;
+}
+.chart-route li > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.chart-route li button,
+.chart-add-stop {
+  border: 1px solid #416779;
+  padding: 8px 12px;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 14px;
+}
+.chart-add-stop {
+  width: 100%;
+  margin-top: 12px;
+  color: #b2e7e7;
+}
+.chart-route button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.route-guidance {
+  color: #9ddeda;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.chart-route ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 20px;
+}
+.chart-route .chart-add-stop {
+  width: auto;
+  min-width: 160px;
+}
+.chart-route > .chart-engage {
+  margin: 4px 0 8px;
+}
+@media (max-width: 560px) {
+  .chart-route ol {
+    grid-template-columns: 1fr;
+  }
+}
