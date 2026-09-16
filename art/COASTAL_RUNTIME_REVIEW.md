@@ -273,3 +273,5 @@ An initial vapor prototype crossed the chase-camera plane and produced large wed
 All 108 unit tests, TypeScript, scoped changed-module lint and the static build pass. Motion checks on both renderers cover actual atmospheric/turn/pulse captures, pause, quality switching and effect suppression on the ground. Unit checks cover time integration, reset, 20/30/60/144 Hz consistency and geometry budgets.
 
 Complete production orbital/coastal journeys pass on WebGL (26.7/40.8 s) and WebGPU (26.9/45.2 s), including restored coastal profiles 3–5. No page or console errors occurred. These durations are test lengths, not performance measurements.
+
+The motion-feedback pass is published privately as Sites version 26. Deployment reported `succeeded`. Terrain artifacts and the wider visual/exploration/device requirements remain open.
