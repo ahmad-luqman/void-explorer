@@ -1,3 +1,4 @@
+import { siteById, validDiscoveries } from './sites';
 import { Quaternion, Vector3 } from 'three';
 import type { FlightSimulation } from './simulation';
 import type { SurfaceRecord } from './surface';
@@ -21,6 +22,8 @@ export type ExpeditionSave = {
   orientation: number[];
   target: string;
   route?: string[];
+  siteDestination?: string | null;
+  discoveries?: string[];
   visited: number[];
   surface: SurfaceRecord;
 };
@@ -70,6 +73,8 @@ export function captureExpedition(
     ).toArray(),
     target: sim.target.id,
     route: [...sim.route],
+    siteDestination: sim.siteDestination,
+    discoveries: [...sim.discoveries],
     visited: [...sim.visited],
     surface,
   };
@@ -95,6 +100,10 @@ export function parseExpedition(raw: string | null): ExpeditionSave | null {
           s.route.length > 8 ||
           !s.route.every(bodyId) ||
           new Set(s.route).size !== s.route.length)) ||
+      (s.discoveries !== undefined && !validDiscoveries(s.discoveries)) ||
+      (s.siteDestination != null &&
+        (!siteById(s.siteDestination) ||
+          siteById(s.siteDestination)?.bodyId !== s.target)) ||
       !Array.isArray(s.visited) ||
       s.visited.length > 1024 ||
       !s.visited.every(
@@ -240,6 +249,8 @@ export function restoreExpedition(
   sim.orientation.copy(orientation);
   sim.target = target;
   sim.route = [...(save.route || [])];
+  sim.siteDestination = save.siteDestination ?? null;
+  sim.discoveries = new Set(save.discoveries ?? []);
   sim.routeActive = false;
   sim.visited = new Set(save.visited);
   sim.updateEnvironment();

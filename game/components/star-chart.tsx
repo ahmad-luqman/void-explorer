@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FlightSimulation } from '@/lib/flight/simulation';
+import { EXPEDITION_SITES, OBSERVATION_COUNT } from '@/lib/flight/sites';
 import { relative, zeroCells } from '@/lib/flight/coordinates';
 import {
   type Body,
@@ -13,8 +14,15 @@ type Props = {
   onChoose: (id: string, engage?: boolean) => void;
   onRouteChange: () => void;
   onFlyRoute: () => void;
+  onSite: (id: string) => void;
 };
-export function StarChart({ sim, onChoose, onRouteChange, onFlyRoute }: Props) {
+export function StarChart({
+  sim,
+  onChoose,
+  onRouteChange,
+  onFlyRoute,
+  onSite,
+}: Props) {
   const [mode, setMode] = useState<'system' | 'galaxy'>('system'),
     [systemId, setSystemId] = useState(sim.target.system),
     [selected, setSelected] = useState(sim.target.id),
@@ -506,6 +514,57 @@ export function StarChart({ sim, onChoose, onRouteChange, onFlyRoute }: Props) {
           )}
         </aside>
       </div>
+      <section className="expedition-journal" aria-label="Expedition journal">
+        <h3>
+          FIELD JOURNAL{' '}
+          <small>
+            {sim.discoveries.size} / {OBSERVATION_COUNT} observations
+          </small>
+        </h3>
+        <p>
+          Fly to a landing site, explore on foot, and record its observations.
+        </p>
+        {EXPEDITION_SITES.map((site) => (
+          <details key={site.id}>
+            <summary>
+              {site.name} ·{' '}
+              {
+                site.observations.filter((o) => sim.discoveries.has(o.id))
+                  .length
+              }
+              /{site.observations.length}
+            </summary>
+            <p>
+              {site.description}{' '}
+              <span>{sim.destination(site.bodyId)?.name}</span>
+            </p>
+            <button
+              disabled={sim.surface.phase !== 'flight'}
+              onClick={() => onSite(site.id)}
+            >
+              Navigate to {site.name}
+            </button>
+            {sim.surface.phase !== 'flight' && (
+              <small>Board and take off to navigate.</small>
+            )}
+            <ul>
+              {site.observations.map((o) => (
+                <li key={o.id}>
+                  <b>
+                    {o.name} ·{' '}
+                    {sim.discoveries.has(o.id) ? 'RECORDED' : 'UNRECORDED'}
+                  </b>
+                  <p>
+                    {sim.discoveries.has(o.id)
+                      ? o.text
+                      : 'Approach the observation on foot to add a field record.'}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ))}
+      </section>
       <div className="chart-search">
         <label className="search-label">
           FIND A STAR SYSTEM

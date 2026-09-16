@@ -1,3 +1,5 @@
+import { authoredScenery } from './site-scenery';
+import { nearbySite, sitePoint } from './sites';
 import { Line3, Ray, Vector3 } from 'three';
 import type { ContactSurface } from './contact';
 import { COAST_UP } from './coast';
@@ -17,7 +19,7 @@ export type SurfaceProp = {
   height: number;
   yaw: number;
   mineral: boolean;
-  shape?: 'fan' | 'succulent' | 'landmark';
+  shape?: 'fan' | 'succulent' | 'landmark' | 'relay' | 'crystal';
   tint?: string;
   landmark?: string;
 };
@@ -92,13 +94,19 @@ export function generateScenery(
   const additions = [
     ...generateExplorationScenery(patch, focus),
     ...coastalScenery(patch, focus),
+    ...authoredScenery(patch, focus),
   ];
+  const authoredSite = nearbySite(focus, body);
   const visible = (p: SurfaceProp) =>
-    body.id !== 'p0-0' ||
-    (body.terrainVersion ?? 1) < 2 ||
-    p.id.includes(':coast:') ||
-    toPlanet(p.point, body).normalize().distanceTo(COAST_UP) * body.radius >
-      1.5;
+    (!authoredSite ||
+      authoredSite.id === 'lumen-coast' ||
+      p.id.includes(':authored:') ||
+      p.point.distanceTo(sitePoint(authoredSite, body)) > 0.3) &&
+    (body.id !== 'p0-0' ||
+      (body.terrainVersion ?? 1) < 2 ||
+      p.id.includes(':coast:') ||
+      toPlanet(p.point, body).normalize().distanceTo(COAST_UP) * body.radius >
+        1.5);
   const landmarks = additions.filter(
     (p) => p.shape === 'landmark' && visible(p),
   );

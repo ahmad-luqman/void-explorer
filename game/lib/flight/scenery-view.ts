@@ -1,3 +1,4 @@
+import { siteGeometry } from './site-geometry';
 import * as T from 'three';
 import { explorationGeometry } from './scenery-geometry';
 import { rockFormation, rockFormationGeometry } from './rock-formations';
@@ -31,6 +32,8 @@ export function createSceneryView(
     'gravel',
     'outcrop',
     'cliff',
+    'relay',
+    'crystal',
   ] as const) {
     const mineral = shape === 'mineral';
     const extra =
@@ -53,12 +56,14 @@ export function createSceneryView(
         ? new T.ConeGeometry(1, 1, 5)
         : shape === 'gravel' || shape === 'outcrop' || shape === 'cliff'
           ? rockFormationGeometry(shape, variant)
-          : explorationGeometry(shape, variant);
+          : shape === 'relay' || shape === 'crystal'
+            ? siteGeometry(shape)
+            : explorationGeometry(shape, variant);
       if (mineral) geometry.translate(0, 0.4, 0);
       const material = new T.MeshStandardMaterial({
         color: '#ffffff',
         side: shape === 'fan' ? T.DoubleSide : T.FrontSide,
-        roughness: mineral ? 0.48 : 0.95,
+        roughness: shape === 'crystal' ? 0.32 : mineral ? 0.48 : 0.95,
         metalness: mineral ? 0.12 : 0,
         flatShading: true,
         vertexColors: !mineral,

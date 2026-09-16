@@ -1,3 +1,4 @@
+import { siteById, sitePoint } from './sites';
 import { sampleBiome } from './biomes';
 import type { TerrainStorage } from './terrain-storage';
 import { planetRotation, toPlanet } from './rotation';
@@ -1197,7 +1198,10 @@ export class FlightRenderer {
     else this.renderer.render(this.scene, this.camera);
   }
   targetScreen() {
-    const p = this.sim.target.position.clone().sub(this.sim.position);
+    const site = siteById(this.sim.siteDestination);
+    const p = (
+      site ? sitePoint(site, this.sim.target) : this.sim.target.position.clone()
+    ).sub(this.sim.position);
     const inFront =
       p.dot(new T.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion)) >
       0;

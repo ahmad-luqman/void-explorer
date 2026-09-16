@@ -28,7 +28,8 @@ import type { FlightRenderer } from '@/lib/flight/renderer';
 import { createFlightRenderer } from '@/lib/flight/renderer-factory';
 import { registerFlightTools } from '@/lib/flight/webmcp';
 import { distanceLabel, elevation, SYSTEM_COUNT } from '@/lib/flight/universe';
-import type { SurfacePhase } from '@/lib/flight/surface';
+import { EXPEDITION_SITES, siteById } from '@/lib/flight/sites';
+import type { SurfaceExpedition, SurfacePhase } from '@/lib/flight/surface';
 import { ExpeditionAudio } from '@/lib/flight/audio';
 import {
   TouchControls,
@@ -70,6 +71,7 @@ const initial = {
   guidance: 'Ready to navigate',
   eta: null as number | null,
   closingSpeed: 0,
+  siteSurvey: null as SurfaceExpedition['siteSurvey'],
   survey: { biome: '', landmark: null, coast: false } as {
     coast: boolean;
     biome: string;
@@ -350,7 +352,7 @@ export default function Home() {
               altitude: sim.altitude,
               mode: sim.status,
               system: sim.activeSystem.name,
-              target: sim.target.name,
+              target: siteById(sim.siteDestination)?.name ?? sim.target.name,
               kind: sim.target.star ? 'star' : sim.target.kind,
               range: nav.range,
               visited: sim.visited.size,
@@ -366,6 +368,7 @@ export default function Home() {
               shipDistance: sim.surface.shipDistance,
               walked: sim.surface.walked,
               survey: sim.surface.survey,
+              siteSurvey: sim.surface.siteSurvey,
               contactReady: !!sim.surface.patch,
               ...marker,
             });
@@ -785,6 +788,24 @@ export default function Home() {
             >
               Explore Lumen Coast <ArrowRight size={15} />
             </Button>
+            <details className="site-starts">
+              <summary>More landing sites</summary>
+              {EXPEDITION_SITES.filter((site) => site.id !== 'lumen-coast').map(
+                (site) => (
+                  <Button
+                    key={site.id}
+                    variant="outline"
+                    className="continue-button"
+                    disabled={!ready}
+                    onClick={() => {
+                      if (runtime.current?.sim.startSite(site.id)) start();
+                    }}
+                  >
+                    Explore {site.name} <ArrowRight size={15} />
+                  </Button>
+                ),
+              )}
+            </details>
             {saved && (
               <Button
                 variant="outline"
@@ -970,15 +991,50 @@ export default function Home() {
                     Look over Lumen Bay
                   </button>
                 )}
-                {data.survey.landmark && (
-                  <button onClick={() => sim?.surface.lookAtLandmark()}>
-                    <span>{data.survey.landmark.name}</span>
+                {data.siteSurvey && (
+                  <div className="site-survey">
                     <b>
-                      {distanceLabel(data.survey.landmark.distance)} · Look
-                      toward
+                      {data.siteSurvey.name} · {data.siteSurvey.completed}/
+                      {data.siteSurvey.total}
                     </b>
-                  </button>
+                    <button onClick={() => sim?.surface.lookAtSurvey()}>
+                      Locate {data.siteSurvey.observation.name} ·{' '}
+                      {Math.round(data.siteSurvey.observation.distance * 1000)}{' '}
+                      m
+                    </button>
+                    <button
+                      disabled={
+                        data.siteSurvey.observation.recorded ||
+                        data.siteSurvey.observation.distance > 0.018
+                      }
+                      onClick={() => {
+                        if (sim?.surface.recordSurvey()) saveExpedition();
+                      }}
+                    >
+                      {data.siteSurvey.observation.recorded
+                        ? 'Survey complete'
+                        : `Record ${data.siteSurvey.observation.name}`}
+                    </button>
+                    <small>Approach within 18 m on foot to record.</small>
+                  </div>
                 )}
+                <button onClick={() => sim?.surface.lookAtShip()}>
+                  Locate AURORA
+                </button>
+                <button onClick={() => setChart(true)}>
+                  Open expedition journal
+                </button>
+                {data.survey.landmark &&
+                  (!data.siteSurvey ||
+                    data.siteSurvey.id === 'lumen-coast') && (
+                    <button onClick={() => sim?.surface.lookAtLandmark()}>
+                      <span>{data.survey.landmark.name}</span>
+                      <b>
+                        {distanceLabel(data.survey.landmark.distance)} · Look
+                        toward
+                      </b>
+                    </button>
+                  )}
               </div>
               <p className="surface-hint">
                 WASD to walk · arrows or drag to look
@@ -1313,6 +1369,12 @@ export default function Home() {
             <StarChart
               sim={sim}
               onChoose={choose}
+              onSite={(id) => {
+                if (sim.selectSite(id)) {
+                  saveExpedition();
+                  setChart(false);
+                }
+              }}
               onRouteChange={() => {
                 saveExpedition();
               }}

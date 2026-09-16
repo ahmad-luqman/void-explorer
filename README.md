@@ -28,7 +28,9 @@ Open the local URL printed by the server. The app selects WebGPU when the browse
 - Navigation shows alignment, approach, and moving-away feedback. Arrival estimates use current closing speed and disappear when you are not approaching.
 - L descends to the selected planet and finishes facing the horizon. Continue manually with throttle and pitch to fly close to the ground; proximity protection stops the engines before the hull reaches terrain or rocks. Pitch up and apply throttle to climb away. Slow flight displays meters per second.
 - B lands on suitable ground below 30 km, finding a nearby clearing when rocks obstruct the footprint; F leaves or boards the ship; R takes off.
-- On foot, WASD walks, arrows or dragging looks around, and Shift runs.
+- On foot, WASD walks, arrows or dragging looks around, and Shift runs. Locate an observation, approach within 18 m, and record it in the expedition journal.
+- The chart includes Lumen Coast, Ember Relay and Glass Choir. Navigate to a site flies continuously to a hover above its landing area; land manually to explore. More landing sites on the title screen starts a fresh expedition near a site.
+- Add up to eight destinations to the chart route, reorder them, then fly the itinerary. Manual controls pause it; saves retain unfinished stops.
 - Expeditions save automatically every 15 seconds and at stable phase changes. Save manually from pause or the surface panel; Continue restores progress on this device.
 - Esc pauses; G opens settings; H opens the flight manual.
 
@@ -56,7 +58,7 @@ Close terrain uses the exact rendered triangles for landing and walking, within 
 
 **Explore Lumen Coast** starts the newest coastal terrain profile, with an open bay, layered islands, composed foreground plants/rocks and an offshore landmark. Continue preserves an older expedition's original terrain profile. The scene remains below the concept art's density and finish. Clouds use a drifting shell plus stylized solid coastal billows; water has animated shading but no scene reflections or physical waves.
 
-WebGPU and WebGL 2 share the expedition and graphics options. Software-rendered browser tests cover both; real-device performance and broader browser coverage remain unverified. AURORA loads from an authored GLB with a procedural fallback. Mechanical gear animation remains future polish. Sound is a synthesized engine tone, with no soundtrack.
+WebGPU and WebGL 2 share the expedition and graphics options. Production journeys cover Chromium with both renderers, Firefox and WebKit. M4 Max frame-pacing samples provide a desktop baseline; lower-power hardware and physical phones remain unverified. AURORA loads from an authored GLB with a procedural fallback and folding landing gear. Layered procedural audio includes flight, weather and surface events; there is no soundtrack. See the [completion audit](COMPLETION_AUDIT.md) for current evidence and open requirements.
 
 ## Project references
 

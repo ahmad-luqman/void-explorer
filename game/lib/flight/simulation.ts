@@ -1,3 +1,4 @@
+import { siteById, sitePoint, siteGuidance } from './sites';
 import { Matrix4, Quaternion, Vector3 } from 'three';
 import {
   planetRotation,
@@ -62,6 +63,9 @@ export class FlightSimulation {
   autopilot = false;
   route: string[] = [];
   routeActive = false;
+  siteDestination: string | null = null;
+  siteApproach = false;
+  discoveries = new Set<string>();
   descending = false;
   elapsed = 0;
   terrainVersion: 1 | 2 | 3 | 4 | 5 = 5;
@@ -112,6 +116,37 @@ export class FlightSimulation {
       .add(this.target.position);
     this.orientation.premultiply(rotation);
     this.updateEnvironment();
+  }
+  startSite(id: string) {
+    const site = siteById(id);
+    if (!site) return false;
+    if (id === 'lumen-coast') {
+      this.startCoast();
+      this.siteDestination = id;
+      return true;
+    }
+    this.reset();
+    this.target = this.destination(site.bodyId)!;
+    this.position.copy(sitePoint(site, this.target, 0, 0, 0.12));
+    this.orientation.setFromRotationMatrix(
+      new Matrix4().lookAt(
+        this.position,
+        sitePoint(site, this.target, 0, 0.2, 0.1),
+        site.up,
+      ),
+    );
+    this.siteDestination = id;
+    this.updateEnvironment();
+    return true;
+  }
+  selectSite(id: string, engage = true) {
+    const site = siteById(id);
+    if (!site || this.surface.phase !== 'flight' || !this.select(site.bodyId))
+      return false;
+    this.siteDestination = id;
+    this.autopilot = engage;
+    this.pulse = false;
+    return true;
   }
   get address(): SpaceAddress {
     return address(this.origin, this.position);
@@ -167,6 +202,8 @@ export class FlightSimulation {
     const body = this.destination(id);
     if (!body) return false;
     this.target = body;
+    this.siteDestination = null;
+    this.siteApproach = false;
     this.autopilot = false;
     this.routeActive = false;
     this.descending = false;
@@ -208,6 +245,7 @@ export class FlightSimulation {
     if (this.surface.phase === 'flight') this.pulse = !this.pulse;
   }
   engage() {
+    this.siteApproach = false;
     if (this.surface.phase !== 'flight') return;
     this.routeActive = false;
     this.autopilot = !this.autopilot;
@@ -222,6 +260,9 @@ export class FlightSimulation {
     this.pulse = false;
   }
   reset() {
+    this.siteDestination = null;
+    this.siteApproach = false;
+    this.discoveries.clear();
     this.route = [];
     this.routeActive = false;
     this.setTerrainVersion(5);
@@ -304,6 +345,7 @@ export class FlightSimulation {
     const manual =
       Math.abs(input.pitch) + Math.abs(input.yaw) + Math.abs(input.roll) > 0.01;
     if (manual || input.brake || input.accelerate || input.decelerate) {
+      this.siteApproach = false;
       this.routeActive = false;
       this.autopilot = false;
       this.descending = false;
@@ -339,7 +381,50 @@ export class FlightSimulation {
       Math.max(0.004, clearance * 0.7),
     );
     let desired = this.throttle * maxSpeed;
-    if (this.autopilot) {
+    const selectedSite = siteById(this.siteDestination);
+    if (
+      this.autopilot &&
+      selectedSite &&
+      this.target.id === selectedSite.bodyId &&
+      this.position.distanceTo(this.target.position) < this.target.radius * 2.1
+    ) {
+      const guidance = siteGuidance(
+        this.position,
+        this.target,
+        selectedSite,
+        this.siteApproach,
+      );
+      this.siteApproach ||= guidance.readyToDescend;
+      if (guidance.arrived) {
+        this.autopilot = false;
+        this.throttle = 0;
+        desired = 0;
+        this.flightMessage = `${selectedSite.name}: landing site reached.`;
+        this.orientation.setFromRotationMatrix(
+          new Matrix4().lookAt(
+            this.position,
+            sitePoint(selectedSite, this.target, 0, 0.2, 0.1),
+            this.position.clone().sub(this.target.position).normalize(),
+          ),
+        );
+      } else {
+        const direction = guidance.waypoint
+          .clone()
+          .sub(this.position)
+          .normalize();
+        const up = this.position.clone().sub(this.target.position).normalize();
+        const rotation = new Quaternion().setFromRotationMatrix(
+          new Matrix4().lookAt(this.position, guidance.waypoint, up),
+        );
+        this.orientation.slerp(rotation, 1 - Math.exp(-dt * 2));
+        const alignment = FORWARD.clone()
+          .applyQuaternion(this.orientation)
+          .dot(direction);
+        desired =
+          Math.min(maxSpeed, guidance.remaining * 0.65) *
+          Math.max(0, alignment) ** 6;
+      }
+    } else if (this.autopilot) {
       const radial = this.position
         .clone()
         .sub(this.target.position)
@@ -505,6 +590,8 @@ export class FlightSimulation {
   }
   snapshot() {
     return {
+      siteDestination: this.siteDestination,
+      discoveries: [...this.discoveries],
       address: this.address,
       originRevision: this.originRevision,
       rotationTime: this.rotationClock.time,

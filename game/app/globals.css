@@ -1160,6 +1160,11 @@ h1 > span {
   background: #0a202bdd;
   padding: 8px 14px;
 }
+.surface-navigation {
+  max-height: calc(100dvh - 240px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .surface-navigation .range {
   margin-bottom: 14px;
 }
@@ -1847,4 +1852,82 @@ h1 > span {
   .chart-route ol {
     grid-template-columns: 1fr;
   }
+}
+
+.site-starts {
+  max-width: 350px;
+  margin: 10px 0;
+  color: #a8c6ce;
+  font: 12px var(--font-mono, monospace);
+}
+.site-starts summary {
+  cursor: pointer;
+  padding: 6px 0;
+}
+.site-starts .continue-button {
+  display: flex;
+  width: 100%;
+}
+.site-survey {
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid #315361;
+  padding-top: 9px;
+}
+.site-survey small {
+  color: #96acb8;
+  font-size: 10px;
+}
+.site-survey button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.expedition-journal {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #315361;
+  background: #08141f;
+}
+.expedition-journal h3 {
+  color: #b6e9e7;
+  font: 14px monospace;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.expedition-journal p,
+.expedition-journal small {
+  color: #9cb4c0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.expedition-journal summary {
+  cursor: pointer;
+  color: #bde8eb;
+  padding: 12px 0;
+  font: 13px monospace;
+}
+.expedition-journal details + details {
+  border-top: 1px solid #243f4c;
+}
+.expedition-journal button {
+  padding: 9px 12px;
+  border: 1px solid #5b929b;
+  color: #c4f3ee;
+  background: #12313a;
+  cursor: pointer;
+}
+.expedition-journal button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.expedition-journal ul {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-left: 18px;
+}
+.expedition-journal li b {
+  font: 12px monospace;
+  color: #d1dce2;
 }

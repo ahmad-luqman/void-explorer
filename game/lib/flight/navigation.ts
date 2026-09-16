@@ -1,7 +1,29 @@
+import { siteById, siteGuidance, sitePoint } from './sites';
 import { Vector3 } from 'three';
 import type { FlightSimulation } from './simulation';
 import { worldSurfaceRadius } from './universe';
 export function navigationReadout(sim: FlightSimulation) {
+  const site = siteById(sim.siteDestination);
+  if (site && site.bodyId === sim.target.id) {
+    const g = siteGuidance(sim.position, sim.target, site, sim.siteApproach);
+    const delta = g.waypoint.clone().sub(sim.position);
+    const alignment = new Vector3(0, 0, -1)
+      .applyQuaternion(sim.orientation)
+      .dot(delta.normalize());
+    const closingSpeed = sim.speed * alignment;
+    return {
+      range: sim.position.distanceTo(sitePoint(site, sim.target)),
+      remaining: g.remaining,
+      closingSpeed,
+      alignment,
+      guidance: sim.autopilot
+        ? g.stage
+        : g.arrived
+          ? 'Landing site reached'
+          : 'Site selected · engage autopilot',
+      eta: null,
+    };
+  }
   const delta = sim.target.position.clone().sub(sim.position),
     distance = delta.length();
   const radial = delta.clone().negate().normalize();

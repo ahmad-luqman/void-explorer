@@ -1,3 +1,4 @@
+import { nearbySite, sitePoint } from './sites';
 import { Matrix4, Quaternion, Vector3 } from 'three';
 import {
   BOARD_DISTANCE,
@@ -141,6 +142,70 @@ export class SurfaceExpedition {
       new Matrix4().lookAt(this.sim.position, target, this.patch.up),
     );
   }
+  get siteSurvey() {
+    const body = this.patch?.body;
+    if (!body || body.id !== this.sim.nearest.id) return null;
+    const site = nearbySite(this.sim.position, body);
+    if (!site) return null;
+    const observations = site.observations.map((o) => ({
+      ...o,
+      distance: this.sim.position.distanceTo(sitePoint(site, body, o.x, o.z)),
+      recorded: this.sim.discoveries.has(o.id),
+    }));
+    const observation =
+      observations
+        .filter((o) => !o.recorded)
+        .sort((a, b) => a.distance - b.distance)[0] ?? observations[0];
+    return {
+      name: site.name,
+      id: site.id,
+      completed: observations.filter((o) => o.recorded).length,
+      total: observations.length,
+      observation,
+    };
+  }
+  lookAtShip() {
+    if (this.phase !== 'walking' || !this.patch) return;
+    this.sim.orientation.setFromRotationMatrix(
+      new Matrix4().lookAt(
+        this.sim.position,
+        this.shipPosition.clone().addScaledVector(this.patch.up, 0.002),
+        this.patch.up,
+      ),
+    );
+  }
+  lookAtSurvey() {
+    const survey = this.siteSurvey,
+      body = this.patch?.body;
+    if (!survey || !body || this.phase !== 'walking') return;
+    const site = nearbySite(this.sim.position, body)!;
+    this.sim.orientation.setFromRotationMatrix(
+      new Matrix4().lookAt(
+        this.sim.position,
+        sitePoint(
+          site,
+          body,
+          survey.observation.x,
+          survey.observation.z,
+          0.002,
+        ),
+        this.patch!.up,
+      ),
+    );
+  }
+  recordSurvey() {
+    const survey = this.siteSurvey;
+    if (
+      this.phase !== 'walking' ||
+      !survey ||
+      survey.observation.distance > 0.018 ||
+      survey.observation.recorded
+    )
+      return false;
+    this.sim.discoveries.add(survey.observation.id);
+    this.message = `Survey recorded: ${survey.observation.name}.`;
+    return true;
+  }
   get shipDistance() {
     return this.sim.position.distanceTo(this.shipPosition);
   }
@@ -179,6 +244,12 @@ export class SurfaceExpedition {
     if (!force && delta.length() < 0.15) return;
     this.scenery = generateScenery(patch, this.sim.position).filter(
       (prop) =>
+        !(
+          prop.id.includes(':authored:') &&
+          this.phase !== 'flight' &&
+          (prop.point.distanceTo(this.shipPosition) < prop.radius + 0.04 ||
+            prop.point.distanceTo(this.sim.position) < prop.radius + 0.004)
+        ) &&
         !this.sceneryExclusions.some(
           (e) =>
             prop.point.distanceTo(e.point) <

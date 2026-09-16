@@ -248,3 +248,20 @@ Delivered: integrated heading-aligned streaks with atmosphere/cruise/pulse envel
 3. Preserve before/after gameplay evidence on both renderers and both quality settings. Verify affected geometry/material invariants, streaming and complete saved production expeditions before publication.
 
 Delivered: cell-aspect normal blending reduces dense contact-grid lighting stripes, broader filtered weather replaces tiny orbital cloud speckles, and powered ring patterns filter toward analytic averages below pixel scale. All 109 tests, type checks, scoped lint, static build and dual-renderer High/Low/day/night plus full production saved journeys pass. Geometry, collision, saved profiles and transferred cache payloads are unchanged. Independent terrain refinement and full concept acceptance remain open. Next expand authored exploration destinations and saved discovery progress, then continue streaming and foreground/cloud integration.
+
+### Authored destinations and expedition journal — delivered
+
+1. Author distinct desert and ice sites alongside Lumen Coast, using fixed native coordinates, deliberate landmark arrangements, open landing/walking routes and local survey observations. Keep terrain geometry and existing saved poses intact.
+2. Expose sites in the chart and provide continuous orbital-to-surface guidance. New-expedition shortcuts may start near a site, but ordinary navigation must reach it through flight. Manual input cancels guidance safely.
+3. Let players approach observations on foot, record them, and revisit a journal with descriptions and progress. Persist discoveries and the selected site compatibly; validate malformed records before changing live state.
+4. Verify dry/even landing footprints, prop budgets/collisions, rotation, navigation, actual walking surveys and saved restoration. Review distinctive views and full production journeys on both renderers, then publish the validated result.
+
+
+Delivered: Ember Relay and Glass Choir join Lumen Coast with seven saved observations, a responsive field journal, fixed collidable landmark kits, and continuous rotating-world site guidance. New-expedition shortcuts and ordinary interplanetary travel both work. Walking tests protect the complete survey/return loop, and optional save fields preserve older expeditions. Paired production captures and the visual limitations are in [the runtime review](art/COASTAL_RUNTIME_REVIEW.md). The wider environment concept gap remains open.
+
+### Terrain-streaming continuity and load behavior — next
+
+1. Measure sustained surface travel through repeated patch replacements, recording worker generation, upload/morph costs, cache behavior and rendered frame pacing separately. Include warm and cold paths on both renderers; retain actual device/browser context.
+2. Inspect the stretched grid and distant terrain revealed at the authored sites. Refine independent terrain regions within explicit geometry/memory budgets while keeping shared boundaries watertight and the collision surface authoritative.
+3. Preserve every saved terrain profile, native rotation, landing footprint and walking pose. Verify seam/LOD transitions and landing during background work, including stale worker replies and cache restoration.
+4. Compare actual moving gameplay and both renderer captures, then rerun production journeys before publication. Continue foreground/cloud/water integration and the remaining physical-device validation afterward; the full completion objective stays active.
