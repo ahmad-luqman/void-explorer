@@ -51,3 +51,6 @@ The final route build passes 102 unit tests, the static build and type checking.
 
 
 The route journey also passes on the final export in Firefox (11.9 s) and WebKit (10.2 s). A direct query of the production WebGL context reports `ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Max, Unspecified Version)`, confirming the hardware renderer used by the Chromium baseline.
+
+
+Private deployment of these validated milestones succeeded on 17 September 2026 local time as Sites version 23. The exact game source was pushed to the Sites source repository, with game subtree/tree equality verified before packaging. This publication does not close the full completion audit.
