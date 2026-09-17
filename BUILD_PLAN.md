@@ -259,9 +259,12 @@ Delivered: cell-aspect normal blending reduces dense contact-grid lighting strip
 
 Delivered: Ember Relay and Glass Choir join Lumen Coast with seven saved observations, a responsive field journal, fixed collidable landmark kits, and continuous rotating-world site guidance. New-expedition shortcuts and ordinary interplanetary travel both work. Walking tests protect the complete survey/return loop, and optional save fields preserve older expeditions. Paired production captures and the visual limitations are in [the runtime review](art/COASTAL_RUNTIME_REVIEW.md). The wider environment concept gap remains open.
 
-### Terrain-streaming continuity and load behavior — next
+### Terrain-streaming continuity and load behavior — active
 
 1. Measure sustained surface travel through repeated patch replacements, recording worker generation, upload/morph costs, cache behavior and rendered frame pacing separately. Include warm and cold paths on both renderers; retain actual device/browser context.
 2. Inspect the stretched grid and distant terrain revealed at the authored sites. Refine independent terrain regions within explicit geometry/memory budgets while keeping shared boundaries watertight and the collision surface authoritative.
 3. Preserve every saved terrain profile, native rotation, landing footprint and walking pose. Verify seam/LOD transitions and landing during background work, including stale worker replies and cache restoration.
 4. Compare actual moving gameplay and both renderer captures, then rerun production journeys before publication. Continue foreground/cloud/water integration and the remaining physical-device validation afterward; the full completion objective stays active.
+
+
+Measurement finding: a 30-second traverse replaces roughly 45 contact patches, exceeding the 32 MiB disk cache working set. A shorter repeated route confirms four disk hits, but every hit still prepares normals and the circular seam on the main thread. The first implementation moves these derived buffers to the worker while preserving cached authoritative geometry. Delivered and measured: mean ground application falls from 8.87 to 1.47 ms on WebGL and 12.86 to 2.95 ms on WebGPU in the initial 30-second samples. All 116 unit tests and terrain/storage/production browser journeys pass on both renderers. Standard WebGPU also passes after a water-shader channel-access fix. Raw timings, cached repeats and hardware limitations are retained in art/benchmarks/streaming-2026-09-17. Independent terrain-region refinement remains next.
