@@ -14,6 +14,10 @@ const entries = {
   sky: renderer.match(
     /fragmentShader: `(varying vec3 v;uniform float air;[^`]+)`/,
   )[1],
+  'cloud-volume': readFileSync(
+    new URL('lib/flight/cloud-volume.ts', root),
+    'utf8',
+  ).match(/cloudVolumeFragment = `([^`]+)`/)[1],
   cloud: cloud.match(/fragmentShader: `([^`]+)`/)[1],
 };
 for (const [name, fragment] of Object.entries(entries)) {
@@ -32,7 +36,15 @@ for (const [name, fragment] of Object.entries(entries)) {
   const encoder = new TSLEncoder();
   encoder.reference = true;
   let code = new Transpiler(new GLSLDecoder(), encoder).parse(source);
-  const imports = code.match(/^import .*$/gm).join('\n');
+  let imports = code.match(/^import .*$/gm).join('\n');
+  // Texture references do not expose sample(); these atlases are immutable.
+  if (code.includes("'texture', uniforms")) {
+    imports += "\nimport { texture } from 'three/tsl';";
+    code = code.replace(
+      /reference\( 'value', 'texture', uniforms\[ '([^']+)' \] \)/g,
+      (_, name) => `texture(uniforms['${name}'].value)`,
+    );
+  }
   code = code
     .replace(/^import .*\n/gm, '')
     .replace(/^\/\/ Three[^\n]*\n/, '')

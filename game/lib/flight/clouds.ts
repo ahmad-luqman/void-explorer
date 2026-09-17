@@ -1,94 +1,9 @@
 import * as T from 'three';
-import { type Body, surfaceRadius, random } from './universe';
-import { coastDirection, COAST_UP } from './coast';
+import { type Body, surfaceRadius } from './universe';
+import { COAST_UP } from './coast';
 
-// Overlapping, irregular billows give the coastal horizon coherent weather
-// banks. A single instanced mesh remains attached to the rotating planet.
-export function createCoastalCloudBanks(body: Body) {
-  const geometry = new T.SphereGeometry(1, 10, 6);
-  const positions = geometry.attributes.position;
-  const colors = new Float32Array(positions.count * 3);
-  for (let i = 0; i < positions.count; i++) {
-    const x = positions.getX(i),
-      y = positions.getY(i),
-      z = positions.getZ(i);
-    const relief =
-      1 + Math.sin(x * 11 + z * 7) * Math.cos(y * 9 - z * 5) * 0.065;
-    positions.setXYZ(i, x * relief, y * relief * (y < 0 ? 0.8 : 1), z * relief);
-    const t = T.MathUtils.smoothstep(y, -0.35, 0.7);
-    new T.Color('#a4b3cc')
-      .lerp(new T.Color('#fff4e1'), t)
-      .toArray(colors, i * 3);
-  }
-  geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
-  geometry.computeVertexNormals();
-  const centers = [
-    [-12, 12],
-    [-7, 15],
-    [-1, 13],
-    [5, 18],
-    [12, 20],
-    [20, 24],
-    [-20, 25],
-    [-12, 30],
-    [-4, 29],
-    [4, 33],
-    [14, 37],
-    [25, 43],
-    [-28, 45],
-    [-15, 49],
-    [-1, 48],
-    [10, 55],
-  ];
-  const lobes = 15;
-  const mesh = new T.InstancedMesh(
-    geometry,
-    new T.MeshStandardMaterial({
-      color: '#ffffff',
-      emissive: '#546682',
-      emissiveIntensity: 0.2,
-      roughness: 1,
-      vertexColors: true,
-    }),
-    centers.length * lobes,
-  );
-  const dummy = new T.Object3D();
-  let index = 0;
-  centers.forEach(([x, z], n) => {
-    const rng = random(body.seed ^ (n * 73856093));
-    const center = coastDirection(x, z, body.radius);
-    // One base altitude per bank prevents each lobe following terrain like a prop.
-    const baseRadius = Math.max(
-      body.radius + 3.2,
-      surfaceRadius(center, body) + 1.8,
-    );
-    for (let lobe = 0; lobe < lobes; lobe++) {
-      const base = lobe < 5;
-      const offsetX = base
-        ? (lobe - 2) * 0.38 + (rng() - 0.5) * 0.15
-        : (rng() - 0.5) * 1.6;
-      const offsetZ = (rng() - 0.5) * 0.85;
-      const d = coastDirection(x + offsetX, z + offsetZ, body.radius);
-      const radius = base ? 0.52 + rng() * 0.12 : 0.24 + rng() * 0.34;
-      dummy.position
-        .copy(d)
-        .multiplyScalar(
-          Math.max(baseRadius, surfaceRadius(d, body) + 1.4) +
-            (base ? rng() * 0.07 : 0.22 + rng() * 0.3),
-        );
-      dummy.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d);
-      dummy.scale.set(
-        radius * (base ? 1.15 : 1),
-        radius * (base ? 0.65 : 0.95),
-        radius * 0.8,
-      );
-      dummy.updateMatrix();
-      mesh.setMatrixAt(index++, dummy.matrix);
-    }
-  });
-  mesh.computeBoundingSphere();
-  return mesh;
-}
+export { createVolumeCloudBanks as createCoastalCloudBanks } from './cloud-volume';
+import { createVolumeCloudBanks } from './cloud-volume';
 
 // A thin weather layer follows the same terrain heightfield, 18 km above it.
 // The shell is shared by orbital and below-cloud views; no sky-only replacement.
@@ -172,6 +87,13 @@ export function createCloudLayer(
   });
   const mesh = new T.Mesh(geometry, material);
   if (body.id === 'p0-0' && (body.terrainVersion ?? 1) >= 4)
-    mesh.add(createCoastalCloudBanks(body));
+    mesh.add(
+      createVolumeCloudBanks(
+        body,
+        keyDirection,
+        secondaryDirection,
+        material.uniforms.detail,
+      ),
+    );
   return mesh;
 }

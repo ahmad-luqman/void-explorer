@@ -1,5 +1,7 @@
 'use client';
 
+import { cloudBankPose } from '@/lib/flight/cloud-volume';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Matrix4, Vector3 } from 'three';
 import {
@@ -412,6 +414,9 @@ export default function Home() {
                 .length,
               survey: sim.surface.survey,
               cloudLayers: view?.planets.length,
+              cloudDetail: view?.planets.find(
+                (p) => p.body.id === sim.nearest.id,
+              )?.clouds.material.uniforms.detail.value,
             }),
             resetStreaming: () => view?.streaming.reset(),
             select: (id) => sim.select(id),
@@ -457,6 +462,32 @@ export default function Home() {
                   sim.speed = 0.45;
                   sim.throttle = 0.8;
                 }
+              }
+              if (
+                ['cloud-close', 'cloud-inside', 'cloud-rotated'].includes(name)
+              ) {
+                sim.startCoast();
+                if (name === 'cloud-rotated') {
+                  sim.rotationClock.time = rotationPeriod(sim.target) / 2;
+                  sim.elapsed = sim.rotationClock.time;
+                }
+                const bank = cloudBankPose(sim.target, -1, 13);
+                const native = bank.position
+                  .clone()
+                  .addScaledVector(
+                    COAST_FORWARD,
+                    name === 'cloud-inside' ? 0 : -4,
+                  );
+                sim.position.copy(fromPlanet(native, sim.target));
+                sim.orientation
+                  .setFromRotationMatrix(
+                    new Matrix4().lookAt(
+                      native,
+                      native.clone().add(COAST_FORWARD),
+                      bank.up,
+                    ),
+                  )
+                  .premultiply(planetRotation(sim.target));
               }
               if (name === 'low-flight') {
                 const up = new Vector3(0, 0, 1);

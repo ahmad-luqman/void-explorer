@@ -7,6 +7,7 @@ import { createShader as halo } from './halo.js';
 import { createShader as atmosphere } from './atmosphere.js';
 import { createShader as ring } from './ring.js';
 import { createShader as cloud } from './cloud.js';
+import { createShader as cloudVolume } from './cloud-volume.js';
 import {
   groundTexture,
   groundTextureAnchor,
@@ -78,7 +79,8 @@ export function convertMaterial(source: T.Material): T.Material {
     // Existing simulation uniforms stay live; node references read their current values.
     Object.assign(material, { uniforms: source.uniforms });
     const u = source.uniforms;
-    if (u.air) material.fragmentNode = sky(u)(N.positionLocal);
+    if (u.bankDensity) material.fragmentNode = cloudVolume(u)(N.positionLocal);
+    else if (u.air) material.fragmentNode = sky(u)(N.positionLocal);
     else if (u.coverage)
       material.fragmentNode = cloud(u)(
         N.positionLocal.normalize(),

@@ -102,6 +102,9 @@ function applyTerrainMask(
 }
 function disposeObject(group: T.Object3D) {
   group.traverse((o) => {
+    if (o.userData.cloudTextures)
+      for (const texture of o.userData.cloudTextures as T.Texture[])
+        texture.dispose();
     const m = o as T.Mesh;
     if ((m as T.InstancedMesh).isInstancedMesh)
       (m as T.InstancedMesh).dispose();
@@ -735,6 +738,7 @@ export class FlightRenderer {
       atmo.material.uniforms.keyDirection,
       atmo.material.uniforms.secondaryDirection,
     );
+    clouds.material.uniforms.detail.value = this.quality === 'high' ? 1 : 0;
     group.add(clouds);
     if (body.ring) {
       const ringGeo = new T.RingGeometry(
@@ -803,7 +807,6 @@ export class FlightRenderer {
       this.sim.surface.scenery = [];
     }
     this.planets.forEach((p) => {
-      p.clouds.material.uniforms.detail.value = this.quality === 'high' ? 1 : 0;
       this.scene.remove(p.group);
       disposeObject(p.group);
     });
@@ -875,6 +878,8 @@ export class FlightRenderer {
     });
   }
   resize() {
+    for (const p of this.planets)
+      p.clouds.material.uniforms.detail.value = this.quality === 'high' ? 1 : 0;
     this.width = this.canvas.clientWidth;
     this.height = this.canvas.clientHeight;
     const ratio = Math.min(
