@@ -7,11 +7,14 @@ import { generateContact } from './contact';
 import { TerrainStorage, TERRAIN_REVISION } from './terrain-storage';
 import { validContact } from './terrain-validation';
 import type { Body } from './universe';
+import { prepareScenery } from './scenery-preparation';
+import { groundTextureData } from './ground-texture';
 const storage = new TerrainStorage();
 const handle = async (
   event: MessageEvent<{
     body: Omit<Body, 'position'> & { position: number[] };
     center: number[];
+    focus: number[];
     token: number;
   }>,
 ) => {
@@ -52,11 +55,19 @@ const handle = async (
     );
   const generatedAt = performance.now();
   const render = prepareContactRenderData(data, world);
+  const preparedAt = performance.now();
+  const scenery = prepareScenery(
+    data,
+    world,
+    new Vector3().fromArray(event.data.focus),
+  );
   self.postMessage(
     {
       data,
       render,
-      preparationMs: performance.now() - generatedAt,
+      scenery,
+      preparationMs: preparedAt - generatedAt,
+      sceneryPreparationMs: performance.now() - preparedAt,
       token,
       cacheHit: !!cached,
       storage: storage.stats,
@@ -88,3 +99,13 @@ self.onmessage = (event: Parameters<typeof handle>[0]) => {
       }),
     );
 };
+
+// Prepare the shared material once while the title/orbit is interactive. Worker
+// messages are ordered, so this reaches the renderer before any contact mesh
+// can trigger the otherwise synchronous first-use texture generator.
+const textureBegan = performance.now();
+const groundTexture = groundTextureData();
+self.postMessage(
+  { groundTexture, preparationMs: performance.now() - textureBegan },
+  { transfer: [groundTexture.buffer] },
+);

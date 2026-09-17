@@ -6,12 +6,24 @@ import {
 } from '../lib/flight/ground-albedo';
 import {
   groundTextureData,
+  groundTexture,
   groundTextureAnchor,
   GROUND_TEXTURE_SCALE,
   GROUND_TEXTURE_SIZE,
 } from '../lib/flight/ground-texture';
 
 describe('native ground material', () => {
+  it('installs the transferred worker texture without regenerating or changing its bytes', () => {
+    const data = groundTextureData();
+    const expected = data.slice();
+    const transferred = structuredClone(data, { transfer: [data.buffer] });
+    expect(data.byteLength).toBe(0);
+    const texture = groundTexture(transferred);
+    expect(texture.image.data).toBe(transferred);
+    expect(texture.image.data).toEqual(expected);
+    expect(groundTexture()).toBe(texture);
+    expect(() => groundTexture(new Uint8Array(4))).toThrow('size');
+  });
   it('keeps filtered relief and albedo periodic with bounded texture memory', () => {
     const size = GROUND_TEXTURE_SIZE,
       data = groundTextureData();

@@ -96,10 +96,12 @@ export function groundTextureData(size = GROUND_TEXTURE_SIZE) {
   return data;
 }
 let shared: DataTexture | undefined;
-export function groundTexture() {
+export function groundTexture(prepared?: Uint8Array) {
+  if (prepared && prepared.byteLength !== GROUND_TEXTURE_SIZE ** 2 * 4)
+    throw new Error('Invalid prepared ground texture size');
   if (!shared) {
     shared = new DataTexture(
-      groundTextureData(),
+      prepared ?? groundTextureData(),
       GROUND_TEXTURE_SIZE,
       GROUND_TEXTURE_SIZE,
       RGBAFormat,

@@ -10,6 +10,10 @@ import {
 } from './contact';
 import { sampleBiome } from './biomes';
 import { toPlanet, planetRotation } from './rotation';
+import {
+  restorePreparedScenery,
+  type PreparedScenery,
+} from './scenery-preparation';
 import { COAST_UP, COAST_FORWARD, COAST_RIGHT } from './coast';
 import type { Body } from './universe';
 import type { FlightSimulation, Controls } from './simulation';
@@ -50,6 +54,7 @@ export class SurfaceExpedition {
   landings = 0;
   scenery: SurfaceProp[] = [];
   private sceneryAnchor = new Vector3(Infinity, Infinity, Infinity);
+  private preparedScenery?: PreparedScenery;
   private sceneryExclusions: { point: Vector3; radius: number }[] = [];
   private destination = new Vector3();
   private landingOrientation = new Quaternion();
@@ -209,12 +214,13 @@ export class SurfaceExpedition {
   get shipDistance() {
     return this.sim.position.distanceTo(this.shipPosition);
   }
-  setPatch(patch: ContactSurface) {
+  setPatch(patch: ContactSurface, prepared?: PreparedScenery) {
     if ((this.phase === 'landing' || this.phase === 'landed') && this.patch)
       return;
     patch.body.rotationClock = this.sim.rotationClock;
     patch.syncRotation();
     this.patch = patch;
+    this.preparedScenery = prepared;
     this.refreshScenery(true);
     if (this.phase === 'restoring' && this.restoreRecord) {
       const ground = patch.sample(this.sim.position);
@@ -242,7 +248,24 @@ export class SurfaceExpedition {
     const delta = this.sim.position.clone().sub(this.sceneryAnchor);
     delta.addScaledVector(patch.up, -delta.dot(patch.up));
     if (!force && delta.length() < 0.15) return;
-    this.scenery = generateScenery(patch, this.sim.position).filter(
+    // A worker reply can arrive after the pilot moves or the planet turns.
+    // Compare in native coordinates, and retain the prepared field's anchor so
+    // the normal 150 m refresh threshold still measures its actual coverage.
+    const prepared = this.preparedScenery;
+    const nativeFocus = toPlanet(this.sim.position, patch.body);
+    const preparedFocus = prepared
+      ? new Vector3().fromArray(prepared.focus)
+      : null;
+    const usePrepared =
+      prepared &&
+      prepared.bodyId === patch.body.id &&
+      preparedFocus &&
+      nativeFocus.distanceTo(preparedFocus) < 0.15;
+    if (!usePrepared) this.preparedScenery = undefined;
+    const candidates = usePrepared
+      ? restorePreparedScenery(prepared, patch.body)
+      : generateScenery(patch, this.sim.position);
+    this.scenery = candidates.filter(
       (prop) =>
         !(
           prop.id.includes(':authored:') &&
@@ -261,6 +284,11 @@ export class SurfaceExpedition {
         ),
     );
     this.sceneryAnchor.copy(this.sim.position);
+    if (usePrepared)
+      this.sceneryAnchor
+        .copy(preparedFocus)
+        .applyQuaternion(planetRotation(patch.body))
+        .add(patch.body.position);
   }
   private stance(at = this.sim.position): {
     ground: GroundSample;
@@ -449,6 +477,7 @@ export class SurfaceExpedition {
     this.restoreRecord = null;
     this.walked = 0;
     this.scenery = [];
+    this.preparedScenery = undefined;
     this.sceneryExclusions = [];
     this.sceneryAnchor.set(Infinity, Infinity, Infinity);
   }

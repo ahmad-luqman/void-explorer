@@ -4,6 +4,8 @@ import { sampleBiome } from './biomes';
 import type { TerrainStorage } from './terrain-storage';
 import { planetRotation, toPlanet } from './rotation';
 import * as T from 'three';
+import type { PreparedScenery } from './scenery-preparation';
+import { groundTexture } from './ground-texture';
 import type { WebGPURenderer } from 'three/webgpu';
 import type { GpuBackend } from './gpu/backend';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -174,6 +176,9 @@ export class FlightRenderer {
     source: 'generated',
     preparationMs: 0,
     preparedBytes: 0,
+    sceneryPreparationMs: 0,
+    sceneryCount: 0,
+    groundTexturePreparationMs: 0,
     storage: null as TerrainStorage['stats'] | null,
     generated: 0,
     discarded: 0,
@@ -470,19 +475,32 @@ export class FlightRenderer {
     };
     this.contactWorker = new ContactWorker();
     this.contactWorker.onmessage = (
-      event: MessageEvent<{
-        data: ContactData;
-        render: ContactRenderData;
-        preparationMs: number;
-        token: number;
-        error?: string;
-        cacheHit?: boolean;
-        storageHit?: boolean;
-        storage: TerrainStorage['stats'];
-        generationMs: number;
-      }>,
+      event: MessageEvent<
+        | {
+            data: ContactData;
+            render: ContactRenderData;
+            scenery: PreparedScenery;
+            sceneryPreparationMs: number;
+            preparationMs: number;
+            token: number;
+            error?: string;
+            cacheHit?: boolean;
+            storageHit?: boolean;
+            storage: TerrainStorage['stats'];
+            generationMs: number;
+          }
+        | { groundTexture: Uint8Array; preparationMs: number }
+      >,
     ) => {
-      if (event.data.token !== this.contactToken || this.disposed) {
+      const reply = event.data;
+      if ('groundTexture' in reply) {
+        if (!this.disposed) {
+          groundTexture(reply.groundTexture);
+          this.contactStats.groundTexturePreparationMs = reply.preparationMs;
+        }
+        return;
+      }
+      if (reply.token !== this.contactToken || this.disposed) {
         this.contactStats.discarded++;
         return;
       }
@@ -492,15 +510,15 @@ export class FlightRenderer {
         performance.now() - this.contactSentAt,
       );
       const applyBegan = performance.now();
-      if (event.data.error) {
+      if (reply.error) {
         this.contactRetryAt = performance.now() + 1000;
         return;
       }
       const body = this.sim.systems
         .flatMap((s) => s.planets)
-        .find((p) => p.id === event.data.data.bodyId);
+        .find((p) => p.id === reply.data.bodyId);
       if (!body) return;
-      const patch = new ContactSurface(event.data.data, body);
+      const patch = new ContactSurface(reply.data, body);
       if (
         body.id !== this.sim.nearest.id ||
         !patch.contains(this.sim.position)
@@ -510,15 +528,17 @@ export class FlightRenderer {
       }
       this.contactStats = {
         ...this.contactStats,
-        source: event.data.cacheHit ? 'disk' : 'generated',
-        storage: event.data.storage,
+        source: reply.cacheHit ? 'disk' : 'generated',
+        storage: reply.storage,
         generated: this.contactStats.generated + 1,
-        generationMs: event.data.generationMs,
-        preparationMs: event.data.preparationMs,
+        generationMs: reply.generationMs,
+        preparationMs: reply.preparationMs,
+        sceneryPreparationMs: reply.sceneryPreparationMs,
+        sceneryCount: reply.scenery.props.length,
         preparedBytes:
-          event.data.render.normals.byteLength +
-          event.data.render.smooth.byteLength +
-          Object.values(event.data.render.skirt).reduce(
+          reply.render.normals.byteLength +
+          reply.render.smooth.byteLength +
+          Object.values(reply.render.skirt).reduce(
             (sum, a) => sum + a.byteLength,
             0,
           ),
@@ -552,12 +572,12 @@ export class FlightRenderer {
       );
       geometry.setAttribute(
         'surfaceSmooth',
-        new T.BufferAttribute(event.data.render.smooth, 1),
+        new T.BufferAttribute(reply.render.smooth, 1),
       );
       geometry.setIndex(new T.BufferAttribute(patch.data.indices, 1));
       geometry.setAttribute(
         'normal',
-        new T.BufferAttribute(event.data.render.normals, 3),
+        new T.BufferAttribute(reply.render.normals, 3),
       );
       geometry.computeBoundingSphere();
       const material = new T.MeshStandardMaterial({
@@ -614,7 +634,7 @@ export class FlightRenderer {
       this.contactMesh.position.copy(patch.origin).sub(this.sim.position);
       this.contactMesh.receiveShadow = true;
       this.contactMesh.castShadow = true;
-      const seam = event.data.render.skirt,
+      const seam = reply.render.skirt,
         seamGeometry = new T.BufferGeometry();
       seamGeometry.setAttribute(
         'position',
@@ -644,7 +664,7 @@ export class FlightRenderer {
           // A tiny overlap buries the circular skirt under both meshes;
           // an inset skirt and identical masks otherwise leave a subpixel gap.
           view.body.id === body.id ? CONTACT_RADIUS - 0.01 : 0;
-      this.sim.surface.setPatch(patch);
+      this.sim.surface.setPatch(patch, reply.scenery);
       this.streaming.record('contactApply', performance.now() - applyBegan);
     };
     this.contactWorker.onerror = () => {
@@ -1086,6 +1106,7 @@ export class FlightRenderer {
             position: this.sim.nearest.position.toArray(),
           },
           center: center.toArray(),
+          focus: toPlanet(this.sim.position, this.sim.nearest).toArray(),
           token: this.contactToken,
         });
       }
