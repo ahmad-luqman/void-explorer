@@ -19,7 +19,7 @@ User objective: implement everything in the supplied session summary, not only t
 | Performance across real devices | M4 Max Metal: stationary High/Low samples plus 30-second cold/revisit streaming and ten-second cached routes; raw pre/post data in art/benchmarks/streaming-2026-09-17 | Sustained desktop baseline recorded; latest worker-prepared cold-entry maxima are 283/100 ms, with no >50 ms interval in the separate settled samples. Prior 1.45-second outlier is retained and unresolved. Broader hardware acceptance remains open |
 | Broader browsers | Full production orbital/new/legacy coastal journeys pass on Chromium WebGL/WebGPU, Firefox 155 and WebKit 26.6 WebGL | Expanded desktop-engine coverage implemented; actual Safari/phone validation remains open |
 | Mobile controls | Analog steering/movement, simultaneous throttle/roll/boost, pulse, run, captured/cancelled pointers; 15.1 s saved touch excursion | Implemented and checked with Chromium touch emulation in portrait/landscape; physical device validation remains open |
-| Release | Private Sites build v33 published successfully; 126-test suite, final type/lint/build, cooler haze/weathered cliffs/finer waves, both renderer production journeys and Firefox/WebKit material reviews | Intermediate release delivered; full visual/device acceptance and remaining game requirements are still open |
+| Release | Private Sites build v34 published successfully; 130-test suite, final type/lint/build, worker-prepared scenery/ground texture, both renderer site/production/fallback journeys and Firefox/WebKit coastal journeys | Intermediate release delivered; full visual/device acceptance and remaining game requirements are still open |
 
 ## Evidence rules
 
@@ -32,3 +32,6 @@ Latest verified private publication: 17 September 2026 local time, Sites version
 
 
 Latest verified private publication: 17 September 2026, Sites version 33, source `e9f57f5ca2feba6f7e83df30dadcebe90af11110`, deployment `appgdep_6aaba45a80508191a0ee7a83ab43ce52`, status `succeeded`. Published runtime matches root commit `e8c92a1`; evidence commits do not change game source. Full visual acceptance and broader physical-device/performance validation remain open. Next address measured coastal preparation costs; public GitHub was not pushed.
+
+
+Latest verified private publication: 17 September 2026, Sites version 34, source `fc21f332659c838609708f503f194fd0ff9c542f`, deployment `appgdep_6aabac1c78f08191a99558ab43f5fc42`, status `succeeded`. Published runtime matches root commit `0b517fb`; later commits retain review/publication evidence only. The main-thread placement and procedural texture preparation costs are reduced; variable cold-entry image/resource upload, whole-scene visual acceptance and broader physical-device validation remain open. Public GitHub was not pushed.
