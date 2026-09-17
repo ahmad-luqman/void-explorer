@@ -40,6 +40,8 @@ it('transfers ready-to-render ground without changing contact or persistent buff
         data.heights.buffer,
         data.indices.buffer,
         data.axis.buffer,
+        data.coreOffsets!.buffer,
+        data.regions!.buffer,
       ],
     },
   );

@@ -1,3 +1,4 @@
+import { contactTopology, type ContactTopology } from './contact-topology';
 import { COAST_UP } from './coast';
 import { sampleBiome } from './biomes';
 import { Quaternion, Ray, Vector3 } from 'three';
@@ -81,6 +82,7 @@ function gridCell(axis: Float64Array, value: number) {
   }
   return lo;
 }
+const topologies = new Map<string, ContactTopology>();
 export type ContactData = {
   bodyId: string;
   origin: number[];
@@ -90,6 +92,8 @@ export type ContactData = {
   extent: number;
   resolution: number;
   axis: Float64Array;
+  coreOffsets?: Uint32Array;
+  regions?: Int32Array;
   positions: Float32Array;
   colors: Float32Array;
   heights: Float32Array;
@@ -100,8 +104,13 @@ export type GroundSample = {
   normal: Vector3;
   slope: number;
   water: boolean;
+  vertex: number;
 };
-export function generateContact(body: Body, center: Vector3): ContactData {
+export function generateContact(
+  body: Body,
+  center: Vector3,
+  layout: 'regions' | 'grid' = 'regions',
+): ContactData {
   const up = localDirection(center, body).normalize(),
     east = new Vector3()
       .crossVectors(
@@ -111,65 +120,87 @@ export function generateContact(body: Body, center: Vector3): ContactData {
       .normalize(),
     north = new Vector3().crossVectors(up, east);
   const origin = up.clone().multiplyScalar(surfaceRadius(up, body));
-  const axis = contactAxis(
+  const sourceAxis = contactAxis(
       body.id === 'p0-0' &&
         (body.terrainVersion ?? 1) >= 3 &&
         up.dot(COAST_UP) > 0.99998,
       (body.terrainVersion ?? 1) >= 4,
       body.terrainVersion === 5,
     ),
-    extent = axis[axis.length - 1],
+    topologyKey = `${sourceAxis.join(',')}:${body.terrainVersion === 5}`;
+  let topology = layout === 'regions' ? topologies.get(topologyKey) : undefined;
+  if (layout === 'regions' && !topology) {
+    topology = contactTopology(sourceAxis, body.terrainVersion === 5);
+    topologies.set(topologyKey, topology);
+  }
+  const axis = topology?.axis.slice() ?? sourceAxis,
+    extent = topology ? 76.8 : axis[axis.length - 1],
     resolution = axis.length - 1,
-    positions = new Float32Array((resolution + 1) ** 2 * 3),
+    points =
+      topology?.points ??
+      Array.from(axis).flatMap((y) => Array.from(axis, (x) => [x, y])),
+    positions = new Float32Array(points.length * 3),
     colors = new Float32Array(positions.length),
-    heights = new Float32Array(positions.length / 3),
-    indices = new Uint32Array(resolution * resolution * 6);
+    heights = new Float32Array(points.length),
+    indices =
+      topology?.indices.slice() ?? new Uint32Array(resolution * resolution * 6);
   let offset = 0;
-  for (let row = 0; row <= resolution; row++)
-    for (let col = 0; col <= resolution; col++) {
-      const x = axis[col],
-        y = axis[row];
-      const base = origin
-        .clone()
-        .addScaledVector(east, x)
-        .addScaledVector(north, y);
-      let height = 0;
-      // Solve a radial heightfield along the tangent patch's vertical axis.
-      for (let k = 0; k < 5; k++) {
-        const relative = base.clone().addScaledVector(up, height);
-        height -= relative.length() - surfaceRadius(relative.normalize(), body);
+  for (let id = 0; id < points.length; id++) {
+    const [x, y] = points[id];
+    const weights = topology?.weights.get(id);
+    if (weights) {
+      for (const [source, weight] of weights) {
+        for (let k = 0; k < 3; k++) {
+          positions[offset + k] += positions[source * 3 + k] * weight;
+          colors[offset + k] += colors[source * 3 + k] * weight;
+        }
+        heights[id] += heights[source] * weight;
       }
-      const local = east
-        .clone()
-        .multiplyScalar(x)
-        .addScaledVector(north, y)
-        .addScaledVector(up, height);
-      local.toArray(positions, offset);
-      const direction = base.clone().addScaledVector(up, height).normalize();
-      const h = elevation(direction, body);
-      heights[offset / 3] = h;
-      terrainColor(
-        h / body.radius,
-        body.kind,
-        0.94 +
-          0.06 *
-            Math.sin(
-              direction.x * body.radius * 2.1 + direction.z * body.radius * 1.7,
-            ),
-        sampleBiome(direction, body, h),
-      ).toArray(colors, offset);
       offset += 3;
+      continue;
     }
+    const base = origin
+      .clone()
+      .addScaledVector(east, x)
+      .addScaledVector(north, y);
+    let height = 0;
+    // Solve a radial heightfield along the tangent patch's vertical axis.
+    for (let k = 0; k < 5; k++) {
+      const relative = base.clone().addScaledVector(up, height);
+      height -= relative.length() - surfaceRadius(relative.normalize(), body);
+    }
+    const local = east
+      .clone()
+      .multiplyScalar(x)
+      .addScaledVector(north, y)
+      .addScaledVector(up, height);
+    local.toArray(positions, offset);
+    const direction = base.clone().addScaledVector(up, height).normalize();
+    const h = elevation(direction, body);
+    heights[offset / 3] = h;
+    terrainColor(
+      h / body.radius,
+      body.kind,
+      0.94 +
+        0.06 *
+          Math.sin(
+            direction.x * body.radius * 2.1 + direction.z * body.radius * 1.7,
+          ),
+      sampleBiome(direction, body, h),
+    ).toArray(colors, offset);
+    offset += 3;
+  }
   offset = 0;
-  for (let row = 0; row < resolution; row++)
-    for (let col = 0; col < resolution; col++) {
-      const a = row * (resolution + 1) + col,
-        b = a + 1,
-        c = a + resolution + 1,
-        d = c + 1;
-      indices.set([a, b, d, a, d, c], offset);
-      offset += 6;
-    }
+  if (!topology)
+    for (let row = 0; row < resolution; row++)
+      for (let col = 0; col < resolution; col++) {
+        const a = row * (resolution + 1) + col,
+          b = a + 1,
+          c = a + resolution + 1,
+          d = c + 1;
+        indices.set([a, b, d, a, d, c], offset);
+        offset += 6;
+      }
   return {
     bodyId: body.id,
     origin: origin.toArray(),
@@ -179,6 +210,12 @@ export function generateContact(body: Body, center: Vector3): ContactData {
     extent,
     resolution,
     axis,
+    ...(topology
+      ? {
+          coreOffsets: topology.coreOffsets.slice(),
+          regions: topology.regions.slice(),
+        }
+      : {}),
     positions,
     colors,
     heights,
@@ -220,27 +257,18 @@ export class ContactSurface {
   }
   sample(world: Vector3): GroundSample | null {
     const { x, y } = this.coordinates(world),
-      { axis, resolution, positions, indices } = this.data;
-    const col = gridCell(axis, x),
-      row = gridCell(axis, y);
-    if (
-      Math.hypot(x, y) > CONTACT_RADIUS ||
-      col < 0 ||
-      row < 0 ||
-      col >= resolution ||
-      row >= resolution
-    )
-      return null;
-
-    const inverse = this.rotation.clone().invert();
-    const start = world
-      .clone()
-      .sub(this.origin)
-      .applyQuaternion(inverse)
-      .addScaledVector(new Vector3().fromArray(this.data.up), 100);
-    const ray = new Ray(start, new Vector3().fromArray(this.data.up).negate());
-    // Float32 vertices can cross their analytic grid boundary by a few ulps.
-    // Check adjacent cells as well so an exact edge never becomes a contact hole.
+      { axis, resolution, positions, indices, coreOffsets, regions } =
+        this.data;
+    if (Math.hypot(x, y) > CONTACT_RADIUS) return null;
+    const ranges: [number, number][] = [];
+    const lookup = (value: number) => {
+      const lo = axis[0],
+        hi = axis[axis.length - 1];
+      if (value < lo - 0.00002 || value > hi + 0.00002) return -1;
+      return gridCell(axis, Math.max(lo, Math.min(hi - 1e-10, value)));
+    };
+    const col = lookup(x),
+      row = lookup(y);
     for (const [dx, dy] of [
       [0, 0],
       [-1, 0],
@@ -254,21 +282,60 @@ export class ContactSurface {
     ]) {
       const cx = col + dx,
         cy = row + dy;
-      if (cx < 0 || cy < 0 || cx >= resolution || cy >= resolution) continue;
-      const cell = (cy * resolution + cx) * 6;
-      for (let triangle = 0; triangle < 2; triangle++) {
-        const a = new Vector3().fromArray(
-            positions,
-            indices[cell + triangle * 3] * 3,
-          ),
-          b = new Vector3().fromArray(
-            positions,
-            indices[cell + triangle * 3 + 1] * 3,
-          ),
-          c = new Vector3().fromArray(
-            positions,
-            indices[cell + triangle * 3 + 2] * 3,
-          );
+      if (
+        col < 0 ||
+        row < 0 ||
+        cx < 0 ||
+        cy < 0 ||
+        cx >= resolution ||
+        cy >= resolution
+      )
+        continue;
+      const cell = cy * resolution + cx;
+      ranges.push(
+        coreOffsets
+          ? [coreOffsets[cell], coreOffsets[cell + 1]]
+          : [cell * 6, cell * 6 + 6],
+      );
+    }
+    if (
+      regions &&
+      (Math.abs(x) >= axis[axis.length - 1] - 0.00002 ||
+        Math.abs(y) >= axis[axis.length - 1] - 0.00002)
+    ) {
+      const visited = new Set<number>();
+      // Neighbor probes cover Float32 vertex rounding at exact region edges.
+      for (const dx of [0, -0.00002, 0.00002])
+        for (const dy of [0, -0.00002, 0.00002]) {
+          let node = 0;
+          while (regions[node + 3] >= 0) {
+            const half = regions[node + 2] * 0.0375;
+            node =
+              (regions[node + 3] +
+                (x + dx >= regions[node] * 0.075 + half ? 1 : 0) +
+                (y + dy >= regions[node + 1] * 0.075 + half ? 2 : 0)) *
+              6;
+          }
+          if (!visited.has(node) && regions[node + 5] > 0)
+            ranges.push([
+              regions[node + 4],
+              regions[node + 4] + regions[node + 5],
+            ]);
+          visited.add(node);
+        }
+    }
+    const inverse = this.rotation.clone().invert();
+    const start = world
+      .clone()
+      .sub(this.origin)
+      .applyQuaternion(inverse)
+      .addScaledVector(new Vector3().fromArray(this.data.up), 100);
+    const ray = new Ray(start, new Vector3().fromArray(this.data.up).negate());
+    for (const [start, end] of ranges) {
+      for (let triangle = start; triangle < end; triangle += 3) {
+        const a = new Vector3().fromArray(positions, indices[triangle] * 3),
+          b = new Vector3().fromArray(positions, indices[triangle + 1] * 3),
+          c = new Vector3().fromArray(positions, indices[triangle + 2] * 3);
         const hit = ray.intersectTriangle(a, b, c, false, new Vector3());
         if (!hit) continue;
         const normal = b
@@ -281,6 +348,7 @@ export class ContactSurface {
         return {
           point,
           normal,
+          vertex: indices[triangle],
           slope:
             (Math.acos(Math.max(-1, Math.min(1, normal.dot(direction)))) *
               180) /

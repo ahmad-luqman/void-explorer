@@ -46,7 +46,9 @@ const handle = async (
         data.colors.byteLength +
         data.heights.byteLength +
         data.indices.byteLength +
-        data.axis.byteLength,
+        data.axis.byteLength +
+        (data.coreOffsets?.byteLength ?? 0) +
+        (data.regions?.byteLength ?? 0),
     );
   const generatedAt = performance.now();
   const render = prepareContactRenderData(data, world);
@@ -67,6 +69,8 @@ const handle = async (
         data.colors.buffer,
         data.heights.buffer,
         data.indices.buffer,
+        ...(data.coreOffsets ? [data.coreOffsets.buffer] : []),
+        ...(data.regions ? [data.regions.buffer] : []),
         ...contactRenderBuffers(render),
       ],
     },

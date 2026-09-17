@@ -335,3 +335,11 @@ A standard Metal WebGPU check exposed Chromium 153/Tint rejecting nested water-t
 Raw pre/post measurements and their limits are preserved in `art/benchmarks/streaming-2026-09-17/`. Independent terrain-region refinement, the distant stretched grid and lower-power/phone validation remain open.
 
 Validation: 116 unit tests, TypeScript, scoped lint and the static build pass. Six terrain/storage browser regressions and both production journeys pass on WebGL and standard WebGPU, including saved coastal profiles 3–5. Standard WebGPU water animation, sustained traversal and disk-cache repeat also pass. Raw performance samples and paired production captures are retained in the root art review.
+
+## Square outer contact regions
+
+Contact geometry keeps the original walking grid within the central 1.2 km square. Outside it, square quadtree regions replace the long cross-product cells. Near regions use 75 m cells; profile-5 ridges retain 300 m cells through 18 km, followed by 1.2/2.4 km distant cells. Every region gathers the vertices of finer neighbors along its edges before triangulation, including the nonuniform walking-grid boundary. Added vertices on that boundary interpolate the original triangle plane, preserving the protected surface.
+
+The worker caches the small set of topology variants and samples the existing versioned heightfield at their vertices. A compact Int32 query tree stores its coordinates in 75 m units and triangle ranges. Collision traverses that tree and intersects the actual displayed triangles. The original grid handles the walking interior; adjacent-cell/region probes handle Float32 rounding at exact edges. The far seam obtains its color from the actual hit triangle. Storage revision 8 rejects old disposable geometry; the terrain profiles and expedition save schema stay unchanged. Cache validation rejects cyclic/out-of-range children, missing parentage and invalid index ranges.
+
+The 48 km circular clip, predictive request lead, stale-reply guards and worker-prepared attributes are retained. Complete contact patches still transfer together; this is independently refined outer geometry, not independently uploaded persistent terrain tiles.

@@ -18,9 +18,11 @@ function meshNormals(positions: Float32Array, indices: Uint32Array) {
  */
 export function prepareContactRenderData(data: ContactData, body: Body) {
   const skirt = createTerrainSkirt(new ContactSurface(data, body));
+  const smooth = new Float32Array(data.heights.length);
+  smooth.set(contactNormalBlend(data.axis));
   return {
     normals: meshNormals(data.positions, data.indices),
-    smooth: contactNormalBlend(data.axis),
+    smooth,
     skirt: { ...skirt, normals: meshNormals(skirt.positions, skirt.indices) },
   };
 }

@@ -525,7 +525,9 @@ export class FlightRenderer {
           patch.data.colors.byteLength +
           patch.data.heights.byteLength +
           patch.data.indices.byteLength +
-          patch.data.axis.byteLength,
+          patch.data.axis.byteLength +
+          (patch.data.coreOffsets?.byteLength ?? 0) +
+          (patch.data.regions?.byteLength ?? 0),
       };
       if (
         this.sim.surface.phase === 'landing' ||

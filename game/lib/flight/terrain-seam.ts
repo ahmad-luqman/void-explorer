@@ -29,12 +29,7 @@ export function createTerrainSkirt(patch: ContactSurface) {
       .toArray(positions, i * 6 + 3);
     // Skirts remain below the surface and use the same biome palette.
     const c = patch.data.colors,
-      coord = patch.coordinates(probe);
-    let col = 0,
-      row = 0;
-    while (patch.data.axis[col + 1] < coord.x) col++;
-    while (patch.data.axis[row + 1] < coord.y) row++;
-    const offset = (row * (patch.data.resolution + 1) + col) * 3;
+      offset = sample.vertex * 3;
     for (let k = 0; k < 6; k++) colors[i * 6 + k] = c[offset + (k % 3)];
     if (i < count) {
       const a = i * 2;
