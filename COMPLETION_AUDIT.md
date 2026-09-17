@@ -19,7 +19,7 @@ User objective: implement everything in the supplied session summary, not only t
 | Performance across real devices | M4 Max Metal: stationary High/Low samples plus 30-second cold/revisit streaming and ten-second cached routes; raw pre/post data in art/benchmarks/streaming-2026-09-17 | Sustained desktop streaming baseline recorded; broader device coverage, lower-power/phone hardware and remaining frame outliers need validation |
 | Broader browsers | Full production orbital/new/legacy coastal journeys pass on Chromium WebGL/WebGPU, Firefox 155 and WebKit 26.6 WebGL | Expanded desktop-engine coverage implemented; actual Safari/phone validation remains open |
 | Mobile controls | Analog steering/movement, simultaneous throttle/roll/boost, pulse, run, captured/cancelled pointers; 15.1 s saved touch excursion | Implemented and checked with Chromium touch emulation in portrait/landscape; physical device validation remains open |
-| Release | Private Sites build v30 published successfully; 123 tests; shared-edge regional contact geometry, both renderer terrain/storage and complete authored-site/production journeys, sustained/cached samples, current Firefox/WebKit production checks | Intermediate release delivered; full visual/device acceptance and remaining game requirements are still open |
+| Release | Private Sites build v31 published successfully; 125 tests; soft coastal density volumes and live quality updates, both renderer cloud/production journeys, current Firefox/WebKit production checks | Intermediate release delivered; full visual/device acceptance and remaining game requirements are still open |
 
 ## Evidence rules
 
@@ -28,4 +28,4 @@ Preserve exact concept prompts and editable sources. Commit coherent milestones 
 Production-export evidence for the slate/cloud pass: complete orbital and new/legacy coastal journeys pass on WebGL (26.1/36.6 s) and WebGPU (27.1/36.7 s), without page or console errors.
 
 
-Latest verified private publication: 17 September 2026 local time, Sites version 30, source subtree commit `a47b8f1dae28804dcad0cbf842e6925eb164e59e`. Deployment reported `succeeded`. The public GitHub origin was not pushed. The square-region refinement is implemented, validated and privately published. Next work is foreground/distant terrain finish, cloud/shoreline integration and the remaining hardware-validation requirements above.
+Latest verified private publication: 17 September 2026 local time, Sites version 31, source subtree commit `245387fae2d8a72650723c74f453d452598d125f`. Deployment `appgdep_6aab9320cafc81919f7e704ba61d471d` reported `succeeded`. The public GitHub origin was not pushed. Soft coastal volume banks and live quality updates are implemented, validated and privately published. Next work is foreground/distant terrain finish, ground repetition, shoreline integration and the remaining hardware-validation requirements above.
