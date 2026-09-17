@@ -19,7 +19,7 @@ User objective: implement everything in the supplied session summary, not only t
 | Performance across real devices | M4 Max Metal: stationary High/Low samples plus 30-second cold/revisit streaming and ten-second cached routes; raw pre/post data in art/benchmarks/streaming-2026-09-17 | Sustained desktop baseline recorded; latest WebGPU coastal sample has a 1.45-second outlier, isolated follow-ups show 183 ms initial preparation. Broader hardware and frame-time acceptance remain open |
 | Broader browsers | Full production orbital/new/legacy coastal journeys pass on Chromium WebGL/WebGPU, Firefox 155 and WebKit 26.6 WebGL | Expanded desktop-engine coverage implemented; actual Safari/phone validation remains open |
 | Mobile controls | Analog steering/movement, simultaneous throttle/roll/boost, pulse, run, captured/cancelled pointers; 15.1 s saved touch excursion | Implemented and checked with Chromium touch emulation in portrait/landscape; physical device validation remains open |
-| Release | Private Sites build v32 published successfully; 126-test suite plus final affected checks; finer ground/dust and low foreground groups, both renderer production journeys, Firefox/WebKit material reviews | Intermediate release delivered; full visual/device acceptance and remaining game requirements are still open |
+| Release | Private Sites build v33 published successfully; 126-test suite, final type/lint/build, cooler haze/weathered cliffs/finer waves, both renderer production journeys and Firefox/WebKit material reviews | Intermediate release delivered; full visual/device acceptance and remaining game requirements are still open |
 
 ## Evidence rules
 
@@ -29,3 +29,6 @@ Production-export evidence for the slate/cloud pass: complete orbital and new/le
 
 
 Latest verified private publication: 17 September 2026 local time, Sites version 32, source subtree commit `e7f6a4c3e5e42072b3cc723779f68b4b3fccfc80`. Deployment `appgdep_6aab9a97cc3c8191baad556ee8b12764` reported `succeeded`. The public GitHub origin was not pushed. Ground scale/dust and three low overlook groups are implemented, validated and privately published. Next work is distant terrain/light separation, shoreline composition and the remaining hardware-validation requirements above.
+
+
+Latest verified private publication: 17 September 2026, Sites version 33, source `e9f57f5ca2feba6f7e83df30dadcebe90af11110`, deployment `appgdep_6aaba45a80508191a0ee7a83ab43ce52`, status `succeeded`. Published runtime matches root commit `e8c92a1`; evidence commits do not change game source. Full visual acceptance and broader physical-device/performance validation remain open. Next address measured coastal preparation costs; public GitHub was not pushed.
