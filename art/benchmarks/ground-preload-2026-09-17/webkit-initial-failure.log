@@ -1,0 +1,36 @@
+
+Running 2 tests using 1 worker
+
+(node:67985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/browser/ground-surface.spec.ts:4:3 › coastal ground and foreground render with loaded albedo (25.4s)
+  ✘  2 tests/browser/surface-preload.spec.ts:4:1 › an outstanding optional ground image cannot hold the title or coastal entry (7.6m)
+
+
+  1) tests/browser/surface-preload.spec.ts:4:1 › an outstanding optional ground image cannot hold the title or coastal entry 
+
+    Test timeout of 90000ms exceeded.
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  getByRole('button', { name: /Board ship/ })
+    Expected: visible
+    Received: undefined
+
+
+      53 |     await expect(
+      54 |       page.getByRole('button', { name: /Board ship/ }),
+    > 55 |     ).toBeVisible();
+         |       ^
+      56 |     expect(errors).toEqual([]);
+      57 |   } finally {
+      58 |     release();
+        at /Users/ahmadluqman/src/playground/void-explorer/game/tests/browser/surface-preload.spec.ts:55:7
+
+    Error Context: test-results/preload-webkit/surface-preload-an-outstan-f0bf8--the-title-or-coastal-entry/error-context.md
+
+  Slow test file: tests/browser/surface-preload.spec.ts (7.6m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 failed
+    tests/browser/surface-preload.spec.ts:4:1 › an outstanding optional ground image cannot hold the title or coastal entry 
+  1 passed (8.0m)

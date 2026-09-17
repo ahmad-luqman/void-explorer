@@ -1,0 +1,2 @@
+2026-09-17 14:16:38 +0500 Sleep               	Entering Sleep state due to 'Maintenance Sleep':TCPKeepAlive=active Using AC (Charge:100%) 441 secs  
+2026-09-17 14:23:59 +0500 Wake                	Wake from Deep Idle [CDNVA] : due to smc.sysState.Wake(0x70070000) lid SMC.OutboxNotEmpty nub-spmi-a0.0x3F RTP.multi-touch/UserActivity Assertion Using AC (Charge:100%)           
