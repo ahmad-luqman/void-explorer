@@ -27,3 +27,5 @@ HARDWARE_TEST=1 WEBGPU_TEST=1 PERFORMANCE_TEST=1 PLAYWRIGHT_BASE_URL=http://127.
 ```
 
 `profile-entry.mjs` is the retained follow-up runner. It resolves Playwright from the repository, accepts `PLAYWRIGHT_BASE_URL` and `PROFILE_OUTPUT`, and writes a CPU profile and raw diagnostic JSON. Run serially against the unchanged static export.
+
+Follow-up attribution: tracing the minified calls inside material setup into the built source identifies the costly generator as `groundTextureData`, not shader compilation. The [worker-preparation review](../scenery-preparation-2026-09-17/README.md) retains the resulting change and new profiles. The original timings above remain unchanged.
