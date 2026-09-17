@@ -62,32 +62,38 @@ export function addWaterMaterial(
       '#include <color_fragment>',
       `#include <color_fragment>
        vec3 radial=normalize(vWaterPosition);
-       vec4 ripples=sampleWaves(vWaterLocal*12.+waterDetailAnchor,radial,vec2(waterTime*.009,waterTime*-.006));
-       vec4 swell=sampleWaves(vWaterLocal*.37+waterSwellAnchor,radial,vec2(waterTime*.0007,waterTime*.0004));
+       vec4 ripples=sampleWaves(vWaterLocal*${WATER_DETAIL_SCALE.toFixed(1)}+waterDetailAnchor,radial,vec2(waterTime*.009,waterTime*-.006));
+       vec4 swell=sampleWaves(vWaterLocal*${WATER_SWELL_SCALE.toFixed(1)}+waterSwellAnchor,radial,vec2(waterTime*.0007,waterTime*.0004));
        float wetWater=smoothstep(.35,.85,clamp(vWaterMask,0.,1.));
        float depth=max(0.,-vTerrainHeight);
        float offshore=smoothstep(.002,.08,depth);
        vec3 waterColor=mix(vec3(.035,.32,.27),vec3(.006,.105,.155),offshore);
        waterColor*=.91+ripples.a*.18;
-       float shallow=1.-smoothstep(.003,.018,depth);
-       float phase=depth*560.+waterTime*1.5+ripples.a*1.7;
+       vec3 shoreX=dFdx(vWaterLocal),shoreY=dFdy(vWaterLocal);
+       vec3 shoreCrossX=cross(shoreY,radial),shoreCrossY=cross(radial,shoreX);
+       float shoreArea=max(abs(dot(shoreX,shoreCrossX)),1.e-16);
+       vec3 depthGradient=(dFdx(depth)*shoreCrossX+dFdy(depth)*shoreCrossY)/shoreArea;
+       float shoreDistance=depth/max(.2,length(depthGradient));
+       float shallow=(1.-smoothstep(.004,.025,shoreDistance))*(1.-smoothstep(.025,.12,depth));
+       float phase=shoreDistance*900.+waterTime*1.15+swell.a*2.4+ripples.a*.6;
        float phaseFilter=1.-smoothstep(.5,3.,fwidth(phase));
-       float breaker=smoothstep(.68,.98,sin(phase))*phaseFilter;
-       float wash=(1.-smoothstep(.0005,.003,depth))*(.25+.35*ripples.a);
-       float foam=clamp(shallow*(breaker*.7+wash),0.,.85);
-       waterColor=mix(waterColor,vec3(.58,.78,.70),foam);
+       float breaker=smoothstep(.58,.94,sin(phase))*phaseFilter;
+       float foamBreakup=smoothstep(.24,.68,ripples.a*.6+swell.a*.4);
+       float wash=(1.-smoothstep(.001,.005,shoreDistance))*(.25+.35*ripples.a);
+       float foam=clamp(shallow*(breaker*.85*foamBreakup+wash),0.,.85);
+       waterColor=mix(waterColor,vec3(.72,.84,.80),foam);
        diffuseColor.rgb=mix(diffuseColor.rgb,waterColor,wetWater);
       `,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
-       roughnessFactor=mix(roughnessFactor,.24+swell.a*.12,wetWater);`,
+       roughnessFactor=mix(roughnessFactor,mix(.28+swell.a*.14,.72,foam),wetWater);`,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
-       vec3 wave=ripples.xyz*.22+swell.xyz*.035;
+       vec3 wave=ripples.xyz*.24+swell.xyz*.065;
        wave-=radial*dot(wave,radial);
        vec3 waterNormal=normalize(vWaterFrame*(radial+wave));
        normal=normalize(mix(normal,waterNormal,wetWater));`,
@@ -107,5 +113,5 @@ export function addWaterMaterial(
        #include <opaque_fragment>`,
     );
   };
-  material.customProgramCacheKey = () => cacheKey + '-water-depth-v6';
+  material.customProgramCacheKey = () => cacheKey + '-water-broken-shore-v7';
 }

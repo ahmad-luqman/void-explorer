@@ -1199,9 +1199,9 @@ export class FlightRenderer {
       .set(this.sim.activeSystem.star.color!)
       .lerp(daylightWhite, 0.65);
     this.fillLight.intensity = environment.secondaryIntensity;
-    this.ambient.intensity = 0.38 - density * 0.2;
+    this.ambient.intensity = 0.38 - density * 0.26;
     this.skyLight.position.copy(environment.up);
-    this.skyLight.color.set('#b7c8ea');
+    this.skyLight.color.set('#93b3df');
     this.skyLight.intensity = density * (0.25 + daylight * 0.4);
     const shadowActive =
       !title &&
@@ -1227,7 +1227,7 @@ export class FlightRenderer {
     sky.uniforms.zenithColor.value.copy(environment.zenith);
     sky.uniforms.sunDirection.value.copy(environment.keyDirection);
     sky.uniforms.daylight.value = daylight;
-    this.haze.color.copy(environment.horizon);
+    this.haze.color.copy(environment.hazeColor);
     this.haze.density = environment.hazeDensity;
     this.scene.fog = density > 0.001 ? this.haze : null;
     this.motion.update(

@@ -205,6 +205,26 @@ export function convertMaterial(source: T.Material): T.Material {
       N.vec3(1.03, 1.01, 0.98),
       N.mix(0.5, beds, N.smoothstep(0.4, 0.75, mass)),
     ).mul(N.mix(0.79, 1.14, mass));
+    const cliffPosition = p.normalize().mul(body.radius * 30);
+    const weather = noise(cliffPosition.add(N.vec3(height.mul(0.8))), seed);
+    const steep = N.smoothstep(
+      0.12,
+      0.6,
+      N.normalLocal.normalize().dot(p.normalize()).abs().oneMinus(),
+    );
+    const cliffTone = N.mix(
+      N.vec3(0.74, 0.79, 0.9),
+      N.vec3(1.02, 1, 1.01),
+      N.smoothstep(0.2, 0.76, weather),
+    );
+    const cliffFilter = N.smoothstep(
+      0.25,
+      1,
+      N.dFdx(cliffPosition).length().max(N.dFdy(cliffPosition).length()),
+    ).oneMinus();
+    const cliffGeology = geology.mul(
+      N.mix(N.vec3(1), cliffTone, steep.mul(cliffFilter)),
+    );
     const grainFilter = N.smoothstep(
       0.3,
       1.5,
@@ -245,7 +265,7 @@ export function convertMaterial(source: T.Material): T.Material {
       wet.oneMinus(),
     ).normalize();
     material.colorNode = N.materialColor
-      .mul(N.mix(geology.mul(tone), N.vec3(1), wet))
+      .mul(N.mix(cliffGeology.mul(tone), N.vec3(1), wet))
       .mul(N.mix(N.vec3(1), N.vec3(0.8, 1.06, 1.13), wet.mul(0.3)));
     material.roughnessNode = N.mix(0.95, 0.3, wet);
   }
@@ -300,14 +320,37 @@ export function convertMaterial(source: T.Material): T.Material {
       N.vec3(0.006, 0.105, 0.155),
       offshore,
     ).mul(ripples.w.mul(0.18).add(0.91));
-    const shallow = N.smoothstep(0.003, 0.018, depth).oneMinus();
-    const phase = depth.mul(560).add(t.mul(1.5)).add(ripples.w.mul(1.7));
+    const shoreX = N.dFdx(local),
+      shoreY = N.dFdy(local);
+    const shoreCrossX = N.cross(shoreY, radial),
+      shoreCrossY = N.cross(radial, shoreX);
+    const shoreArea = shoreX.dot(shoreCrossX).abs().max(1e-16);
+    const depthGradient = shoreCrossX
+      .mul(N.dFdx(depth))
+      .add(shoreCrossY.mul(N.dFdy(depth)))
+      .div(shoreArea);
+    const shoreDistance = depth.div(depthGradient.length().max(0.2));
+    const shallow = N.smoothstep(0.004, 0.025, shoreDistance)
+      .oneMinus()
+      .mul(N.smoothstep(0.025, 0.12, depth).oneMinus());
+    const phase = shoreDistance
+      .mul(900)
+      .add(t.mul(1.15))
+      .add(swell.w.mul(2.4))
+      .add(ripples.w.mul(0.6));
     const phaseFilter = N.smoothstep(0.5, 3, N.fwidth(phase)).oneMinus();
-    const breaker = N.smoothstep(0.68, 0.98, phase.sin()).mul(phaseFilter);
-    const wash = N.smoothstep(0.0005, 0.003, depth)
+    const breaker = N.smoothstep(0.58, 0.94, phase.sin()).mul(phaseFilter);
+    const foamBreakup = N.smoothstep(
+      0.24,
+      0.68,
+      ripples.w.mul(0.6).add(swell.w.mul(0.4)),
+    );
+    const wash = N.smoothstep(0.001, 0.005, shoreDistance)
       .oneMinus()
       .mul(ripples.w.mul(0.35).add(0.25));
-    const foam = shallow.mul(breaker.mul(0.7).add(wash)).clamp(0, 0.85);
+    const foam = shallow
+      .mul(breaker.mul(0.85).mul(foamBreakup).add(wash))
+      .clamp(0, 0.85);
     const baseColor =
       (material.colorNode as Node<'vec3'> | null) ?? N.materialColor;
     // GLSL replaces diffuse color after vertex color multiplication. NodeMaterial
@@ -319,10 +362,10 @@ export function convertMaterial(source: T.Material): T.Material {
     material.vertexColors = false;
     material.colorNode = N.mix(
       terrainColor,
-      N.mix(waterColor, N.vec3(0.58, 0.78, 0.7), foam),
+      N.mix(waterColor, N.vec3(0.72, 0.84, 0.8), foam),
       wet,
     );
-    const wave = ripples.xyz.mul(0.22).add(swell.xyz.mul(0.035));
+    const wave = ripples.xyz.mul(0.24).add(swell.xyz.mul(0.065));
     const tangent = wave.sub(radial.mul(wave.dot(radial)));
     const normal = N.modelViewMatrix
       .mul(N.vec4(radial.add(tangent), 0))
@@ -352,7 +395,7 @@ export function convertMaterial(source: T.Material): T.Material {
     };
     material.roughnessNode = N.mix(
       (material.roughnessNode as Node<'float'> | null) ?? N.materialRoughness,
-      swell.w.mul(0.12).add(0.24),
+      N.mix(swell.w.mul(0.14).add(0.28), 0.72, foam),
       wet,
     );
   }

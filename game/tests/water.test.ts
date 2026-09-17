@@ -50,6 +50,8 @@ it('has no discontinuous edge in the repeating wave field', () => {
         );
       }
     expect(interior).toBeGreaterThan(0);
-    expect(seam).toBeLessThanOrEqual(interior);
+    // Each byte-encoded endpoint rounds independently; two compared
+    // differences can differ by up to two quantization levels.
+    expect(seam).toBeLessThanOrEqual(interior + 2);
   }
 });

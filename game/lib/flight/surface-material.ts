@@ -92,6 +92,12 @@ export function addSurfaceMaterial(
   float bedFilter=1.-smoothstep(.4,2.,fwidth(bedPhase));
   float beds=.5+.5*sin(bedPhase)*bedFilter;
   vec3 geology=mix(vec3(.91,.88,.96),vec3(1.03,1.01,.98),mix(.5,beds,smoothstep(.4,.75,mass)))*mix(.79,1.14,mass);
+  vec3 cliffPosition=normalize(mineralPosition)*planetRadius*30.;
+  float weather=mineralNoise(cliffPosition+vec3(seaHeight*.8));
+  float steep=smoothstep(.12,.6,1.-abs(dot(normalize(vSurfaceNormal),normalize(mineralPosition))));
+  vec3 cliffTone=mix(vec3(.74,.79,.90),vec3(1.02,1.,1.01),smoothstep(.2,.76,weather));
+  float cliffFilter=1.-smoothstep(.25,1.,max(length(dFdx(cliffPosition)),length(dFdy(cliffPosition))));
+  geology*=mix(vec3(1.),cliffTone,steep*cliffFilter);
   diffuseColor.rgb*=mix(groundTone*geology,vec3(1.),wet);
   diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.8,1.06,1.13),wet*.3);
   `,
@@ -116,5 +122,5 @@ export function addSurfaceMaterial(
   `,
     );
   };
-  material.customProgramCacheKey = () => 'surface-slate-dust-v8';
+  material.customProgramCacheKey = () => 'surface-weathered-cliff-v9';
 }

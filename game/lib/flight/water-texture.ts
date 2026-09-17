@@ -8,23 +8,25 @@ import {
   Vector3,
 } from 'three';
 
-export const WATER_DETAIL_SCALE = 12;
-export const WATER_SWELL_SCALE = 0.37;
+export const WATER_DETAIL_SCALE = 48;
+export const WATER_SWELL_SCALE = 1.3;
 
 // One periodic height field supplies slopes and local roughness to both
 // renderers. Integer Fourier frequencies join exactly at the repeating edge.
 export function waterTextureData(size = 128) {
   const height = new Float32Array(size * size);
-  const waves = [
-    [2, 3, 0.8, 0.2],
-    [-3, 2, 0.7, 1.7],
-    [5, 1, 0.45, 2.3],
-    [1, -7, 0.3, 0.8],
-    [7, 4, 0.25, 4.2],
-    [-6, 9, 0.18, 2.9],
-    [11, -3, 0.14, 5.1],
-    [4, 13, 0.1, 3.8],
-  ];
+  // Balanced directions avoid a pair of dominant crossing stripe families.
+  // Fixed integer frequencies remain seamless and deterministic.
+  const waves = Array.from({ length: 24 }, (_, i) => {
+    const angle = i * 2.3999632297;
+    const frequency = 2 + (i % 8) * 1.8;
+    return [
+      Math.round(Math.cos(angle) * frequency),
+      Math.round(Math.sin(angle) * frequency),
+      0.65 / Math.sqrt(frequency),
+      ((i * 1.61803398875) % 1) * Math.PI * 2,
+    ];
+  });
   for (let y = 0; y < size; y++)
     for (let x = 0; x < size; x++) {
       let value = 0;

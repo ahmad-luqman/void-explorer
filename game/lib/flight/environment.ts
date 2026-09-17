@@ -44,6 +44,7 @@ export function sampleEnvironment(
     density,
     horizon,
     zenith,
+    hazeColor: horizon.clone().lerp(zenith, daylight * 0.3),
     keyIntensity:
       3.4 *
       MathUtils.lerp(1, MathUtils.smoothstep(keyHeight, -0.04, 0.08), density),
@@ -55,7 +56,7 @@ export function sampleEnvironment(
           density,
         )
       : 0,
-    hazeDensity: density * (0.018 + daylight * 0.032),
+    hazeDensity: density * (0.014 + daylight * 0.022),
     starOpacity: 0.95 * (1 - density * (0.62 + daylight * 0.38)) ** 2,
   };
 }
