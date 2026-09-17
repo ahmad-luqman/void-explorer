@@ -117,12 +117,21 @@ export function coastalScenery(
         const a = rng() * 6.28,
           distance = r * (0.8 + rng() * 1.4);
         const fan = i % 3 === 0;
+        const lowGroup = n >= 15;
         place(
           `vista:hero:${n}:${i}`,
           x + Math.cos(a) * distance,
           z + Math.sin(a) * distance,
-          fan ? 0.0025 + rng() * 0.0025 : 0.0004 + rng() * 0.0017,
-          fan ? 0.002 + rng() * 0.0025 : 0.0003 + rng() * 0.0013,
+          fan
+            ? lowGroup
+              ? 0.0012 + rng() * 0.0013
+              : 0.0025 + rng() * 0.0025
+            : 0.0004 + rng() * 0.0017,
+          fan
+            ? lowGroup
+              ? 0.0007 + rng() * 0.0009
+              : 0.002 + rng() * 0.0025
+            : 0.0003 + rng() * 0.0013,
           rng() * 6.28,
           fan ? 'fan' : undefined,
           fan ? '#ffffff' : '#95788b',

@@ -283,6 +283,10 @@ describe('playable coastal visual slice', () => {
         props.some((p) => p.id.endsWith(`vista:hero:${group}`)),
         `foreground group ${group}`,
       ).toBe(true);
+    for (const prop of props.filter(
+      (p) => p.shape === 'fan' && /:vista:hero:(15|16|17):/.test(p.id),
+    ))
+      expect(prop.height).toBeLessThanOrEqual(0.0016);
     expect(sceneryBlocks(props, patch.origin, patch.up, 0.035)).toBe(false);
     for (const side of [-1, 1])
       for (let z = 0; z <= 0.075; z += 0.005) {
