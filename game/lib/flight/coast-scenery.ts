@@ -104,6 +104,11 @@ export function coastalScenery(
       [0.15, -0.037, 0.022, 0.018],
       [-0.09, -0.05, 0.012, 0.007],
       [0.032, -0.064, 0.008, 0.005],
+      // Low foreground groups frame the approach to the overlook without
+      // enclosing the walking corridor or the ship's protected clearing.
+      [0.018, 0.048, 0.0028, 0.0015],
+      [0.047, 0.05, 0.0035, 0.0018],
+      [0.098, 0.065, 0.0045, 0.0026],
     ];
     clusters.forEach(([x, z, r, h], n) => {
       const rng = random(n * 19349663 + 7621);

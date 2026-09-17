@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { Vector3 } from 'three';
 import {
+  groundAlbedoAnchor,
+  GROUND_ALBEDO_SCALE,
+} from '../lib/flight/ground-albedo';
+import {
   groundTextureData,
   groundTextureAnchor,
   GROUND_TEXTURE_SCALE,
@@ -46,4 +50,25 @@ describe('native ground material', () => {
         .map((v) => ((v % 1) + 1) % 1);
     phase(a).forEach((v, i) => expect(v).toBeCloseTo(phase(b)[i], 7));
   });
+});
+
+it('retains native slate phase and its rotated blend across patch boundaries', () => {
+  const position = new Vector3(-4137.123456, 851.012345, -683.987654);
+  const anchors = [
+    new Vector3(-4137.1, 851, -684),
+    new Vector3(-4136.75, 850.8, -683.5),
+  ];
+  const phase = (anchor: Vector3, rotated: boolean) => {
+    const p = position
+      .clone()
+      .sub(anchor)
+      .multiplyScalar(GROUND_ALBEDO_SCALE)
+      .add(groundAlbedoAnchor(anchor));
+    const v = rotated ? new Vector3(p.z + 0.73, -p.x + 1.17, p.y + 0.39) : p;
+    return v.toArray().map((x) => ((x % 2) + 2) % 2);
+  };
+  for (const rotated of [false, true])
+    phase(anchors[0], rotated).forEach((v, i) =>
+      expect(v).toBeCloseTo(phase(anchors[1], rotated)[i], 7),
+    );
 });

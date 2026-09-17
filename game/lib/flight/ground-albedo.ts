@@ -5,7 +5,7 @@ import {
   Vector3,
 } from 'three';
 
-export const GROUND_ALBEDO_SCALE = 1 / 0.006;
+export const GROUND_ALBEDO_SCALE = 1 / 0.0024;
 // Generated albedo is mirrored at the tile boundary: no dependency on the image
 // model delivering identical opposite edges. Native phase repeats every two tiles.
 export function groundAlbedoAnchor(anchor: Vector3) {

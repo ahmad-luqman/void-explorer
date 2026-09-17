@@ -277,6 +277,12 @@ describe('playable coastal visual slice', () => {
       props.filter((p) => p.point.distanceTo(patch.origin) < 0.15).length,
     ).toBeGreaterThan(50);
     expect(props.some((p) => p.id.endsWith('vista:sentinels'))).toBe(true);
+    // Authored foreground anchors must survive slope/water/route filtering.
+    for (const group of [15, 16, 17])
+      expect(
+        props.some((p) => p.id.endsWith(`vista:hero:${group}`)),
+        `foreground group ${group}`,
+      ).toBe(true);
     expect(sceneryBlocks(props, patch.origin, patch.up, 0.035)).toBe(false);
     for (const side of [-1, 1])
       for (let z = 0; z <= 0.075; z += 0.005) {

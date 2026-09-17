@@ -167,13 +167,29 @@ export function convertMaterial(source: T.Material): T.Material {
           .add(N.texture(albedo.texture, point.xy).rgb.mul(weight.z));
       },
     );
-    const slate = sampleAlbedo(
-      local.mul(GROUND_ALBEDO_SCALE).add(N.uniform(groundAlbedoAnchor(anchor))),
-      N.normalLocal,
+    const albedoPoint = local
+      .mul(GROUND_ALBEDO_SCALE)
+      .add(N.uniform(groundAlbedoAnchor(anchor)));
+    const soil = noise(p.mul(70), seed);
+    const turnedPoint = N.vec3(
+      albedoPoint.z,
+      albedoPoint.x.negate(),
+      albedoPoint.y,
+    ).add(N.vec3(0.73, 1.17, 0.39));
+    const slate = N.mix(
+      sampleAlbedo(albedoPoint, N.normalLocal),
+      sampleAlbedo(turnedPoint, N.normalLocal.zxy),
+      N.smoothstep(0.28, 0.72, soil),
     );
+    const flatness = N.normalLocal.normalize().dot(p.normalize()).abs().pow(8);
+    const exposed = flatness
+      .mul(N.smoothstep(0.32, 0.68, soil))
+      .mul(0.78)
+      .oneMinus();
+    const dust = N.vec3(0.91, 0.87, 0.93).mul(N.mix(0.9, 1.08, stone));
     const tone = N.mix(
-      groundSample.rgb.mul(1.5),
-      slate.mul(3.5).add(0.25),
+      N.mix(dust, groundSample.rgb.add(0.25), exposed),
+      N.mix(dust, slate.mul(2.1).add(0.38), exposed),
       albedoReady,
     );
 
@@ -195,13 +211,13 @@ export function convertMaterial(source: T.Material): T.Material {
       N.dFdx(local).length().max(N.dFdy(local).length()).mul(160),
     ).oneMinus();
     const rockHeight = N.mix(
-      groundSample.a,
-      slate.dot(N.vec3(0.3333)),
+      groundSample.a.mul(0.000008),
+      slate.dot(N.vec3(0.3333)).mul(0.000025),
       albedoReady,
     )
-      .mul(0.000025)
       .add(stone.mul(0.000005))
-      .mul(grainFilter);
+      .mul(grainFilter)
+      .mul(exposed);
     const interpolatedNormal = N.varying(
       N.modelViewMatrix.mul(N.vec4(N.normalLocal, 0)).xyz,
     ).normalize();

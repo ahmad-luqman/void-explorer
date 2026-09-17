@@ -8,9 +8,9 @@ import {
   Vector3,
 } from 'three';
 
-// Eight physical meters per repeat. RGB is a linear albedo multiplier / 1.5;
+// 2.5 physical meters per repeat. RGB is a linear mineral albedo field;
 // alpha is relief, sampled by the same filtered lookup on both backends.
-export const GROUND_TEXTURE_SCALE = 125;
+export const GROUND_TEXTURE_SCALE = 400;
 export const GROUND_TEXTURE_SIZE = 512;
 const wrap = (x: number, period: number) => ((x % period) + period) % period;
 function hash(x: number, y: number, period: number) {
