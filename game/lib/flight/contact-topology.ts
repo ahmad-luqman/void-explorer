@@ -2,7 +2,11 @@
  * All region edges share vertices, including boundaries between resolutions.
  */
 export type ContactTopology = ReturnType<typeof contactTopology>;
-export function contactTopology(sourceAxis: Float64Array, vista: boolean) {
+export function contactTopology(
+  sourceAxis: Float64Array,
+  vista: boolean,
+  refinement?: (x: number, y: number, size: number) => number,
+) {
   const axis = sourceAxis.filter((v) => Math.abs(v) <= 1.200000001);
   const core = axis[axis.length - 1];
   const points: [number, number][] = [];
@@ -24,7 +28,7 @@ export function contactTopology(sourceAxis: Float64Array, vista: boolean) {
   // Coordinates serialize as integer multiples of 75 m; no float-boundary drift.
   // Child quartets are contiguous, so collision descends without rebuilding an index.
   const nodes: number[][] = [[-76.8, -76.8, 153.6, -1, 0, 0]];
-  const leaves: number[] = [];
+  const leaves = new Set<number>();
   function split(id: number) {
     const [x, y, size] = nodes[id];
     const distance = Math.max(0, x, y, -x - size, -y - size);
@@ -42,7 +46,7 @@ export function contactTopology(sourceAxis: Float64Array, vista: boolean) {
       distance < 3 - 1e-8
         ? 0.075
         : distance < 18 - 1e-8
-          ? vista
+          ? vista && !refinement
             ? 0.3
             : 0.6
           : distance < 38.4 - 1e-8
@@ -60,14 +64,48 @@ export function contactTopology(sourceAxis: Float64Array, vista: boolean) {
       );
       for (let i = 0; i < 4; i++) split(first + i);
     } else {
-      leaves.push(id);
-      vertex(x, y);
-      vertex(x + size, y);
-      vertex(x + size, y + size);
-      vertex(x, y + size);
+      leaves.add(id);
     }
   }
   split(0);
+  if (refinement) {
+    // Refine the most visibly under-sampled faces first at each scale. The
+    // leaf ceiling reserves space for the protected grid and shared edge fans.
+    for (const size of [0.6, 0.3, 0.15]) {
+      const candidates = [...leaves]
+        .filter((id) => Math.abs(nodes[id][2] - size) < 1e-8)
+        .map((id) => ({
+          id,
+          score: refinement(
+            ...(nodes[id].slice(0, 3) as [number, number, number]),
+          ),
+        }))
+        .filter(({ score }) => score > 1)
+        .sort((a, b) => b.score - a.score || a.id - b.id);
+      for (const { id } of candidates) {
+        if (leaves.size + 3 > 28000) break;
+        const [x, y, width] = nodes[id],
+          half = width / 2;
+        leaves.delete(id);
+        const first = nodes.length;
+        nodes[id][3] = first;
+        nodes.push(
+          [x, y, half, -1, 0, 0],
+          [x + half, y, half, -1, 0, 0],
+          [x, y + half, half, -1, 0, 0],
+          [x + half, y + half, half, -1, 0, 0],
+        );
+        for (let i = 0; i < 4; i++) leaves.add(first + i);
+      }
+    }
+  }
+  for (const id of leaves) {
+    const [x, y, size] = nodes[id];
+    vertex(x, y);
+    vertex(x + size, y);
+    vertex(x + size, y + size);
+    vertex(x, y + size);
+  }
   const horizontal = new Map<number, number[]>(),
     vertical = new Map<number, number[]>();
   for (let id = 0; id < points.length; id++) {
@@ -200,6 +238,6 @@ export function contactTopology(sourceAxis: Float64Array, vista: boolean) {
         node.map((value, i) => (i < 3 ? Math.round(value / 0.075) : value)),
       ),
     ),
-    leaves: leaves.length,
+    leaves: leaves.size,
   };
 }

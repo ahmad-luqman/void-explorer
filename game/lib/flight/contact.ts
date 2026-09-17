@@ -1,4 +1,5 @@
 import { contactTopology, type ContactTopology } from './contact-topology';
+import { coastalRefinement } from './contact-refinement';
 import { COAST_UP } from './coast';
 import { sampleBiome } from './biomes';
 import { Quaternion, Ray, Vector3 } from 'three';
@@ -128,10 +129,21 @@ export function generateContact(
       body.terrainVersion === 5,
     ),
     topologyKey = `${sourceAxis.join(',')}:${body.terrainVersion === 5}`;
-  let topology = layout === 'regions' ? topologies.get(topologyKey) : undefined;
+  const refineCoast =
+    body.id === 'p0-0' &&
+    body.terrainVersion === 5 &&
+    up.dot(COAST_UP) > 0.9994;
+  let topology =
+    layout === 'regions' && !refineCoast
+      ? topologies.get(topologyKey)
+      : undefined;
   if (layout === 'regions' && !topology) {
-    topology = contactTopology(sourceAxis, body.terrainVersion === 5);
-    topologies.set(topologyKey, topology);
+    topology = contactTopology(
+      sourceAxis,
+      body.terrainVersion === 5,
+      refineCoast ? coastalRefinement(body, origin, east, north) : undefined,
+    );
+    if (!refineCoast) topologies.set(topologyKey, topology);
   }
   const axis = topology?.axis.slice() ?? sourceAxis,
     extent = topology ? 76.8 : axis[axis.length - 1],

@@ -2,8 +2,13 @@ import { it, expect } from 'vitest';
 import { contactAxis } from '../lib/flight/contact';
 import { contactTopology } from '../lib/flight/contact-topology';
 it('joins independently sized regions with shared, manifold edges inside the mesh budget', () => {
-  for (const vista of [false, true]) {
-    const m = contactTopology(contactAxis(vista, true, vista), vista);
+  for (const mode of ['legacy', 'vista', 'maximum-refinement'] as const) {
+    const vista = mode !== 'legacy';
+    const m = contactTopology(
+      contactAxis(vista, true, vista),
+      vista,
+      mode === 'maximum-refinement' ? () => 3 : undefined,
+    );
     console.log(
       'regional topology',
       vista,

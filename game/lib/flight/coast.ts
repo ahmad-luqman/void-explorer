@@ -155,7 +155,10 @@ export function coastalVistaElevation(
   const distance = Math.hypot(x, z);
   if (distance >= (cliffs ? 180 : 100)) return original;
   // Preserve the landing footprint; low exposed shelves outside it add real relief.
-  const legacy = coastalElevation(d, radius, original, true);
+  // Outside this blend the legacy field's coefficient is exactly zero. Avoid
+  // evaluating all of its peaks for every outer vertex and scenery query.
+  const legacy =
+    distance < 0.24 ? coastalElevation(d, radius, original, true) : 0;
   // Surround the vista with a low regional coast. The original planet has
   // tens-of-kilometers relief that otherwise becomes a triangular wall behind it.
   if (distance > 30) {

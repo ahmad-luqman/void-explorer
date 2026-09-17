@@ -28,8 +28,9 @@ test('measure sustained cold and cached surface streaming', async ({
   await expect(page.locator('.title-top')).toContainText(backend.toUpperCase());
   const runs = [];
   for (const cache of ['cold', 'revisit']) {
-    await page.evaluate(() =>
-      window.__VOID_EXPLORER__!.scene('surface-traverse'),
+    await page.evaluate(
+      (scene) => window.__VOID_EXPLORER__!.scene(scene),
+      process.env.STREAMING_COAST ? 'atmospheric-flight' : 'surface-traverse',
     );
     await expect
       .poll(() =>
@@ -114,6 +115,9 @@ test('measure sustained cold and cached surface streaming', async ({
   }
   const report = {
     date: new Date().toISOString(),
+    scene: process.env.STREAMING_COAST
+      ? 'atmospheric-flight'
+      : 'surface-traverse',
     browser: browser.version(),
     backend,
     device: await page.evaluate(() => ({
@@ -151,7 +155,13 @@ test('measure sustained cold and cached surface streaming', async ({
     expect(distance).toBeGreaterThan(duration >= 30000 ? 3 : 1);
     expect(contacts).toBeGreaterThanOrEqual(4);
     expect(r.end.flightMessage).toBe('');
-    if (duration === 10000 && r.cache === 'revisit') {
+    // The generic short route fits the cache. Coastal geometry and its moving
+    // start can exceed that working set; report its hits without assuming reuse.
+    if (
+      duration === 10000 &&
+      r.cache === 'revisit' &&
+      !process.env.STREAMING_COAST
+    ) {
       const before = r.start.contactStats as { storage: { hits: number } };
       const after = r.end.contactStats as { storage: { hits: number } };
       expect(after.storage.hits - before.storage.hits).toBeGreaterThanOrEqual(
