@@ -6,6 +6,7 @@ import { planetRotation, toPlanet } from './rotation';
 import * as T from 'three';
 import type { PreparedScenery } from './scenery-preparation';
 import { groundTexture } from './ground-texture';
+import { preloadGroundAlbedo } from './ground-albedo';
 import type { WebGPURenderer } from 'three/webgpu';
 import type { GpuBackend } from './gpu/backend';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -1267,6 +1268,11 @@ export class FlightRenderer {
       this.gpu.render(this.scene, this.camera, this.quality === 'high');
     else if (this.quality === 'high') this.composer!.render();
     else this.renderer.render(this.scene, this.camera);
+  }
+  async prepareSurfaceAssets(signal?: AbortSignal) {
+    await preloadGroundAlbedo((texture) => {
+      if (!this.disposed) this.renderer.initTexture(texture);
+    }, signal);
   }
   targetScreen() {
     const site = siteById(this.sim.siteDestination);

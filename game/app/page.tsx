@@ -216,6 +216,7 @@ export default function Home() {
           preferWebGL ? 'webgl' : 'auto',
           abort.signal,
         );
+        await view.prepareSurfaceAssets(abort.signal);
         if (stopped) {
           view.dispose();
           return;
