@@ -352,3 +352,5 @@ The on-foot coast views ([WebGL](milestones/regions-coast-webgl.png), [WebGPU](m
 | Glass Choir | [Capture](milestones/regions-glass-choir-webgl.png) | [Capture](milestones/regions-glass-choir-webgpu.png) |
 
 Current Firefox and WebKit production orbital/coastal journeys also pass (Firefox 28.0/45.3 s; WebKit 27.9/about 60 s). Actual coast captures: [Firefox](milestones/regions-coast-firefox.png), [WebKit](milestones/regions-coast-webkit.png). These are desktop engine checks, not physical Safari/iPhone certification.
+
+The validated regional-terrain milestone is published privately as Sites version 30, source `a47b8f1dae28804dcad0cbf842e6925eb164e59e`. Deployment `appgdep_6aab860930588191b18e1a93d4bcd657` reported `succeeded`. Cloud/foreground/shoreline integration, full environment acceptance and physical-device validation remain open.
