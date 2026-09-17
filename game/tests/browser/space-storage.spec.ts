@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(
+    (value) => localStorage.setItem('void-renderer', value),
+    process.env.WEBGPU_TEST ? 'auto' : 'webgl',
+  );
+});
+
 test('remote rotating surface survives reload and reuses disk terrain', async ({
   page,
 }) => {

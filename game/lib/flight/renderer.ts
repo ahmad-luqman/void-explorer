@@ -1,3 +1,4 @@
+import { StreamingMetrics } from './streaming-metrics';
 import { siteById, sitePoint } from './sites';
 import { sampleBiome } from './biomes';
 import type { TerrainStorage } from './terrain-storage';
@@ -19,9 +20,8 @@ import { contactRequest, terrainRefresh } from './terrain-stream';
 import { blendTerrain, protectContact } from './terrain-transition';
 import TerrainWorker from './terrain.worker?worker';
 import ContactWorker from './contact.worker?worker';
-import { createTerrainSkirt } from './terrain-seam';
+import type { ContactRenderData } from './contact-render-data';
 import { addSurfaceMaterial } from './surface-material';
-import { contactNormalBlend } from './contact-shading';
 import { addWaterMaterial } from './water-material';
 import { sampleEnvironment } from './environment';
 import { createCloudLayer } from './clouds';
@@ -139,6 +139,9 @@ export class FlightRenderer {
   suspended = false;
   frame = 0;
   worker: Worker;
+  streaming = new StreamingMetrics();
+  terrainSentAt = 0;
+  contactSentAt = 0;
   patchPending = false;
   patchToken = 0;
   terrainRequestAt = 0;
@@ -166,6 +169,8 @@ export class FlightRenderer {
   contactPending = false;
   contactStats = {
     source: 'generated',
+    preparationMs: 0,
+    preparedBytes: 0,
     storage: null as TerrainStorage['stats'] | null,
     generated: 0,
     discarded: 0,
@@ -322,6 +327,11 @@ export class FlightRenderer {
         return;
       }
       this.patchPending = false;
+      this.streaming.record(
+        'terrainWait',
+        performance.now() - this.terrainSentAt,
+      );
+      const applyBegan = performance.now();
       if (event.data.error) {
         this.terrainRequestAt = performance.now() + 1000;
         return;
@@ -449,6 +459,7 @@ export class FlightRenderer {
           (data.startColors?.byteLength ?? 0) +
           (data.startHeights?.byteLength ?? 0),
       };
+      this.streaming.record('terrainApply', performance.now() - applyBegan);
     };
     this.worker.onerror = () => {
       this.patchPending = false;
@@ -458,6 +469,8 @@ export class FlightRenderer {
     this.contactWorker.onmessage = (
       event: MessageEvent<{
         data: ContactData;
+        render: ContactRenderData;
+        preparationMs: number;
         token: number;
         error?: string;
         cacheHit?: boolean;
@@ -471,6 +484,11 @@ export class FlightRenderer {
         return;
       }
       this.contactPending = false;
+      this.streaming.record(
+        'contactWait',
+        performance.now() - this.contactSentAt,
+      );
+      const applyBegan = performance.now();
       if (event.data.error) {
         this.contactRetryAt = performance.now() + 1000;
         return;
@@ -493,6 +511,14 @@ export class FlightRenderer {
         storage: event.data.storage,
         generated: this.contactStats.generated + 1,
         generationMs: event.data.generationMs,
+        preparationMs: event.data.preparationMs,
+        preparedBytes:
+          event.data.render.normals.byteLength +
+          event.data.render.smooth.byteLength +
+          Object.values(event.data.render.skirt).reduce(
+            (sum, a) => sum + a.byteLength,
+            0,
+          ),
         vertices: patch.data.positions.length / 3,
         bytes:
           patch.data.positions.byteLength +
@@ -521,10 +547,13 @@ export class FlightRenderer {
       );
       geometry.setAttribute(
         'surfaceSmooth',
-        new T.BufferAttribute(contactNormalBlend(patch.data.axis), 1),
+        new T.BufferAttribute(event.data.render.smooth, 1),
       );
       geometry.setIndex(new T.BufferAttribute(patch.data.indices, 1));
-      geometry.computeVertexNormals();
+      geometry.setAttribute(
+        'normal',
+        new T.BufferAttribute(event.data.render.normals, 3),
+      );
       geometry.computeBoundingSphere();
       const material = new T.MeshStandardMaterial({
         vertexColors: true,
@@ -580,7 +609,7 @@ export class FlightRenderer {
       this.contactMesh.position.copy(patch.origin).sub(this.sim.position);
       this.contactMesh.receiveShadow = true;
       this.contactMesh.castShadow = true;
-      const seam = createTerrainSkirt(patch),
+      const seam = event.data.render.skirt,
         seamGeometry = new T.BufferGeometry();
       seamGeometry.setAttribute(
         'position',
@@ -588,7 +617,10 @@ export class FlightRenderer {
       );
       seamGeometry.setAttribute('color', new T.BufferAttribute(seam.colors, 3));
       seamGeometry.setIndex(new T.BufferAttribute(seam.indices, 1));
-      seamGeometry.computeVertexNormals();
+      seamGeometry.setAttribute(
+        'normal',
+        new T.BufferAttribute(seam.normals, 3),
+      );
       this.contactMesh.add(
         new T.Mesh(
           seamGeometry,
@@ -608,6 +640,7 @@ export class FlightRenderer {
           // an inset skirt and identical masks otherwise leave a subpixel gap.
           view.body.id === body.id ? CONTACT_RADIUS - 0.01 : 0;
       this.sim.surface.setPatch(patch);
+      this.streaming.record('contactApply', performance.now() - applyBegan);
     };
     this.contactWorker.onerror = () => {
       this.contactPending = false;
@@ -872,6 +905,7 @@ export class FlightRenderer {
     this.frame++;
     this.planets.forEach((p) => {
       if (p.transition && p.patch) {
+        const morphBegan = performance.now();
         const t = p.transition;
         t.age = Math.min(0.8, t.age + dt);
         const progress = t.age / 0.8;
@@ -898,10 +932,15 @@ export class FlightRenderer {
         geometry.attributes.position.needsUpdate = true;
         geometry.attributes.color.needsUpdate = true;
         this.terrainStats.morphProgress = progress;
+        this.streaming.morphUploadBytes +=
+          geometry.attributes.position.array.byteLength +
+          geometry.attributes.color.array.byteLength +
+          geometry.attributes.terrainHeight.array.byteLength;
         if (progress === 1) {
           geometry.computeVertexNormals();
           p.transition = undefined;
         }
+        this.streaming.record('terrainMorph', performance.now() - morphBegan);
       }
       p.group.position.copy(p.body.position).sub(this.sim.position);
       p.group.quaternion.copy(planetRotation(p.body));
@@ -951,6 +990,7 @@ export class FlightRenderer {
       ) {
         this.patchPending = true;
         this.terrainRequestAt = performance.now() + 500;
+        this.terrainSentAt = performance.now();
         this.worker.postMessage({
           body: { ...near.body, position: undefined },
           observer: observer.toArray(),
@@ -985,6 +1025,7 @@ export class FlightRenderer {
     starPositions.needsUpdate = true;
     const surface = this.sim.surface;
     if (this.sceneryProps !== surface.scenery) {
+      const sceneryBegan = performance.now();
       if (this.sceneryView) {
         this.scene.remove(this.sceneryView);
         disposeObject(this.sceneryView);
@@ -1004,6 +1045,7 @@ export class FlightRenderer {
           )
         : null;
       if (this.sceneryView) this.scene.add(this.sceneryView);
+      this.streaming.record('sceneryBuild', performance.now() - sceneryBegan);
     }
     if (this.sceneryView && surface.patch) {
       this.sceneryView.quaternion.copy(surface.patch.rotation);
@@ -1029,6 +1071,7 @@ export class FlightRenderer {
       );
       if (center && performance.now() >= this.contactRetryAt) {
         this.contactPending = true;
+        this.contactSentAt = performance.now();
         this.contactWorker.postMessage({
           body: {
             ...this.sim.nearest,

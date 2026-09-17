@@ -247,9 +247,11 @@ export function convertMaterial(source: T.Material): T.Material {
     const sampleWaves = N.Fn(
       ([point, up, flow]: [Node<'vec3'>, Node<'vec3'>, Node<'vec2'>]) => {
         const weight = up.abs().div(up.abs().x.add(up.abs().y).add(up.abs().z));
-        const x = N.texture(waterTexture(), point.yz.add(flow)).rgb,
-          y = N.texture(waterTexture(), point.xz.add(flow.yx)).rgb,
-          z = N.texture(waterTexture(), point.xy.sub(flow)).rgb;
+        // Read the texture channels directly: chained .rgb.r swizzles fail
+        // Tint lowering on the standard Metal path in Chromium 153.
+        const x = N.texture(waterTexture(), point.yz.add(flow)),
+          y = N.texture(waterTexture(), point.xz.add(flow.yx)),
+          z = N.texture(waterTexture(), point.xy.sub(flow));
         const slope = N.vec3(0, x.r.mul(2).sub(1), x.g.mul(2).sub(1))
           .mul(weight.x)
           .add(N.vec3(y.r.mul(2).sub(1), 0, y.g.mul(2).sub(1)).mul(weight.y))

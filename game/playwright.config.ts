@@ -20,7 +20,9 @@ export default defineConfig({
               ...(process.env.HARDWARE_TEST
                 ? ['--use-angle=metal']
                 : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']),
-              ...(process.env.WEBGPU_TEST ? ['--enable-unsafe-webgpu'] : []),
+              ...(process.env.WEBGPU_TEST && !process.env.HARDWARE_TEST
+                ? ['--enable-unsafe-webgpu']
+                : []),
             ]
           : [],
     },

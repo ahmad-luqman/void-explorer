@@ -84,6 +84,7 @@ declare global {
   interface Window {
     __VOID_EXPLORER__?: {
       state: () => unknown;
+      resetStreaming: () => void;
       select: (id: string) => boolean;
       scene: (name: string) => void;
     };
@@ -397,6 +398,7 @@ export default function Home() {
               terrainPending: view?.patchPending,
               terrainStats: view?.terrainStats,
               contactStats: view?.contactStats,
+              streaming: view?.streaming,
               shipModel: view?.craft.modelSource,
               audio: audio.current?.snapshot,
               gearDeployment: sim.surface.gearDeployment,
@@ -411,6 +413,7 @@ export default function Home() {
               survey: sim.surface.survey,
               cloudLayers: view?.planets.length,
             }),
+            resetStreaming: () => view?.streaming.reset(),
             select: (id) => sim.select(id),
             scene: (name) => {
               sim.reset();

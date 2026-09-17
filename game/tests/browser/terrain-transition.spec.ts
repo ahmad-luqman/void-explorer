@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(
+    (value) => localStorage.setItem('void-renderer', value),
+    process.env.WEBGPU_TEST ? 'auto' : 'webgl',
+  );
+});
+
 test('planet morphs finish, revisited views reuse bounded terrain, and contact remains stable', async ({
   page,
 }) => {

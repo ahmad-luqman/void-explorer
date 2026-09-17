@@ -1,3 +1,7 @@
+import {
+  prepareContactRenderData,
+  contactRenderBuffers,
+} from './contact-render-data';
 import { Vector3 } from 'three';
 import { generateContact } from './contact';
 import { TerrainStorage, TERRAIN_REVISION } from './terrain-storage';
@@ -30,12 +34,9 @@ const handle = async (
     (data): data is ReturnType<typeof generateContact> =>
       validContact(data) && data.bodyId === body.id,
   );
+  const world = { ...body, position: new Vector3().fromArray(body.position) };
   const data =
-    cached?.payload ??
-    generateContact(
-      { ...body, position: new Vector3().fromArray(body.position) },
-      new Vector3().fromArray(center),
-    );
+    cached?.payload ?? generateContact(world, new Vector3().fromArray(center));
   if (!cached)
     await storage.write(
       signature,
@@ -47,13 +48,17 @@ const handle = async (
         data.indices.byteLength +
         data.axis.byteLength,
     );
+  const generatedAt = performance.now();
+  const render = prepareContactRenderData(data, world);
   self.postMessage(
     {
       data,
+      render,
+      preparationMs: performance.now() - generatedAt,
       token,
       cacheHit: !!cached,
       storage: storage.stats,
-      generationMs: performance.now() - began,
+      generationMs: generatedAt - began,
     },
     {
       transfer: [
@@ -62,6 +67,7 @@ const handle = async (
         data.colors.buffer,
         data.heights.buffer,
         data.indices.buffer,
+        ...contactRenderBuffers(render),
       ],
     },
   );

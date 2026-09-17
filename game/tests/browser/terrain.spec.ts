@@ -1,4 +1,11 @@
 import { test, expect } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(
+    (value) => localStorage.setItem('void-renderer', value),
+    process.env.WEBGPU_TEST ? 'auto' : 'webgl',
+  );
+});
 test('terrain streams during real low-altitude flight with a bounded mesh', async ({
   page,
 }) => {
