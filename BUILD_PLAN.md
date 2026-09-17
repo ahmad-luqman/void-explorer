@@ -278,3 +278,11 @@ Use 75 m outer cells close to the protected core, 300 m cells through the profil
 ### Next environment integration pass
 
 The shared-edge outer mesh removes the narrow cliff corridor, but current captures still show solid, separate cloud lobes, repetitive close-ground texture, sparse foreground composition and broad pale hills around the authored sites. Improve cloud edges, density and sunlight response first using bounded geometry/shading that works during orbit, flight and walking. Compare day/night and High/Low views on both renderers, then refine foreground rock/fan/dust groupings while retaining safe walking lanes and landing footprints. The concept remains the visual acceptance reference; a passing feature or shader test is not whole-scene acceptance.
+
+### Soft coastal cloud volumes — delivered
+
+Replace the 240 opaque cloud lobes with 16 volume bounds and one shared material/atlas. Seed four 48³ density fields, interpolate their atlas slices, and integrate translucent density along the viewing ray. Store a density gradient alongside the field for bounded lighting cost; keep native world placement and binary-sun daylight response. Use 32 ray steps on High and 16 on Low, retaining a fixed 1.69 MiB atlas and 192 bounding-box triangles.
+
+Check close/interior/rotated-light views, the night-side sky, live quality changes and system disposal/recreation on both renderers. Review on-foot production scenes, preserve captures and record cold versus settled timing limits. The local banks are stylized density volumes with approximate gradient lighting and opaque-depth testing; they are not a full weather or multiple-scattering simulation. Whole-scene cloud/ground/shoreline integration remains part of visual acceptance.
+
+Implemented: shared density/gradient atlas, per-bank camera and binary-sun coordinates, soft ray-integrated edges, and live High/Low detail updates. All 125 unit tests, TypeScript, scoped lint and the static build pass. Both renderer cloud fixtures and full production orbital/coastal saved journeys pass. Retained timing samples show loading/frame outliers; final device/performance and whole-scene art acceptance remain open. Browser-engine checks and private publication are recorded in the runtime review.
