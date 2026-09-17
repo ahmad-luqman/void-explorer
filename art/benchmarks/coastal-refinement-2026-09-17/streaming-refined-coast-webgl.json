@@ -1,0 +1,1719 @@
+{
+  "date": "2026-09-17T09:52:19.987Z",
+  "scene": "atmospheric-flight",
+  "browser": "153.0.8010.12",
+  "backend": "webgl",
+  "device": {
+    "agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "threads": 16,
+    "dpr": 1,
+    "width": 1440,
+    "height": 960
+  },
+  "runs": [
+    {
+      "cache": "cold",
+      "frames": {
+        "count": 597,
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999272,
+        "p99": 16.800000000000182,
+        "max": 33.40000000000009,
+        "over50": 0
+      },
+      "start": {
+        "siteDestination": null,
+        "discoveries": [],
+        "address": {
+          "cells": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            -279.90287528958294,
+            955.6756329050995,
+            -100.70012402110177
+          ]
+        },
+        "originRevision": 2,
+        "rotationTime": 2252.666600000008,
+        "planetRotation": [
+          0.19306981539004006,
+          0.804457564125167,
+          -0.14480236154253004,
+          -0.5427746770058134
+        ],
+        "surfacePosition": [
+          458.8927663822936,
+          845.9684152451252,
+          274.8761889859879
+        ],
+        "surfaceShipPosition": [
+          0,
+          0,
+          0
+        ],
+        "position": [
+          -279.90287528958294,
+          955.6756329050995,
+          -100.70012402110177
+        ],
+        "orientation": [
+          -0.11923201961618168,
+          0.9411155351974206,
+          -0.09226519852747775,
+          -0.3026093323891453
+        ],
+        "angularVelocity": [
+          0,
+          0,
+          0
+        ],
+        "speed": 0.4480196562337492,
+        "throttle": 0.8,
+        "altitude": 0.9006193932560791,
+        "status": "ATMOSPHERE",
+        "target": "p0-0",
+        "system": 0,
+        "autopilot": false,
+        "route": [],
+        "routeActive": false,
+        "descending": false,
+        "pulse": false,
+        "visited": [
+          0
+        ],
+        "surfacePhase": "flight",
+        "shipPosition": [
+          0,
+          0,
+          0
+        ],
+        "shipDistance": 1000.9006193932561,
+        "walked": 0,
+        "contactReady": true,
+        "surfaceMessage": "",
+        "flightMessage": "",
+        "groundClearance": 0.7865167059342235,
+        "rendererBackend": "WEBGL",
+        "planetMeshRotation": [
+          0.19306981539004006,
+          0.804457564125167,
+          -0.14480236154253004,
+          -0.5427746770058134
+        ],
+        "contactMeshRotation": [
+          0.19306981539004006,
+          0.804457564125167,
+          -0.14480236154253004,
+          -0.5427746770058134
+        ],
+        "drawCalls": 61,
+        "triangles": 227828,
+        "terrainReady": true,
+        "terrainPending": false,
+        "terrainStats": {
+          "source": "generated",
+          "bodyId": "p0-0",
+          "generated": 2,
+          "discarded": 0,
+          "generationMs": 30.399999976158142,
+          "vertices": 6684,
+          "triangles": 13364,
+          "leaves": 3000,
+          "maxDepth": 9,
+          "bytes": 534672,
+          "maxErrorPixels": 10.24633746448759,
+          "transitions": 1,
+          "transitionMs": 39.700000047683716,
+          "morphProgress": 1,
+          "maxDelta": 50.87178865447312,
+          "cache": {
+            "hits": 0,
+            "misses": 2,
+            "evictions": 0,
+            "bytes": 697536,
+            "entries": 2
+          },
+          "storage": {
+            "hits": 0,
+            "misses": 2,
+            "writes": 2,
+            "errors": 0,
+            "bytes": 5715712,
+            "entries": 3,
+            "available": true
+          }
+        },
+        "contactStats": {
+          "source": "generated",
+          "preparationMs": 12.900000035762787,
+          "preparedBytes": 1344104,
+          "sceneryPreparationMs": 29.799999952316284,
+          "sceneryCount": 700,
+          "groundTexturePreparationMs": 34.69999998807907,
+          "storage": {
+            "hits": 0,
+            "misses": 2,
+            "writes": 2,
+            "errors": 0,
+            "bytes": 10736852,
+            "entries": 4,
+            "available": true
+          },
+          "generated": 2,
+          "discarded": 0,
+          "generationMs": 351.89999997615814,
+          "vertices": 77858,
+          "bytes": 5021140
+        },
+        "streaming": {
+          "phases": {
+            "terrainApply": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "contactApply": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "sceneryBuild": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "terrainMorph": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "terrainWait": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "contactWait": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            }
+          },
+          "morphUploadBytes": 0
+        },
+        "shipModel": "authored",
+        "gearDeployment": 0,
+        "lighting": {
+          "daylight": 1,
+          "density": 0.9999053041192381,
+          "shadows": false
+        },
+        "motion": {
+          "streaks": 0.15935458702435254,
+          "vapor": 0.17479684405615153,
+          "phase": 0.021235298335917335
+        },
+        "sceneryCount": 542,
+        "vegetationCount": 68,
+        "landmarkCount": 1,
+        "survey": {
+          "biome": "Open ocean",
+          "coast": true,
+          "landmark": {
+            "id": "p0-0:coast:vista:sentinels",
+            "name": "Tide Sentinels",
+            "distance": 1.2216147319630841
+          }
+        },
+        "cloudLayers": 3,
+        "cloudDetail": 1
+      },
+      "end": {
+        "siteDestination": null,
+        "discoveries": [],
+        "address": {
+          "cells": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            -275.52366869350385,
+            958.2930737959481,
+            -87.19609233425454
+          ]
+        },
+        "originRevision": 2,
+        "rotationTime": 2262.699500000032,
+        "planetRotation": [
+          0.19186929115514004,
+          0.7994553798130835,
+          -0.14390196836635502,
+          -0.5507717261260159
+        ],
+        "surfacePosition": [
+          461.9947662587002,
+          845.6884709272268,
+          270.5806938868993
+        ],
+        "surfaceShipPosition": [
+          0,
+          0,
+          0
+        ],
+        "position": [
+          -275.52366869350385,
+          958.2930737959481,
+          -87.19609233425454
+        ],
+        "orientation": [
+          -0.11918532788390568,
+          0.9387031504173209,
+          -0.0886055907774397,
+          -0.3110953267035422
+        ],
+        "angularVelocity": [
+          0,
+          0,
+          0
+        ],
+        "speed": 0.6289769260709106,
+        "throttle": 1,
+        "altitude": 0.920609146388756,
+        "status": "ATMOSPHERE",
+        "target": "p0-0",
+        "system": 0,
+        "autopilot": false,
+        "route": [],
+        "routeActive": false,
+        "descending": false,
+        "pulse": false,
+        "visited": [
+          0
+        ],
+        "surfacePhase": "flight",
+        "shipPosition": [
+          0,
+          0,
+          0
+        ],
+        "shipDistance": 1000.9206091463888,
+        "walked": 0,
+        "contactReady": true,
+        "surfaceMessage": "",
+        "flightMessage": "",
+        "groundClearance": 0.9006055696769011,
+        "rendererBackend": "WEBGL",
+        "planetMeshRotation": [
+          0.19186929115514004,
+          0.7994553798130835,
+          -0.14390196836635502,
+          -0.5507717261260159
+        ],
+        "contactMeshRotation": [
+          0.19186929115514004,
+          0.7994553798130835,
+          -0.14390196836635502,
+          -0.5507717261260159
+        ],
+        "drawCalls": 54,
+        "triangles": 201872,
+        "terrainReady": true,
+        "terrainPending": false,
+        "terrainStats": {
+          "source": "generated",
+          "bodyId": "p0-0",
+          "generated": 3,
+          "discarded": 0,
+          "generationMs": 30.200000047683716,
+          "vertices": 6687,
+          "triangles": 13370,
+          "leaves": 3000,
+          "maxDepth": 9,
+          "bytes": 534912,
+          "maxErrorPixels": 10.28008265772257,
+          "transitions": 2,
+          "transitionMs": 39,
+          "morphProgress": 1,
+          "maxDelta": 1.5437854525223387,
+          "cache": {
+            "hits": 0,
+            "misses": 3,
+            "evictions": 0,
+            "bytes": 1045212,
+            "entries": 3
+          },
+          "storage": {
+            "hits": 0,
+            "misses": 3,
+            "writes": 3,
+            "errors": 0,
+            "bytes": 30844292,
+            "entries": 8,
+            "available": true
+          }
+        },
+        "contactStats": {
+          "source": "generated",
+          "preparationMs": 8.400000035762787,
+          "preparedBytes": 1345848,
+          "sceneryPreparationMs": 16.899999976158142,
+          "sceneryCount": 115,
+          "groundTexturePreparationMs": 34.69999998807907,
+          "storage": {
+            "hits": 0,
+            "misses": 9,
+            "writes": 9,
+            "errors": 0,
+            "bytes": 30504572,
+            "entries": 7,
+            "available": true
+          },
+          "generated": 9,
+          "discarded": 0,
+          "generationMs": 332.0999999642372,
+          "vertices": 77967,
+          "bytes": 5026808
+        },
+        "streaming": {
+          "phases": {
+            "terrainApply": {
+              "count": 1,
+              "totalMs": 2.099999964237213,
+              "maxMs": 2.099999964237213,
+              "recentMs": [
+                2.099999964237213
+              ]
+            },
+            "contactApply": {
+              "count": 7,
+              "totalMs": 135.60000002384186,
+              "maxMs": 20.900000035762787,
+              "recentMs": [
+                20.900000035762787,
+                18.399999976158142,
+                18.100000023841858,
+                20.19999998807907,
+                20.80000001192093,
+                18.899999976158142,
+                18.30000001192093
+              ]
+            },
+            "sceneryBuild": {
+              "count": 37,
+              "totalMs": 28.50000011920929,
+              "maxMs": 1.7999999523162842,
+              "recentMs": [
+                1.7999999523162842,
+                1.5999999642372131,
+                1.199999988079071,
+                1.300000011920929,
+                1.0999999642372131,
+                1,
+                0.699999988079071,
+                0.6000000238418579,
+                0.7000000476837158,
+                0.19999998807907104,
+                0.20000004768371582,
+                0.30000001192092896,
+                0.20000004768371582,
+                0.10000002384185791,
+                0.5999999642372131,
+                0.5999999642372131,
+                0.800000011920929,
+                1.100000023841858,
+                1,
+                1.100000023841858,
+                1.100000023841858,
+                1.100000023841858,
+                1,
+                1,
+                0.9000000357627869,
+                1,
+                1,
+                0.800000011920929,
+                0.699999988079071,
+                0.5999999642372131,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.5,
+                0.3999999761581421,
+                0.20000004768371582
+              ]
+            },
+            "terrainMorph": {
+              "count": 49,
+              "totalMs": 2.7999998331069946,
+              "maxMs": 0.8999999761581421,
+              "recentMs": [
+                0.19999998807907104,
+                0,
+                0,
+                0,
+                0.09999996423721313,
+                0,
+                0,
+                0.09999996423721313,
+                0,
+                0,
+                0,
+                0.10000002384185791,
+                0.10000002384185791,
+                0,
+                0,
+                0.09999996423721313,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0.09999996423721313,
+                0,
+                0,
+                0.10000002384185791,
+                0,
+                0,
+                0.10000002384185791,
+                0,
+                0.09999996423721313,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0.09999996423721313,
+                0.10000002384185791,
+                0,
+                0.09999996423721313,
+                0,
+                0,
+                0.09999996423721313,
+                0.10000002384185791,
+                0,
+                0,
+                0,
+                0.10000002384185791,
+                0.19999998807907104,
+                0.8999999761581421
+              ]
+            },
+            "terrainWait": {
+              "count": 1,
+              "totalMs": 69.30000001192093,
+              "maxMs": 69.30000001192093,
+              "recentMs": [
+                69.30000001192093
+              ]
+            },
+            "contactWait": {
+              "count": 7,
+              "totalMs": 2544.0000000596046,
+              "maxMs": 376.19999998807907,
+              "recentMs": [
+                376.19999998807907,
+                347.30000001192093,
+                370.10000002384186,
+                361.30000001192093,
+                367.30000001192093,
+                364.19999998807907,
+                357.60000002384186
+              ]
+            }
+          },
+          "morphUploadBytes": 9174564
+        },
+        "shipModel": "authored",
+        "gearDeployment": 0,
+        "lighting": {
+          "daylight": 1,
+          "density": 0.9999010620838229,
+          "shadows": false
+        },
+        "motion": {
+          "streaks": 0.22271115536869934,
+          "vapor": 0.2389521992503067,
+          "phase": 0.632055287012288
+        },
+        "sceneryCount": 2,
+        "vegetationCount": 2,
+        "landmarkCount": 0,
+        "survey": {
+          "biome": "Open ocean",
+          "coast": false,
+          "landmark": null
+        },
+        "cloudLayers": 3,
+        "cloudDetail": 1
+      },
+      "samples": [
+        {
+          "elapsed": 0,
+          "speed": 0.44789808433123934,
+          "altitude": 0.9006277761925503,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 12.900000035762787,
+            "preparedBytes": 1344104,
+            "sceneryPreparationMs": 29.799999952316284,
+            "sceneryCount": 700,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 2,
+              "writes": 2,
+              "errors": 0,
+              "bytes": 10736852,
+              "entries": 4,
+              "available": true
+            },
+            "generated": 2,
+            "discarded": 0,
+            "generationMs": 351.89999997615814,
+            "vertices": 77858,
+            "bytes": 5021140
+          },
+          "terrain": {
+            "source": "generated",
+            "bodyId": "p0-0",
+            "generated": 2,
+            "discarded": 0,
+            "generationMs": 30.399999976158142,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 1,
+            "transitionMs": 39.700000047683716,
+            "morphProgress": 1,
+            "maxDelta": 50.87178865447312,
+            "cache": {
+              "hits": 0,
+              "misses": 2,
+              "evictions": 0,
+              "bytes": 697536,
+              "entries": 2
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 2,
+              "writes": 2,
+              "errors": 0,
+              "bytes": 5715712,
+              "entries": 3,
+              "available": true
+            }
+          }
+        },
+        {
+          "elapsed": 2016.6,
+          "speed": 0.6103311357806485,
+          "altitude": 0.9024563664273728,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 8.799999952316284,
+            "preparedBytes": 1344904,
+            "sceneryPreparationMs": 19.700000047683716,
+            "sceneryCount": 656,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 3,
+              "writes": 3,
+              "errors": 0,
+              "bytes": 15760592,
+              "entries": 5,
+              "available": true
+            },
+            "generated": 3,
+            "discarded": 0,
+            "generationMs": 346.9000000357628,
+            "vertices": 77908,
+            "bytes": 5023740
+          },
+          "terrain": {
+            "source": "generated",
+            "bodyId": "p0-0",
+            "generated": 2,
+            "discarded": 0,
+            "generationMs": 30.399999976158142,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 1,
+            "transitionMs": 39.700000047683716,
+            "morphProgress": 1,
+            "maxDelta": 50.87178865447312,
+            "cache": {
+              "hits": 0,
+              "misses": 2,
+              "evictions": 0,
+              "bytes": 697536,
+              "entries": 2
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 2,
+              "writes": 2,
+              "errors": 0,
+              "bytes": 5715712,
+              "entries": 3,
+              "available": true
+            }
+          }
+        },
+        {
+          "elapsed": 4033.2000000000003,
+          "speed": 0.6195744590497586,
+          "altitude": 0.9059894873339545,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 8.300000011920929,
+            "preparedBytes": 1345976,
+            "sceneryPreparationMs": 16.899999976158142,
+            "sceneryCount": 1,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 5,
+              "writes": 5,
+              "errors": 0,
+              "bytes": 25814364,
+              "entries": 7,
+              "available": true
+            },
+            "generated": 5,
+            "discarded": 0,
+            "generationMs": 333.80000001192093,
+            "vertices": 77975,
+            "bytes": 5027224
+          },
+          "terrain": {
+            "source": "generated",
+            "bodyId": "p0-0",
+            "generated": 2,
+            "discarded": 0,
+            "generationMs": 30.399999976158142,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 1,
+            "transitionMs": 39.700000047683716,
+            "morphProgress": 1,
+            "maxDelta": 50.87178865447312,
+            "cache": {
+              "hits": 0,
+              "misses": 2,
+              "evictions": 0,
+              "bytes": 697536,
+              "entries": 2
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 2,
+              "writes": 2,
+              "errors": 0,
+              "bytes": 5715712,
+              "entries": 3,
+              "available": true
+            }
+          }
+        },
+        {
+          "elapsed": 6049.700000000001,
+          "speed": 0.28653346804677693,
+          "altitude": 0.8226503577978974,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 8.300000011920929,
+            "preparedBytes": 1345080,
+            "sceneryPreparationMs": 18.099999964237213,
+            "sceneryCount": 700,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 6,
+              "writes": 6,
+              "errors": 0,
+              "bytes": 30838676,
+              "entries": 8,
+              "available": true
+            },
+            "generated": 6,
+            "discarded": 0,
+            "generationMs": 334.19999998807907,
+            "vertices": 77919,
+            "bytes": 5024312
+          },
+          "terrain": {
+            "source": "generated",
+            "bodyId": "p0-0",
+            "generated": 2,
+            "discarded": 0,
+            "generationMs": 30.399999976158142,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 1,
+            "transitionMs": 39.700000047683716,
+            "morphProgress": 1,
+            "maxDelta": 50.87178865447312,
+            "cache": {
+              "hits": 0,
+              "misses": 2,
+              "evictions": 0,
+              "bytes": 697536,
+              "entries": 2
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 2,
+              "writes": 2,
+              "errors": 0,
+              "bytes": 5715712,
+              "entries": 3,
+              "available": true
+            }
+          }
+        },
+        {
+          "elapsed": 8066.4,
+          "speed": 0.5800366899904282,
+          "altitude": 0.9136009030640935,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 8.5,
+            "preparedBytes": 1345640,
+            "sceneryPreparationMs": 19.19999998807907,
+            "sceneryCount": 700,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 7,
+              "writes": 7,
+              "errors": 0,
+              "bytes": 30496616,
+              "entries": 7,
+              "available": true
+            },
+            "generated": 7,
+            "discarded": 0,
+            "generationMs": 338.80000001192093,
+            "vertices": 77954,
+            "bytes": 5026132
+          },
+          "terrain": {
+            "source": "generated",
+            "bodyId": "p0-0",
+            "generated": 2,
+            "discarded": 0,
+            "generationMs": 30.399999976158142,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 1,
+            "transitionMs": 39.700000047683716,
+            "morphProgress": 1,
+            "maxDelta": 50.87178865447312,
+            "cache": {
+              "hits": 0,
+              "misses": 2,
+              "evictions": 0,
+              "bytes": 697536,
+              "entries": 2
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 2,
+              "writes": 2,
+              "errors": 0,
+              "bytes": 5715712,
+              "entries": 3,
+              "available": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "cache": "revisit",
+      "frames": {
+        "count": 596,
+        "p50": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "p99": 16.80000000000291,
+        "max": 33.400000000001455,
+        "over50": 0
+      },
+      "start": {
+        "siteDestination": null,
+        "discoveries": [],
+        "address": {
+          "cells": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            -279.89263917106024,
+            955.6815231030982,
+            -100.67283636569167
+          ]
+        },
+        "originRevision": 4,
+        "rotationTime": 2252.683300000006,
+        "planetRotation": [
+          0.19306783169313302,
+          0.8044492987213876,
+          -0.14480087376984976,
+          -0.5427880296280194
+        ],
+        "surfacePosition": [
+          458.90137544003375,
+          845.9676383086659,
+          274.86426759114335
+        ],
+        "surfaceShipPosition": [
+          0,
+          0,
+          0
+        ],
+        "position": [
+          -279.89263917106024,
+          955.6815231030982,
+          -100.67283636569167
+        ],
+        "orientation": [
+          -0.11923195093319643,
+          0.9411115910004931,
+          -0.09225911392459295,
+          -0.30262348068025624
+        ],
+        "angularVelocity": [
+          0,
+          0,
+          0
+        ],
+        "speed": 0.44745144910311063,
+        "throttle": 0.8,
+        "altitude": 0.9006359497991525,
+        "status": "ATMOSPHERE",
+        "target": "p0-0",
+        "system": 0,
+        "autopilot": false,
+        "route": [],
+        "routeActive": false,
+        "descending": false,
+        "pulse": false,
+        "visited": [
+          0
+        ],
+        "surfacePhase": "flight",
+        "shipPosition": [
+          0,
+          0,
+          0
+        ],
+        "shipDistance": 1000.9006359497992,
+        "walked": 0,
+        "contactReady": true,
+        "surfaceMessage": "",
+        "flightMessage": "",
+        "groundClearance": 0.7868530750119862,
+        "rendererBackend": "WEBGL",
+        "planetMeshRotation": [
+          0.19306783169313302,
+          0.8044492987213876,
+          -0.14480087376984976,
+          -0.5427880296280194
+        ],
+        "contactMeshRotation": [
+          0.19306783169313302,
+          0.8044492987213876,
+          -0.14480087376984976,
+          -0.5427880296280194
+        ],
+        "drawCalls": 61,
+        "triangles": 227842,
+        "terrainReady": true,
+        "terrainPending": false,
+        "terrainStats": {
+          "source": "memory",
+          "bodyId": "p0-0",
+          "generated": 4,
+          "discarded": 0,
+          "generationMs": 0,
+          "vertices": 6684,
+          "triangles": 13364,
+          "leaves": 3000,
+          "maxDepth": 9,
+          "bytes": 534672,
+          "maxErrorPixels": 10.24633746448759,
+          "transitions": 3,
+          "transitionMs": 47.19999998807907,
+          "morphProgress": 1,
+          "maxDelta": 11.427948314320084,
+          "cache": {
+            "hits": 1,
+            "misses": 3,
+            "evictions": 0,
+            "bytes": 1045212,
+            "entries": 3
+          },
+          "storage": {
+            "hits": 0,
+            "misses": 3,
+            "writes": 3,
+            "errors": 0,
+            "bytes": 30844292,
+            "entries": 8,
+            "available": true
+          }
+        },
+        "contactStats": {
+          "source": "generated",
+          "preparationMs": 8.199999988079071,
+          "preparedBytes": 1344088,
+          "sceneryPreparationMs": 26.599999964237213,
+          "sceneryCount": 700,
+          "groundTexturePreparationMs": 34.69999998807907,
+          "storage": {
+            "hits": 0,
+            "misses": 11,
+            "writes": 11,
+            "errors": 0,
+            "bytes": 30490064,
+            "entries": 7,
+            "available": true
+          },
+          "generated": 11,
+          "discarded": 0,
+          "generationMs": 355.2000000476837,
+          "vertices": 77857,
+          "bytes": 5021088
+        },
+        "streaming": {
+          "phases": {
+            "terrainApply": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "contactApply": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "sceneryBuild": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "terrainMorph": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "terrainWait": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            },
+            "contactWait": {
+              "count": 0,
+              "totalMs": 0,
+              "maxMs": 0,
+              "recentMs": []
+            }
+          },
+          "morphUploadBytes": 0
+        },
+        "shipModel": "authored",
+        "gearDeployment": 0,
+        "lighting": {
+          "daylight": 1,
+          "density": 0.9999053006440788,
+          "shadows": false
+        },
+        "motion": {
+          "streaks": 0.15910026293895108,
+          "vapor": 0.17449788283632478,
+          "phase": 0.050683618618730886
+        },
+        "sceneryCount": 544,
+        "vegetationCount": 68,
+        "landmarkCount": 1,
+        "survey": {
+          "biome": "Open ocean",
+          "coast": true,
+          "landmark": {
+            "id": "p0-0:coast:vista:sentinels",
+            "name": "Tide Sentinels",
+            "distance": 1.2191448787799193
+          }
+        },
+        "cloudLayers": 3,
+        "cloudDetail": 1
+      },
+      "end": {
+        "siteDestination": null,
+        "discoveries": [],
+        "address": {
+          "cells": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            -275.51210861993826,
+            958.2990501149176,
+            -87.16810856372045
+          ]
+        },
+        "originRevision": 4,
+        "rotationTime": 2262.7162000000226,
+        "planetRotation": [
+          0.1918672782316601,
+          0.7994469926319172,
+          -0.1439004586737451,
+          -0.5507849957190588
+        ],
+        "surfacePosition": [
+          462.0040734703791,
+          845.6876309848899,
+          270.5678057232155
+        ],
+        "surfaceShipPosition": [
+          0,
+          0,
+          0
+        ],
+        "position": [
+          -275.51210861993826,
+          958.2990501149176,
+          -87.16810856372045
+        ],
+        "orientation": [
+          -0.11918524109895064,
+          0.9386990634943738,
+          -0.08859949244230053,
+          -0.31110942839769007
+        ],
+        "angularVelocity": [
+          0,
+          0,
+          0
+        ],
+        "speed": 0.629066071171735,
+        "throttle": 1,
+        "altitude": 0.9207114441854856,
+        "status": "ATMOSPHERE",
+        "target": "p0-0",
+        "system": 0,
+        "autopilot": false,
+        "route": [],
+        "routeActive": false,
+        "descending": false,
+        "pulse": false,
+        "visited": [
+          0
+        ],
+        "surfacePhase": "flight",
+        "shipPosition": [
+          0,
+          0,
+          0
+        ],
+        "shipDistance": 1000.9207114441855,
+        "walked": 0,
+        "contactReady": true,
+        "surfaceMessage": "",
+        "flightMessage": "",
+        "groundClearance": 0.9007076782140541,
+        "rendererBackend": "WEBGL",
+        "planetMeshRotation": [
+          0.1918672782316601,
+          0.7994469926319172,
+          -0.1439004586737451,
+          -0.5507849957190588
+        ],
+        "contactMeshRotation": [
+          0.1918672782316601,
+          0.7994469926319172,
+          -0.1439004586737451,
+          -0.5507849957190588
+        ],
+        "drawCalls": 54,
+        "triangles": 201878,
+        "terrainReady": true,
+        "terrainPending": false,
+        "terrainStats": {
+          "source": "memory",
+          "bodyId": "p0-0",
+          "generated": 5,
+          "discarded": 0,
+          "generationMs": 0,
+          "vertices": 6687,
+          "triangles": 13370,
+          "leaves": 3000,
+          "maxDepth": 9,
+          "bytes": 534912,
+          "maxErrorPixels": 10.28008265772257,
+          "transitions": 4,
+          "transitionMs": 36.19999998807907,
+          "morphProgress": 1,
+          "maxDelta": 1.5437854525223387,
+          "cache": {
+            "hits": 2,
+            "misses": 3,
+            "evictions": 0,
+            "bytes": 1045212,
+            "entries": 3
+          },
+          "storage": {
+            "hits": 0,
+            "misses": 3,
+            "writes": 3,
+            "errors": 0,
+            "bytes": 30844292,
+            "entries": 8,
+            "available": true
+          }
+        },
+        "contactStats": {
+          "source": "generated",
+          "preparationMs": 8.399999976158142,
+          "preparedBytes": 1345896,
+          "sceneryPreparationMs": 16.700000047683716,
+          "sceneryCount": 121,
+          "groundTexturePreparationMs": 34.69999998807907,
+          "storage": {
+            "hits": 0,
+            "misses": 18,
+            "writes": 18,
+            "errors": 0,
+            "bytes": 30157520,
+            "entries": 6,
+            "available": true
+          },
+          "generated": 18,
+          "discarded": 0,
+          "generationMs": 333,
+          "vertices": 77970,
+          "bytes": 5026964
+        },
+        "streaming": {
+          "phases": {
+            "terrainApply": {
+              "count": 1,
+              "totalMs": 1.5,
+              "maxMs": 1.5,
+              "recentMs": [
+                1.5
+              ]
+            },
+            "contactApply": {
+              "count": 7,
+              "totalMs": 114.29999995231628,
+              "maxMs": 20.100000023841858,
+              "recentMs": [
+                20.099999964237213,
+                17.80000001192093,
+                18.099999964237213,
+                20.100000023841858,
+                0.9000000357627869,
+                18.899999976158142,
+                18.399999976158142
+              ]
+            },
+            "sceneryBuild": {
+              "count": 37,
+              "totalMs": 29.00000011920929,
+              "maxMs": 1.699999988079071,
+              "recentMs": [
+                1.100000023841858,
+                1.0999999642372131,
+                1.199999988079071,
+                1.0999999642372131,
+                0.800000011920929,
+                0.7999999523162842,
+                0.699999988079071,
+                0.6000000238418579,
+                0.3999999761581421,
+                0.19999998807907104,
+                0.30000001192092896,
+                0.30000001192092896,
+                0.10000002384185791,
+                0.5,
+                0.800000011920929,
+                1,
+                1.2000000476837158,
+                1.199999988079071,
+                1.100000023841858,
+                0.8999999761581421,
+                1.699999988079071,
+                1.100000023841858,
+                0.9000000357627869,
+                1,
+                1.0999999642372131,
+                1.100000023841858,
+                0.8999999761581421,
+                0.800000011920929,
+                0.699999988079071,
+                0.7000000476837158,
+                0.40000003576278687,
+                0.9000000357627869,
+                0.6000000238418579,
+                0.5,
+                0.5999999642372131,
+                0.3999999761581421,
+                0.20000004768371582
+              ]
+            },
+            "terrainMorph": {
+              "count": 49,
+              "totalMs": 5.099999904632568,
+              "maxMs": 3.399999976158142,
+              "recentMs": [
+                0.10000002384185791,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0.09999996423721313,
+                0,
+                0.09999996423721313,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0.09999996423721313,
+                0,
+                0.10000002384185791,
+                0,
+                0,
+                0,
+                0,
+                0.09999996423721313,
+                0.09999996423721313,
+                0.10000002384185791,
+                0,
+                0.10000002384185791,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0.10000002384185791,
+                0.10000002384185791,
+                0,
+                0.10000002384185791,
+                0,
+                0.09999996423721313,
+                0.09999996423721313,
+                0.10000002384185791,
+                0,
+                0.19999998807907104,
+                3.399999976158142
+              ]
+            },
+            "terrainWait": {
+              "count": 1,
+              "totalMs": 36.39999997615814,
+              "maxMs": 36.39999997615814,
+              "recentMs": [
+                36.39999997615814
+              ]
+            },
+            "contactWait": {
+              "count": 7,
+              "totalMs": 2533.600000023842,
+              "maxMs": 369.19999998807907,
+              "recentMs": [
+                369.19999998807907,
+                360,
+                362.10000002384186,
+                365.5,
+                359.2999999523163,
+                359.10000002384186,
+                358.4000000357628
+              ]
+            }
+          },
+          "morphUploadBytes": 9174564
+        },
+        "shipModel": "authored",
+        "gearDeployment": 0,
+        "lighting": {
+          "daylight": 1,
+          "density": 0.9999010401370446,
+          "shadows": false
+        },
+        "motion": {
+          "streaks": 0.2227321867544337,
+          "vapor": 0.23896211054584704,
+          "phase": 0.6638916003635205
+        },
+        "sceneryCount": 1,
+        "vegetationCount": 1,
+        "landmarkCount": 0,
+        "survey": {
+          "biome": "Open ocean",
+          "coast": false,
+          "landmark": null
+        },
+        "cloudLayers": 3,
+        "cloudDetail": 1
+      },
+      "samples": [
+        {
+          "elapsed": 0,
+          "speed": 0.44736030581167563,
+          "altitude": 0.9006443815898137,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 8.199999988079071,
+            "preparedBytes": 1344088,
+            "sceneryPreparationMs": 26.599999964237213,
+            "sceneryCount": 700,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 11,
+              "writes": 11,
+              "errors": 0,
+              "bytes": 30490064,
+              "entries": 7,
+              "available": true
+            },
+            "generated": 11,
+            "discarded": 0,
+            "generationMs": 355.2000000476837,
+            "vertices": 77857,
+            "bytes": 5021088
+          },
+          "terrain": {
+            "source": "memory",
+            "bodyId": "p0-0",
+            "generated": 4,
+            "discarded": 0,
+            "generationMs": 0,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 3,
+            "transitionMs": 47.19999998807907,
+            "morphProgress": 1,
+            "maxDelta": 11.427948314320084,
+            "cache": {
+              "hits": 1,
+              "misses": 3,
+              "evictions": 0,
+              "bytes": 1045212,
+              "entries": 3
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 3,
+              "writes": 3,
+              "errors": 0,
+              "bytes": 30844292,
+              "entries": 8,
+              "available": true
+            }
+          }
+        },
+        {
+          "elapsed": 2016.5999999999985,
+          "speed": 0.610738949898078,
+          "altitude": 0.9024923703809691,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 8.300000011920929,
+            "preparedBytes": 1344968,
+            "sceneryPreparationMs": 19.19999998807907,
+            "sceneryCount": 654,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 12,
+              "writes": 12,
+              "errors": 0,
+              "bytes": 30489700,
+              "entries": 7,
+              "available": true
+            },
+            "generated": 12,
+            "discarded": 0,
+            "generationMs": 341.10000002384186,
+            "vertices": 77912,
+            "bytes": 5023948
+          },
+          "terrain": {
+            "source": "memory",
+            "bodyId": "p0-0",
+            "generated": 4,
+            "discarded": 0,
+            "generationMs": 0,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 3,
+            "transitionMs": 47.19999998807907,
+            "morphProgress": 1,
+            "maxDelta": 11.427948314320084,
+            "cache": {
+              "hits": 1,
+              "misses": 3,
+              "evictions": 0,
+              "bytes": 1045212,
+              "entries": 3
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 3,
+              "writes": 3,
+              "errors": 0,
+              "bytes": 30844292,
+              "entries": 8,
+              "available": true
+            }
+          }
+        },
+        {
+          "elapsed": 4033.2000000000007,
+          "speed": 0.6196142936400189,
+          "altitude": 0.9060463297080332,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 8.300000011920929,
+            "preparedBytes": 1345992,
+            "sceneryPreparationMs": 15.899999976158142,
+            "sceneryCount": 1,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 14,
+              "writes": 14,
+              "errors": 0,
+              "bytes": 30143792,
+              "entries": 6,
+              "available": true
+            },
+            "generated": 14,
+            "discarded": 0,
+            "generationMs": 337.60000002384186,
+            "vertices": 77976,
+            "bytes": 5027276
+          },
+          "terrain": {
+            "source": "memory",
+            "bodyId": "p0-0",
+            "generated": 4,
+            "discarded": 0,
+            "generationMs": 0,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 3,
+            "transitionMs": 47.19999998807907,
+            "morphProgress": 1,
+            "maxDelta": 11.427948314320084,
+            "cache": {
+              "hits": 1,
+              "misses": 3,
+              "evictions": 0,
+              "bytes": 1045212,
+              "entries": 3
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 3,
+              "writes": 3,
+              "errors": 0,
+              "bytes": 30844292,
+              "entries": 8,
+              "available": true
+            }
+          }
+        },
+        {
+          "elapsed": 6049.799999999999,
+          "speed": 0.28628728798861736,
+          "altitude": 0.8261288364010397,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 8.300000011920929,
+            "preparedBytes": 1345128,
+            "sceneryPreparationMs": 18.099999964237213,
+            "sceneryCount": 700,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 15,
+              "writes": 15,
+              "errors": 0,
+              "bytes": 30141452,
+              "entries": 6,
+              "available": true
+            },
+            "generated": 15,
+            "discarded": 0,
+            "generationMs": 338.5,
+            "vertices": 77922,
+            "bytes": 5024468
+          },
+          "terrain": {
+            "source": "memory",
+            "bodyId": "p0-0",
+            "generated": 4,
+            "discarded": 0,
+            "generationMs": 0,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 3,
+            "transitionMs": 47.19999998807907,
+            "morphProgress": 1,
+            "maxDelta": 11.427948314320084,
+            "cache": {
+              "hits": 1,
+              "misses": 3,
+              "evictions": 0,
+              "bytes": 1045212,
+              "entries": 3
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 3,
+              "writes": 3,
+              "errors": 0,
+              "bytes": 30844292,
+              "entries": 8,
+              "available": true
+            }
+          }
+        },
+        {
+          "elapsed": 8066.4000000000015,
+          "speed": 0.582775109502879,
+          "altitude": 0.9136776314536519,
+          "message": "",
+          "contact": {
+            "source": "generated",
+            "preparationMs": 8.399999976158142,
+            "preparedBytes": 1345800,
+            "sceneryPreparationMs": 18.5,
+            "sceneryCount": 700,
+            "groundTexturePreparationMs": 34.69999998807907,
+            "storage": {
+              "hits": 0,
+              "misses": 16,
+              "writes": 16,
+              "errors": 0,
+              "bytes": 30149928,
+              "entries": 6,
+              "available": true
+            },
+            "generated": 16,
+            "discarded": 0,
+            "generationMs": 331.80000001192093,
+            "vertices": 77964,
+            "bytes": 5026652
+          },
+          "terrain": {
+            "source": "memory",
+            "bodyId": "p0-0",
+            "generated": 4,
+            "discarded": 0,
+            "generationMs": 0,
+            "vertices": 6684,
+            "triangles": 13364,
+            "leaves": 3000,
+            "maxDepth": 9,
+            "bytes": 534672,
+            "maxErrorPixels": 10.24633746448759,
+            "transitions": 3,
+            "transitionMs": 47.19999998807907,
+            "morphProgress": 1,
+            "maxDelta": 11.427948314320084,
+            "cache": {
+              "hits": 1,
+              "misses": 3,
+              "evictions": 0,
+              "bytes": 1045212,
+              "entries": 3
+            },
+            "storage": {
+              "hits": 0,
+              "misses": 3,
+              "writes": 3,
+              "errors": 0,
+              "bytes": 30844292,
+              "entries": 8,
+              "available": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
