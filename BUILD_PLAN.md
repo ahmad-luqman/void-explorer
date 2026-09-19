@@ -325,10 +325,13 @@ Delivered: bounded error-guided cliff/shore tessellation, shared boundaries, unc
 Private publication verified: Sites v36, source `a074fb2a400c6c93dda23393ea8292ffdcfc2726`, deployment `appgdep_6aabbaac20288191a443b7c07af437c0`, status `succeeded` on 17 September 2026. Published game source matches root commit `249e260` (tree `a97317760faf2209f90adeec4e58b8950c2e76ac`). Cliff refinement and reduced coastal height/scenery work are delivered; full visual/device acceptance remains open. Public GitHub was not pushed.
 
 
-### Coastal sky and survey-stop foreground — validated locally
+### Coastal sky and survey-stop foreground — delivered
 
 Broaden the cloud composition above the ridges, add smaller billows, correct stretched-volume lighting and distinguish lit edges from denser interiors. Keep High/Low costs explicit and review close/inside/rotated/night views on both renderers. Add low rock/fan groups beside the first survey stop, retain both routes and the ship footprint, and protect version-2 saved poses with a bounded one-time scenery migration. Compare the combined actual landscape with the coastal study before publishing; whole-scene shoreline finish and physical-device validation remain open.
 
 Implemented: wider varied cloud banks, smaller billows, inverse-scale lighting and bounded High-quality self-shadowing; three low foreground groups and scoped version-3 save migration. All 143 unit tests, type/lint/build, both production renderers and close/interior/rotated/night cloud checks pass. Extended walking reaches the existing steep shelf boundary at about 64 m and safely returns; the initial 88 m test assumption was corrected without changing terrain. Retained captures and timing limits are in the cloud-lighting benchmark and runtime review. Whole-scene art and physical-device acceptance remain open.
 
-Final extended-walk/quality checks also pass on Firefox and WebKit. Runtime, screenshots, rejected drafts and raw frame records are ready for the private publication; no whole-scene or physical-device completion claim is made.
+Final extended-walk/quality checks also pass on Firefox and WebKit. Runtime, screenshots, rejected drafts and raw frame records are committed; no whole-scene or physical-device completion claim is made.
+
+
+Private publication verified: Sites v37, source `cdb1ecd3f008fe6763ba48cd6df91af217d768f9`, deployment `appgdep_6aae59b1936c8191bd0f19e14e1c203f`, status `succeeded` on 19 September 2026 at 09:45:44 UTC. Published game source matches root commit `165dfd8` (tree `d9d5c6605c0243318e2202b13697c5f8e15d3c74`). The archive contains the exact 35 validated static output files plus normalized hosting metadata. Cloud lighting, foreground composition and scoped old-save migration are delivered; whole-scene art and physical-device acceptance remain open. Public GitHub was not pushed.
