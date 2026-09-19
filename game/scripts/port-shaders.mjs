@@ -8,6 +8,10 @@ const root = new URL('../', import.meta.url);
 const renderer = readFileSync(new URL('lib/flight/renderer.ts', root), 'utf8');
 const cloud = readFileSync(new URL('lib/flight/clouds.ts', root), 'utf8');
 const entries = {
+  stone: readFileSync(
+    new URL('lib/flight/stone-material.ts', root),
+    'utf8',
+  ).match(/stoneFragment = `([^`]+)`/)[1],
   halo: renderer.match(/const atmosphereFragment = `([^`]+)`/)[1],
   atmosphere: renderer.match(/const planetAtmosphereFragment = `([^`]+)`/)[1],
   ring: renderer.match(/const ringFragment = `([^`]+)`/)[1],

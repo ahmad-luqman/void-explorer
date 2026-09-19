@@ -1,4 +1,6 @@
 import * as T from 'three';
+import { stoneUniforms } from '../stone-material';
+import { createShader as stoneShader } from './stone.js';
 import { MeshBasicNodeMaterial, MeshStandardNodeMaterial } from 'three/webgpu';
 import * as N from 'three/tsl';
 import type { Node } from 'three/webgpu';
@@ -28,6 +30,7 @@ import {
 
 type Value<T> = { value: T };
 export type TerrainRecipe = {
+  stone?: boolean;
   mask?: {
     contactCenter: Value<T.Vector3>;
     contactRadius: Value<number>;
@@ -101,6 +104,25 @@ export function convertMaterial(source: T.Material): T.Material {
   if (!spec || !(source instanceof T.MeshStandardMaterial)) return source;
   const material = new MeshStandardNodeMaterial().copy(source);
   const local = N.positionLocal;
+  if (spec.stone) {
+    const scale = N.attribute('stoneScale', 'vec3');
+    const point = N.varying(N.attribute('position', 'vec3').mul(scale));
+    const normal = N.varying(N.attribute('normal', 'vec3').div(scale));
+    const phase = N.varying(N.attribute('stoneOffset', 'vec3'));
+    const detail = stoneShader(stoneUniforms())(point, normal, phase);
+    material.colorNode = N.materialColor.mul(detail.rgb);
+    const base = N.normalViewGeometry;
+    const sx = N.dFdx(N.positionView),
+      sy = N.dFdy(N.positionView);
+    const r1 = N.cross(sy, base),
+      r2 = N.cross(base, sx);
+    const det = sx.dot(r1);
+    const grad = r1
+      .mul(N.dFdx(detail.a))
+      .add(r2.mul(N.dFdy(detail.a)))
+      .mul(det.sign());
+    material.normalNode = base.mul(det.abs().max(1e-20)).sub(grad).normalize();
+  }
   if (spec.mask) {
     const center = N.reference('value', 'vec3', spec.mask.contactCenter);
     const radius = N.reference('value', 'float', spec.mask.contactRadius);

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { InstancedMesh, Vector3 } from 'three';
+import { InstancedMesh, Matrix4, Vector3 } from 'three';
 import { rockFormationGeometry } from '../lib/flight/rock-formations';
 import { createSceneryView } from '../lib/flight/scenery-view';
 import { explorationGeometry } from '../lib/flight/scenery-geometry';
@@ -114,4 +114,59 @@ it('reallocates coastal triangles without raising the old scenery total or movin
       props.map((p) => [p.id, p.point.toArray(), p.radius, p.height]),
     ).toEqual(before);
   }
+});
+
+it('keeps stone detail at physical scale and stable through recentering and collection reorder', () => {
+  const props = ['alpha', 'beta'].map((id, i) => ({
+    id,
+    point: new Vector3(800 + i, 300, -500),
+    normal: new Vector3(0.2, 1, 0.1).normalize(),
+    radius: 0.002 + i * 0.004,
+    height: 0.001 + i * 0.003,
+    yaw: i * 0.7,
+    mineral: false,
+  }));
+  const inspect = (order: typeof props, origin: Vector3) => {
+    const view = createSceneryView(order, origin, 'ocean');
+    const samples = new Map<number, number[]>();
+    let bytes = 0;
+    for (const mesh of view.children as InstancedMesh[]) {
+      const scale = mesh.geometry.getAttribute('stoneScale');
+      const offset = mesh.geometry.getAttribute('stoneOffset');
+      expect(scale.count).toBe(mesh.count);
+      bytes += scale.array.byteLength + offset.array.byteLength;
+      for (let i = 0; i < mesh.count; i++) {
+        const dimensions = new Vector3().fromBufferAttribute(scale, i);
+        const prop = props.find(
+          (p) => Math.abs(p.radius - dimensions.x) < 1e-9,
+        )!;
+        expect(dimensions.y).toBeCloseTo(prop.height, 9);
+        expect(dimensions.z).toBeCloseTo(prop.radius * 0.85, 9);
+        // The shader's metric coordinates must agree with the actual instance
+        // transform, including its nonuniform height and narrowed depth.
+        const matrix = new Matrix4();
+        mesh.getMatrixAt(i, matrix);
+        for (let axis = 0; axis < 3; axis++) {
+          const length = Math.hypot(
+            ...matrix.elements.slice(axis * 4, axis * 4 + 3),
+          );
+          expect(dimensions.getComponent(axis)).toBeCloseTo(length, 8);
+        }
+        const phase = new Vector3().fromBufferAttribute(offset, i).toArray();
+        expect(phase.every((v) => v >= 0 && v < 2)).toBe(true);
+        samples.set(prop.radius, phase);
+      }
+      mesh.geometry.dispose();
+      (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach(
+        (material) => material.dispose(),
+      );
+    }
+    expect(bytes).toBe(props.length * 24);
+    return samples;
+  };
+  const first = inspect(props, new Vector3(800, 300, -500));
+  expect(inspect([...props].reverse(), new Vector3(801, 299, -499))).toEqual(
+    first,
+  );
+  expect(first.get(props[0].radius)).not.toEqual(first.get(props[1].radius));
 });

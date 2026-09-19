@@ -402,3 +402,14 @@ Three low rock/fan groups now frame the first survey stop from closer positions,
 Near foreground anchors at least three meters in radius use the closed fractured-rock kit; new small fragments are clamped to low rubble proportions. Existing seed order and older group dimensions are retained. The complete scenery kit remains within its prior triangle budget.
 
 Validation: all 143 unit tests in 37 files pass in the final serial run (29.65 seconds), alongside TypeScript, scoped lint and static export. Both production renderers retain complete orbital and saved coastal journeys. Final cloud, extended-walk and browser-engine results are recorded in the root runtime review.
+
+
+### Physical-scale scenery stone materials
+
+Non-mineral rocks, gravel, outcrops, coastal columns and generic rock landmarks now share the existing prepared grit field and optional slate image. Per-instance scale and identity-seeded phase attributes keep triplanar grain at 2.5/2.4 m repeats, independent of rock dimensions, native rotation and terrain recentering. The attributes add 24 bytes per stone, at most 16,800 bytes under the 700-prop cap; no texture, draw call, vertex or triangle allocation is added beyond these attributes. Existing instance colors and facet/recess vertex colors remain.
+
+The material blends exposed slate with upward-face dust and subtle filtered bedding. Eight-millimeter maximum texture relief perturbs lighting normals and fades between 2 and 9 mm world-space pixel footprints; it does not displace geometry or change conservative collision capsules. Triplanar lookup uses three taps per existing texture (six total); fallback ignores unavailable image content through the same readiness signal as ground. Fan plants, succulents, relay structures, crystals and mineral props keep their prior materials.
+
+`stone-material.ts` holds the GLSL shade function and WebGL material injection. The existing port script generates `gpu/stone.js`; WebGPU supplies raw geometry attributes and explicit instance scales before the usual instance transform. Both material paths use the same texture/color/relief function and derivative normal perturbation. No terrain, save schema, scenery placement, navigation or gear changes are included.
+
+Validation: 144 unit tests / 37 files, TypeScript, scoped lint and static export pass. A final focused three-case formation/coordinate run also passes after strengthening the instance-matrix comparison. Both renderers pass seven production checks including authored-site surveys, normal/fallback ground, High/Low frame collection and complete orbital/coastal saved journeys. Both settled desktop samples retain 16.7 ms medians and 16.8 ms maxima. Screenshots and remaining visual/performance limits are recorded in the root art review.

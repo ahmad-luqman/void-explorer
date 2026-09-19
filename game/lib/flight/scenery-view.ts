@@ -1,3 +1,4 @@
+import { addStoneMaterial } from './stone-material';
 import { siteGeometry } from './site-geometry';
 import * as T from 'three';
 import { explorationGeometry } from './scenery-geometry';
@@ -68,6 +69,12 @@ export function createSceneryView(
         flatShading: true,
         vertexColors: !mineral,
       });
+      const stone = ['rock', 'gravel', 'outcrop', 'cliff', 'landmark'].includes(
+        shape,
+      );
+      const scales = new Float32Array(items.length * 3);
+      const phases = new Float32Array(items.length * 3);
+      if (stone) addStoneMaterial(material);
       const mesh = new T.InstancedMesh(geometry, material, items.length),
         dummy = new T.Object3D();
       items.forEach((p, i) => {
@@ -75,6 +82,17 @@ export function createSceneryView(
         dummy.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), p.normal);
         dummy.rotateY(p.yaw);
         dummy.scale.set(p.radius, p.height, p.radius * 0.85);
+        if (stone) {
+          dummy.scale.toArray(scales, i * 3);
+          // Stable identity, independent of collection order, native origin or yaw.
+          let seed = 0;
+          for (const char of p.id)
+            seed = (Math.imul(seed, 31) + char.charCodeAt(0)) | 0;
+          for (let axis = 0; axis < 3; axis++) {
+            seed = Math.imul(seed ^ (seed >>> 16), 2246822519);
+            phases[i * 3 + axis] = ((seed >>> 0) / 4294967296) * 2;
+          }
+        }
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
         mesh.setColorAt(
@@ -87,6 +105,16 @@ export function createSceneryView(
           ).multiplyScalar(0.8 + (p.yaw / (Math.PI * 2)) * 0.24),
         );
       });
+      if (stone) {
+        geometry.setAttribute(
+          'stoneScale',
+          new T.InstancedBufferAttribute(scales, 3),
+        );
+        geometry.setAttribute(
+          'stoneOffset',
+          new T.InstancedBufferAttribute(phases, 3),
+        );
+      }
       mesh.instanceMatrix.needsUpdate = true;
       mesh.castShadow = true;
       mesh.receiveShadow = true;

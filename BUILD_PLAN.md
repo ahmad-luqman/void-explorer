@@ -335,3 +335,12 @@ Final extended-walk/quality checks also pass on Firefox and WebKit. Runtime, scr
 
 
 Private publication verified: Sites v37, source `cdb1ecd3f008fe6763ba48cd6df91af217d768f9`, deployment `appgdep_6aae59b1936c8191bd0f19e14e1c203f`, status `succeeded` on 19 September 2026 at 09:45:44 UTC. Published game source matches root commit `165dfd8` (tree `d9d5c6605c0243318e2202b13697c5f8e15d3c74`). The archive contains the exact 35 validated static output files plus normalized hosting metadata. Cloud lighting, foreground composition and scoped old-save migration are delivered; whole-scene art and physical-device acceptance remain open. Public GitHub was not pushed.
+
+
+### Stone and ground material integration — validated locally
+
+Give solid-color foreground stones the existing slate/grit treatment at physical scale, with shallow filtered relief, subtle bedding and dust on upward faces. Keep stable per-prop texture phases through recentering/rotation and use the same GLSL-derived material on both renderers. Reuse the existing prepared texture/image rather than allocating another image; preserve all geometry, placement, collision and save records. Review actual bay, ship, cliff-edge and non-coastal site views, image-failure fallback, and frame pacing before private publication. Full shoreline/whole-scene and physical-device acceptance remain open.
+
+Implemented: shared physical-scale slate/grit, filtered shallow relief, bedding and upward-face dust on instanced stones. Stable identity phases and actual instance-scale checks protect recentering/rotation. All 144 unit tests, type/lint/build, and seven production checks per renderer pass. Image fallback, both authored destinations, saved journeys and cliff-edge return are verified. Both settled renderer samples retain 16.7 ms medians and 16.8 ms maxima on the measured desktop; broader hardware and cold/moving outliers remain open.
+
+Final Firefox/WebKit High/Low and cliff-edge/return material reviews also pass. Actual captures and bounded cost measurements are retained in the stone-material benchmark and runtime review.
