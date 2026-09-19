@@ -1,6 +1,6 @@
 # Full expedition completion audit
 
-User objective: implement everything in the supplied session summary, not only the next milestone. The full goal remains active until each requirement has direct current evidence. This audit does not replace BUILD_PLAN.md or the art direction.
+User objective: implement everything in the supplied session summary, not only the next milestone. The full objective remains incomplete; implementation is paused at the user’s request. See [SESSION_HANDOFF.md](SESSION_HANDOFF.md) for the current handoff. Resume only when requested, and require direct evidence before marking a requirement complete. This audit does not replace BUILD_PLAN.md or the art direction.
 
 | Requirement | Current evidence | Status / work remaining |
 | --- | --- | --- |

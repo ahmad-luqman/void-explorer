@@ -1,5 +1,7 @@
 # Build sequence
 
+**Paused on 19 September 2026.** Read [SESSION_HANDOFF.md](SESSION_HANDOFF.md) for the consolidated done/left summary and future plan before resuming.
+
 Follow the progression described in [Building games with Astra](https://developers.openai.com/blog/how-to-build-games-with-astra), using the supplied screenshots and this repository's concept art as visual references. This is a plan for a fresh implementation, not a claim of access to the original source.
 
 ## Showcase milestones

@@ -1,5 +1,7 @@
 # Void Explorer
 
+**Paused for a future session.** See [SESSION_HANDOFF.md](SESSION_HANDOFF.md) for completed work, remaining requirements, validation evidence, the pending release and the next-session plan.
+
 A playable browser spaceflight prototype following the [Void Explorer showcase](https://developers.openai.com/showcase/void-explorer) and [Building games with Astra](https://developers.openai.com/blog/how-to-build-games-with-astra).
 
 The first playable milestone includes 1,024 deterministic star systems, 3,072 procedural planets, an initial binary system, an authored four-wing Blender spacecraft, manual flight, boost and pulse travel, direct targeting, searchable galaxy and local-system maps, autopilot, and continuous descent, safe landing, walking, reboarding, takeoff, and saved expeditions. All visible stars have reachable positions.
@@ -54,9 +56,9 @@ Browser tests expect the development server at `http://localhost:3000`. Override
 
 This is a playable expedition prototype with ongoing visual refinement. Systems span roughly 15 light-years; local planet dimensions and orbital spacing remain compressed game kilometers. Planets rotate, and landed craft, walkers and saved scenery follow their native frames. Orbital motion is not simulated.
 
-Close terrain uses the exact rendered triangles for landing and walking, within a surrounding adaptive cube-sphere planet. Bounded memory and cross-session disk caches reuse native terrain meshes; independent per-tile refinement remains future work. Seeded rocks, biome vegetation and landmarks provide collidable scenery.
+Close terrain uses the exact rendered triangles for landing and walking, within a surrounding adaptive cube-sphere planet. Bounded memory and cross-session disk caches reuse native terrain meshes; shared-edge outer regions refine coastal cliffs, while independent persistent tile uploads remain future work. Seeded rocks, biome vegetation and landmarks provide collidable scenery.
 
-**Explore Lumen Coast** starts the newest coastal terrain profile, with an open bay, layered islands, composed foreground plants/rocks and an offshore landmark. Continue preserves an older expedition's original terrain profile. The scene remains below the concept art's density and finish. Clouds use a drifting shell plus stylized solid coastal billows; water has animated shading but no scene reflections or physical waves.
+**Explore Lumen Coast** starts the newest coastal terrain profile, with an open bay, layered islands, composed foreground plants/rocks and an offshore landmark. Continue preserves an older expedition's original terrain profile. The scene remains below the concept art's density and finish. Clouds use a drifting shell plus soft density-volume coastal banks; water has animated shading but no scene reflections or physical waves.
 
 WebGPU and WebGL 2 share the expedition and graphics options. Production journeys cover Chromium with both renderers, Firefox and WebKit. M4 Max frame-pacing samples provide a desktop baseline; lower-power hardware and physical phones remain unverified. AURORA loads from an authored GLB with a procedural fallback and folding landing gear. Layered procedural audio includes flight, weather and surface events; there is no soundtrack. See the [completion audit](COMPLETION_AUDIT.md) for current evidence and open requirements.
 
