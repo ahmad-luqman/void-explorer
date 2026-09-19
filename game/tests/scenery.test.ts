@@ -121,11 +121,15 @@ describe('persistent surface scenery', () => {
     restored.surface.setPatch(patch);
     expect(restored.surface.scenery.some((p) => p.id === rock.id)).toBe(false);
     const saved = captureExpedition(restored)!;
-    expect(saved.surface.sceneryVersion).toBe(2);
+    expect(saved.surface.sceneryVersion).toBe(3);
     expect(saved.surface.sceneryClearings).toHaveLength(2);
+    // Version-2 scenery outside the changed coast retains its existing field;
+    // migration must not create extra clearings at unrelated destinations.
+    saved.surface.sceneryVersion = 2;
     const again = new FlightSimulation();
     expect(restoreExpedition(again, saved)).toBe(true);
     again.surface.setPatch(patch);
+    expect(captureExpedition(again)!.surface.sceneryClearings).toHaveLength(2);
     expect(again.surface.scenery.some((p) => p.id === rock.id)).toBe(false);
     saved.surface.sceneryClearings![0].radius = 100;
     expect(parseExpedition(JSON.stringify(saved))).toBeNull();

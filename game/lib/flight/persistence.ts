@@ -126,13 +126,14 @@ export function parseExpedition(raw: string | null): ExpeditionSave | null {
     if (
       f.sceneryVersion !== undefined &&
       f.sceneryVersion !== 1 &&
-      f.sceneryVersion !== 2
+      f.sceneryVersion !== 2 &&
+      f.sceneryVersion !== 3
     )
       return null;
     if (
       f.sceneryClearings !== undefined &&
       (!Array.isArray(f.sceneryClearings) ||
-        f.sceneryClearings.length > 2 ||
+        f.sceneryClearings.length > (f.sceneryVersion === 3 ? 4 : 2) ||
         !f.sceneryClearings.every(
           (e: { point?: unknown; radius?: unknown }) =>
             e &&

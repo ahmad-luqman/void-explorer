@@ -74,6 +74,56 @@ for (const fallback of [false, true])
       await page.getByLabel('Low', { exact: false }).check();
       await page.getByRole('button', { name: 'Done', exact: true }).click();
       await capture('low');
+      if (process.env.EXTENDED_COAST_VIEW) {
+        await page.keyboard.press('g');
+        await page.getByLabel('High', { exact: false }).check();
+        await page.getByRole('button', { name: 'Done', exact: true }).click();
+        await page.getByRole('button', { name: 'Look over Lumen Bay' }).click();
+        await page.keyboard.down('Shift');
+        await page.keyboard.down('w');
+        try {
+          await expect
+            .poll(
+              async () =>
+                Number.parseInt(
+                  await page
+                    .locator('.surface-navigation .arrival b')
+                    .innerText(),
+                ),
+              { timeout: 20000 },
+            )
+            .toBeGreaterThanOrEqual(60);
+          // The shelf ends at a steep face around 64 m walked. Exercise the
+          // actual overlook boundary without requiring a walk down the cliff.
+          await expect(page.getByRole('status')).toContainText(
+            'Slope ahead is too steep to walk.',
+            { timeout: 10000 },
+          );
+        } finally {
+          await page.keyboard.up('w');
+          await page.keyboard.up('Shift');
+        }
+        await capture('overlook');
+        const atEdge = Number.parseInt(
+          await page.locator('.surface-navigation .arrival b').innerText(),
+        );
+        await page.keyboard.down('s');
+        try {
+          await expect
+            .poll(
+              async () =>
+                Number.parseInt(
+                  await page
+                    .locator('.surface-navigation .arrival b')
+                    .innerText(),
+                ),
+              { timeout: 5000 },
+            )
+            .toBeGreaterThan(atEdge + 4);
+        } finally {
+          await page.keyboard.up('s');
+        }
+      }
     }
     expect(errors).toEqual([]);
   });

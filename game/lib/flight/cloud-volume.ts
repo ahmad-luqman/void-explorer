@@ -7,11 +7,11 @@ export const CLOUD_VOXELS = 48;
 export function cloudDensity(seed: number) {
   const n = CLOUD_VOXELS,
     rng = random(seed);
-  const lobes = Array.from({ length: 15 }, (_, i) => ({
-    x: i < 5 ? (i - 2) * 0.28 : (rng() - 0.5) * 1.25,
-    y: i < 5 ? -0.24 : 0.05 + rng() * 0.32,
-    z: (rng() - 0.5) * 0.65,
-    r: i < 5 ? 0.36 + rng() * 0.08 : 0.25 + rng() * 0.2,
+  const lobes = Array.from({ length: 26 }, (_, i) => ({
+    x: i < 5 ? (i - 2) * 0.28 : (rng() - 0.5) * 1.4,
+    y: i < 5 ? -0.24 : -0.02 + rng() * 0.52,
+    z: (rng() - 0.5) * 0.9,
+    r: i < 5 ? 0.36 + rng() * 0.08 : 0.18 + rng() * 0.17,
   }));
   const data = new Uint8Array(n * n * n * 4);
   for (let z = 0; z < n; z++)
@@ -86,8 +86,8 @@ export function cloudBankPose(body: Body, x: number, z: number) {
       up,
     );
   let ground = body.radius;
-  for (const dx of [-2, 0, 2])
-    for (const dz of [-1.5, 0, 1.5])
+  for (const dx of [-4.8, 0, 4.8])
+    for (const dz of [-4.8, 0, 4.8])
       ground = Math.max(
         ground,
         surfaceRadius(coastDirection(x + dx, z + dz, body.radius), body),
@@ -97,7 +97,12 @@ export function cloudBankPose(body: Body, x: number, z: number) {
     orientation,
     position: up
       .clone()
-      .multiplyScalar(Math.max(body.radius + 4.2, ground + 2.8)),
+      .multiplyScalar(
+        Math.max(
+          body.radius + 5.2 + Math.max(0, Math.hypot(x, z) - 20) * 0.1,
+          ground + 3.2,
+        ),
+      ),
   };
 }
 
@@ -118,16 +123,16 @@ export function createVolumeCloudBanks(
     [5, 18],
     [12, 20],
     [20, 24],
-    [-20, 25],
+    [31, 25],
     [-12, 30],
     [-4, 29],
     [4, 33],
-    [14, 37],
-    [25, 43],
-    [-28, 45],
-    [-15, 49],
-    [-1, 48],
-    [10, 55],
+    [18, 37],
+    [32, 40],
+    [27, 16],
+    [35, 28],
+    [44, 38],
+    [55, 50],
   ];
   const geometry = new T.BoxGeometry(2, 2, 2);
   const uniforms = {
@@ -137,6 +142,7 @@ export function createVolumeCloudBanks(
     bankVariant: { value: 0 },
     bankEye: { value: new T.Vector3() },
     bankSun: { value: new T.Vector3() },
+    bankScale: { value: new T.Vector3(1, 1, 1) },
     bankDay: { value: 1 },
     bankDetail: detail,
   };
@@ -158,7 +164,10 @@ export function createVolumeCloudBanks(
     const mesh = new T.Mesh(geometry, material);
     mesh.position.copy(position);
     mesh.quaternion.copy(orientation);
-    mesh.scale.set(1.8, 0.9, 1.2);
+    // Broader distant banks retain presence above the ridge line without
+    // adding bounds or atlas memory. Vary the proportions between neighbors.
+    const width = 2.5 + Math.min(1, Math.hypot(x, z) / 55) * 2;
+    mesh.scale.set(width, 1.05 + (i % 3) * 0.22, 1.5 + (i % 4) * 0.18);
     const inverse = new T.Matrix4(),
       cameraPoint = new T.Vector3(),
       nativeSun = new T.Vector3();
@@ -180,10 +189,10 @@ export function createVolumeCloudBanks(
         -0.14,
         0.2,
       );
+      uniforms.bankScale.value.copy(mesh.scale);
       uniforms.bankSun.value
         .copy(nativeSun)
         .applyQuaternion(inverseOrientation)
-        .divide(mesh.scale)
         .normalize();
     };
     group.add(mesh);
@@ -191,13 +200,13 @@ export function createVolumeCloudBanks(
   return group;
 }
 export const cloudVolumeFragment = `varying vec3 bankPoint;
-uniform sampler2D bankDensity;uniform float bankResolution;uniform float bankVariant;uniform vec3 bankEye;uniform vec3 bankSun;uniform float bankDay;uniform float bankDetail;
+uniform sampler2D bankDensity;uniform float bankResolution;uniform float bankVariant;uniform vec3 bankEye;uniform vec3 bankSun;uniform vec3 bankScale;uniform float bankDay;uniform float bankDetail;
 #include <fog_pars_fragment>
 vec4 bankSlice(vec3 p,float slice){vec2 tile=vec2(mod(slice,8.),floor(slice/8.)+bankVariant*bankResolution/8.);return texture2D(bankDensity,(tile*bankResolution+p.xy*(bankResolution-1.)+.5)/vec2(bankResolution*8.,bankResolution*bankResolution/2.));}
 vec4 bankField(vec3 point){vec3 p=point*.5+.5;float inside=step(0.,min(p.x,min(p.y,p.z)))*step(max(p.x,max(p.y,p.z)),1.);p=clamp(p,0.,1.);float slice=p.z*(bankResolution-1.);return mix(bankSlice(p,floor(slice)),bankSlice(p,min(bankResolution-1.,floor(slice)+1.)),fract(slice))*inside;}
 void main(){vec3 ray=normalize(bankPoint-bankEye);vec3 reciprocal=1./(ray+sign(ray)*.000001+vec3(.00000001));vec3 a=(-vec3(1.)-bankEye)*reciprocal;vec3 b=(vec3(1.)-bankEye)*reciprocal;vec3 lo=min(a,b),hi=max(a,b);float start=max(0.,max(lo.x,max(lo.y,lo.z)));float end=min(hi.x,min(hi.y,hi.z));
 float steps=bankDetail>.5?32.:16.;float stride=max(0.,end-start)/steps;float jitter=fract(sin(dot(bankPoint.xy,vec2(1271.1,3117.7)))*43758.5453);float transmission=1.;vec3 radiance=vec3(0.);
-for(int i=0;i<32;i++){if(float(i)>=steps)break;vec3 p=bankEye+ray*(start+(float(i)+jitter)*stride);vec4 field=bankField(p);float mass=field.r;vec3 gradient=field.gba*2.-1.;vec3 normal=gradient/max(.08,length(gradient));float lighting=.12+.88*max(0.,dot(normal,bankSun));float forward=pow(max(0.,dot(ray,bankSun)),6.);vec3 ambient=mix(vec3(.025,.034,.065),vec3(.11,.17,.29),bankDay);vec3 color=ambient+vec3(1.2,.98,.74)*bankDay*(lighting*.85+forward*.14);float opacity=1.-exp(-mass*stride*8.);radiance+=transmission*opacity*color;transmission*=1.-opacity;}
+for(int i=0;i<32;i++){if(float(i)>=steps||transmission<.015)break;vec3 p=bankEye+ray*(start+(float(i)+jitter)*stride);vec4 field=bankField(p);float mass=field.r;if(mass>.001){vec3 gradient=(field.gba*2.-1.)/bankScale;vec3 normal=gradient/max(.035,length(gradient));float wrap=clamp(dot(normal,bankSun)*.6+.4,0.,1.);float lightMass=mass*(1.-wrap);if(bankDetail>.5){lightMass=bankField(p+bankSun/bankScale*1.4).r;}float lighting=.12+exp(-lightMass*2.2)*(.45+.55*wrap);float forward=pow(max(0.,dot(ray,bankSun)),6.);vec3 ambient=mix(vec3(.025,.034,.065),vec3(.24,.33,.49),bankDay);vec3 color=ambient+vec3(1.28,1.1,.88)*bankDay*(lighting*.85+forward*.18);float opacity=1.-exp(-mass*stride*14.);radiance+=transmission*opacity*color;transmission*=1.-opacity;}}
 float alpha=1.-transmission;gl_FragColor=vec4(radiance/max(.0001,alpha),alpha);
 #include <fog_fragment>
 }`;

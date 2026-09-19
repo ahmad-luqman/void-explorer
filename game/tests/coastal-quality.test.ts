@@ -260,6 +260,79 @@ describe('playable coastal visual slice', () => {
       expect(elevation(coastDirection(z * 0.35, z), latest)).toBeLessThan(0);
     }
   });
+  it('migrates a version-2 walker under new foreground without losing earlier clearings', () => {
+    const sim = new FlightSimulation();
+    sim.startCoast();
+    const body = sim.target;
+    const data = generateContact(
+      body,
+      COAST_UP.clone().applyQuaternion(planetRotation(body)),
+    );
+    const patch = new ContactSurface(data, body);
+    sim.surface.setPatch(patch);
+    const rock = sim.surface.scenery.find((p) =>
+      p.id.endsWith('vista:hero:18'),
+    )!;
+    expect(rock).toBeDefined();
+    sim.position.copy(rock.point).addScaledVector(patch.up, 0.0018);
+    sim.surface.phase = 'walking';
+    sim.surface.bodyId = body.id;
+    sim.surface.shipPosition
+      .copy(patch.origin)
+      .addScaledVector(patch.up, 0.003);
+    sim.updateEnvironment();
+    const old = captureExpedition(sim)!;
+    old.surface.sceneryVersion = 2;
+    old.surface.sceneryClearings = [
+      { point: [...old.surface.shipPosition], radius: 0.04 },
+      {
+        point: coastDirection(-0.2, -0.2, body.radius)
+          .multiplyScalar(body.radius)
+          .toArray(),
+        radius: 0.004,
+      },
+    ];
+    const restored = new FlightSimulation();
+    expect(restoreExpedition(restored, old)).toBe(true);
+    const restoredPatch = new ContactSurface(data, restored.nearest);
+    restored.surface.setPatch(restoredPatch);
+    expect(restored.surface.phase).toBe('walking');
+    expect(restored.surface.scenery.some((p) => p.id === rock.id)).toBe(false);
+    expect(
+      sceneryBlocks(
+        restored.surface.scenery,
+        restored.position,
+        restoredPatch.up,
+        0.0007,
+      ),
+    ).toBe(false);
+    const before = restored.position.clone();
+    restored.step(0.1, { ...emptyControls(), accelerate: true });
+    expect(restored.position.distanceTo(before)).toBeGreaterThan(0.0001);
+    const migrated = captureExpedition(restored)!;
+    expect(migrated.surface.sceneryVersion).toBe(3);
+    expect(migrated.surface.sceneryClearings).toHaveLength(4);
+    for (let i = 0; i < 2; i++) {
+      expect(migrated.surface.sceneryClearings![i].radius).toBe(
+        old.surface.sceneryClearings[i].radius,
+      );
+      expect(
+        Math.hypot(
+          ...migrated.surface.sceneryClearings![i].point.map(
+            (v, k) => v - old.surface.sceneryClearings![i].point[k],
+          ),
+        ),
+      ).toBeLessThan(1e-7);
+    }
+    const again = new FlightSimulation();
+    expect(restoreExpedition(again, migrated)).toBe(true);
+    again.surface.setPatch(new ContactSurface(data, again.nearest));
+    expect(captureExpedition(again)!.surface.sceneryClearings).toHaveLength(4);
+    migrated.surface.sceneryClearings!.push({
+      ...migrated.surface.sceneryClearings![0],
+    });
+    expect(parseExpedition(JSON.stringify(migrated))).toBeNull();
+  });
   it('composes close scenery within budget while leaving both walking lanes and the ship footprint clear', () => {
     const sim = new FlightSimulation();
     sim.startCoast();
@@ -278,13 +351,13 @@ describe('playable coastal visual slice', () => {
     ).toBeGreaterThan(50);
     expect(props.some((p) => p.id.endsWith('vista:sentinels'))).toBe(true);
     // Authored foreground anchors must survive slope/water/route filtering.
-    for (const group of [15, 16, 17])
+    for (const group of [15, 16, 17, 18, 19, 20])
       expect(
         props.some((p) => p.id.endsWith(`vista:hero:${group}`)),
         `foreground group ${group}`,
       ).toBe(true);
     for (const prop of props.filter(
-      (p) => p.shape === 'fan' && /:vista:hero:(15|16|17):/.test(p.id),
+      (p) => p.shape === 'fan' && /:vista:hero:(15|16|17|18|19|20):/.test(p.id),
     ))
       expect(prop.height).toBeLessThanOrEqual(0.0016);
     expect(sceneryBlocks(props, patch.origin, patch.up, 0.035)).toBe(false);

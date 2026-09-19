@@ -36,7 +36,7 @@ export type SurfaceRecord = {
   shipPosition: number[];
   shipOrientation: number[];
   walked: number;
-  sceneryVersion?: 1 | 2;
+  sceneryVersion?: 1 | 2 | 3;
   sceneryClearings?: { point: number[]; radius: number }[];
 };
 export const GEAR_TRAVEL_SECONDS = 1.6;
@@ -493,7 +493,7 @@ export class SurfaceExpedition {
       shipPosition: this.shipPosition.toArray(),
       shipOrientation: this.shipOrientation.toArray(),
       walked: this.walked,
-      sceneryVersion: 2,
+      sceneryVersion: 3,
       sceneryClearings: this.sceneryExclusions.map((e) => ({
         point: e.point.toArray(),
         radius: e.radius,
@@ -507,17 +507,30 @@ export class SurfaceExpedition {
     this.shipOrientation.fromArray(record.shipOrientation);
     this.walked = record.walked;
     this.bodyId = record.bodyId;
-    if (record.sceneryVersion === 2) {
-      this.sceneryExclusions = (record.sceneryClearings ?? []).map((e) => ({
-        point: new Vector3().fromArray(e.point),
-        radius: e.radius,
-      }));
-    } else if (record.phase !== 'flight') {
-      // New scenery must not obstruct an older saved ship, exit, or walking pose.
-      this.sceneryExclusions = [
+    this.sceneryExclusions = (record.sceneryClearings ?? []).map((e) => ({
+      point: new Vector3().fromArray(e.point),
+      radius: e.radius,
+    }));
+    const body = this.sim.nearest;
+    const expandedCoast =
+      body.id === 'p0-0' &&
+      this.sim.terrainVersion >= 4 &&
+      [this.shipPosition, this.sim.position].some(
+        (point) =>
+          toPlanet(point, body).normalize().distanceTo(COAST_UP) * body.radius <
+          0.2,
+      );
+    if (
+      record.sceneryVersion !== 3 &&
+      record.phase !== 'flight' &&
+      (record.sceneryVersion !== 2 || expandedCoast)
+    ) {
+      // The expanded foreground must not occupy a saved ship or walker. Keep
+      // earlier clearings as well; version 3 records this migration only once.
+      this.sceneryExclusions.push(
         { point: this.shipPosition.clone(), radius: 0.04 },
         { point: this.sim.position.clone(), radius: 0.004 },
-      ];
+      );
     }
     if (record.phase !== 'flight' || waitForGround) {
       this.phase = 'restoring';

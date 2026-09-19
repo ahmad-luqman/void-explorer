@@ -109,6 +109,11 @@ export function coastalScenery(
       [0.018, 0.048, 0.0028, 0.0015],
       [0.047, 0.05, 0.0035, 0.0018],
       [0.098, 0.065, 0.0045, 0.0026],
+      // Frame the view from the first survey stop, rather than placing every
+      // anchor beyond it. These remain outside both lanes and the ship pad.
+      [0.046, 0.04, 0.0032, 0.0015],
+      [0.061, 0.034, 0.003, 0.0014],
+      [0.0515, 0.03, 0.0014, 0.00065],
     ];
     clusters.forEach(([x, z, r, h], n) => {
       const rng = random(n * 19349663 + 7621);
@@ -118,20 +123,26 @@ export function coastalScenery(
           distance = r * (0.8 + rng() * 1.4);
         const fan = i % 3 === 0;
         const lowGroup = n >= 15;
+        // Keep the existing seed order and placements. At the new near groups,
+        // tiny fragments are low rubble rather than meter-tall pointed stones.
+        const px = x + Math.cos(a) * distance;
+        const pz = z + Math.sin(a) * distance;
+        const radius = fan
+          ? lowGroup
+            ? 0.0012 + rng() * 0.0013
+            : 0.0025 + rng() * 0.0025
+          : 0.0004 + rng() * 0.0017;
+        const height = fan
+          ? lowGroup
+            ? 0.0007 + rng() * 0.0009
+            : 0.002 + rng() * 0.0025
+          : 0.0003 + rng() * 0.0013;
         place(
           `vista:hero:${n}:${i}`,
-          x + Math.cos(a) * distance,
-          z + Math.sin(a) * distance,
-          fan
-            ? lowGroup
-              ? 0.0012 + rng() * 0.0013
-              : 0.0025 + rng() * 0.0025
-            : 0.0004 + rng() * 0.0017,
-          fan
-            ? lowGroup
-              ? 0.0007 + rng() * 0.0009
-              : 0.002 + rng() * 0.0025
-            : 0.0003 + rng() * 0.0013,
+          px,
+          pz,
+          radius,
+          n >= 18 && !fan ? Math.min(height, radius * 0.65) : height,
           rng() * 6.28,
           fan ? 'fan' : undefined,
           fan ? '#ffffff' : '#95788b',

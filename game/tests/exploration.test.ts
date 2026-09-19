@@ -142,7 +142,7 @@ describe('richer surface exploration', () => {
       ),
     ).toBe(false);
     const saved = captureExpedition(restored)!;
-    expect(saved.surface.sceneryVersion).toBe(2);
+    expect(saved.surface.sceneryVersion).toBe(3);
     expect(parseExpedition(JSON.stringify(saved))).not.toBeNull();
     const again = new FlightSimulation();
     expect(restoreExpedition(again, saved)).toBe(true);

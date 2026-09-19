@@ -9,7 +9,7 @@ export function rockFormation(prop: SurfaceProp): RockFormation | undefined {
   if (prop.shape === 'landmark' && prop.id.includes(':coast:')) return 'cliff';
   if (prop.shape || prop.mineral) return;
   if (prop.radius < 0.001) return 'gravel';
-  if (prop.radius >= 0.007 && prop.id.includes(':vista:hero:'))
+  if (prop.radius >= 0.003 && prop.id.includes(':vista:hero:'))
     return 'outcrop';
 }
 

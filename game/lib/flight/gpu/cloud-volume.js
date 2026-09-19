@@ -22,11 +22,11 @@ import {
   Break,
   If,
   length,
+  sub,
+  exp,
   mul,
   add,
   pow,
-  exp,
-  sub,
   Loop,
   vec4,
 } from 'three/tsl';
@@ -49,6 +49,11 @@ export function createShader(uniforms) {
     'value',
     uniforms['bankSun'].value.isColor ? 'color' : 'vec3',
     uniforms['bankSun'],
+  );
+  const bankScale = reference(
+    'value',
+    uniforms['bankScale'].value.isColor ? 'color' : 'vec3',
+    uniforms['bankScale'],
   );
   const bankDay = reference('value', 'float', uniforms['bankDay']);
   const bankDetail = reference('value', 'float', uniforms['bankDetail']);
@@ -109,32 +114,48 @@ export function createShader(uniforms) {
     const radiance = vec3(0);
 
     Loop(32, ({ i }) => {
-      If(float(i).greaterThanEqual(steps), () => {
-        Break();
-      });
+      If(
+        float(i).greaterThanEqual(steps).or(transmission.lessThan(0.015)),
+        () => {
+          Break();
+        },
+      );
 
       const p = bankEye.add(
         ray.mul(start.add(float(i).add(jitter).mul(stride))),
       );
       const field = bankField(p);
       const mass = field.r;
-      const gradient = field.gba.mul(2).sub(1);
-      const normal = gradient.div(max(0.08, length(gradient)));
-      const lighting = add(0.12, mul(0.88, max(0, dot(normal, bankSun))));
-      const forward = pow(max(0, dot(ray, bankSun)), 6);
-      const ambient = mix(
-        vec3(0.025, 0.034, 0.065),
-        vec3(0.11, 0.17, 0.29),
-        bankDay,
-      );
-      const color = ambient.add(
-        vec3(1.2, 0.98, 0.74)
-          .mul(bankDay)
-          .mul(lighting.mul(0.85).add(forward.mul(0.14))),
-      );
-      const opacity = sub(1, exp(mass.negate().mul(stride).mul(8)));
-      radiance.addAssign(transmission.mul(opacity).mul(color));
-      transmission.mulAssign(sub(1, opacity));
+
+      If(mass.greaterThan(0.001), () => {
+        const gradient = field.gba.mul(2).sub(1).div(bankScale);
+        const normal = gradient.div(max(0.035, length(gradient)));
+        const wrap = clamp(dot(normal, bankSun).mul(0.6).add(0.4), 0, 1);
+        const lightMass = mass.mul(sub(1, wrap));
+
+        If(bankDetail.greaterThan(0.5), () => {
+          lightMass.assign(bankField(p.add(bankSun.div(bankScale).mul(1.4))).r);
+        });
+
+        const lighting = add(
+          0.12,
+          exp(lightMass.negate().mul(2.2)).mul(add(0.45, mul(0.55, wrap))),
+        );
+        const forward = pow(max(0, dot(ray, bankSun)), 6);
+        const ambient = mix(
+          vec3(0.025, 0.034, 0.065),
+          vec3(0.24, 0.33, 0.49),
+          bankDay,
+        );
+        const color = ambient.add(
+          vec3(1.28, 1.1, 0.88)
+            .mul(bankDay)
+            .mul(lighting.mul(0.85).add(forward.mul(0.18))),
+        );
+        const opacity = sub(1, exp(mass.negate().mul(stride).mul(14)));
+        radiance.addAssign(transmission.mul(opacity).mul(color));
+        transmission.mulAssign(sub(1, opacity));
+      });
     });
 
     const alpha = sub(1, transmission);
