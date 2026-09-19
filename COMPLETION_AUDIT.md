@@ -46,3 +46,6 @@ Delivered milestone: coastal sky and first-survey foreground composition impleme
 
 
 Private publication verified: Sites v37, source `cdb1ecd3f008fe6763ba48cd6df91af217d768f9`, deployment `appgdep_6aae59b1936c8191bd0f19e14e1c203f`, status `succeeded` on 19 September 2026 at 09:45:44 UTC. Published game source matches root commit `165dfd8` (tree `d9d5c6605c0243318e2202b13697c5f8e15d3c74`). The archive contains the exact 35 validated static output files plus normalized hosting metadata. Cloud lighting, foreground composition and scoped old-save migration are delivered; whole-scene art and physical-device acceptance remain open. Public GitHub was not pushed.
+
+
+Paused at the user's request on 19 September 2026 after committing the validated stone-material pass as root `8dff610`. Sites version 38 is saved but **not deployed**: source `9d3c1b667f3157a5794b9d66a7dffca3e521d08f`, tree `56f9443220ceab7a54d254d42441b9aa4121fd5a`, saved version ID `appgprj_6aa6863a38b481919adb6b70858ea4eb~appgver_f9d4263e74308191bc49acd28ac5335e`. The archive was verified against all 35 static output files plus normalized hosting metadata. The live private build remains v37. Resume only when requested; inspect current access and state before publishing the saved version. Public GitHub was not pushed.
